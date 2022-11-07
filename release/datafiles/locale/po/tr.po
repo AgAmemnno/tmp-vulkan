@@ -1,0 +1,1739 @@
+
+msgid ""
+msgstr ""
+"Project-Id-Version: Blender 3.4.0 Alpha (b'a6b83617e9de')\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2022-10-17 10:12:11\n"
+"PO-Revision-Date: 2012-05-11 14:55+0200\n"
+"Last-Translator: Fatih EKE <fatiheke@hotmail.com>\n"
+"Language-Team: BLENDIST <fatiheke@hotmail.com>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Country: TURKEY"
+
+
+msgid "Name"
+msgstr "İsim"
+
+
+msgid "Color"
+msgstr "Renk"
+
+
+msgid "Value"
+msgstr "Değer"
+
+
+msgid "Action Group"
+msgstr "Eylem Grubu"
+
+
+msgid "Channels"
+msgstr "Kanallar"
+
+
+msgid "Lock"
+msgstr "Kilit"
+
+
+msgid "Select"
+msgstr "Seçim"
+
+
+msgid "Expanded"
+msgstr "Genişletilmiş"
+
+
+msgid "Message"
+msgstr "Mesaj"
+
+
+msgid "Action"
+msgstr "Eylem"
+
+
+msgid "Add"
+msgstr "Ekle"
+
+
+msgid "Drivers"
+msgstr "Sürücüler"
+
+
+msgid "Height"
+msgstr "Yükseklik"
+
+
+msgid "Info"
+msgstr "Bilgi"
+
+
+msgid "Vector"
+msgstr "Vektör"
+
+
+msgid "Boolean"
+msgstr "Boolean"
+
+
+msgid "Object"
+msgstr "Nesne"
+
+
+msgid "Emit"
+msgstr "Yayma"
+
+
+msgid "Indirect"
+msgstr "Dolaylı"
+
+
+msgid "Diffuse"
+msgstr "Yayılma"
+
+
+msgid "Target"
+msgstr "Hedef"
+
+
+msgid "Weight"
+msgstr "Ağırlık"
+
+
+msgid "Grease Pencil"
+msgstr "Eskiz Kalemi"
+
+
+msgid "Particles"
+msgstr "Parçacıklar"
+
+
+msgid "Textures"
+msgstr "Dokular"
+
+
+msgid "Random"
+msgstr "Rasgele"
+
+
+msgid "Angle"
+msgstr "Açı"
+
+
+msgid "Mode"
+msgstr "Mod"
+
+
+msgid "Material"
+msgstr "Malzeme"
+
+
+msgid "Dissolve"
+msgstr "Eritme"
+
+
+msgid "Radius"
+msgstr "Yarıçap"
+
+
+msgid "Fill"
+msgstr "Doldur"
+
+
+msgid "Grab"
+msgstr "Tut"
+
+
+msgid "Blur"
+msgstr "Bulanıklık"
+
+
+msgid "Hue"
+msgstr "Hue"
+
+
+msgid "Saturation"
+msgstr "Doygunluk"
+
+
+msgid "Outline"
+msgstr "Anahat"
+
+
+msgid "Path"
+msgstr "Yol"
+
+
+msgid "Image"
+msgstr "Görüntü"
+
+
+msgid "Rotation"
+msgstr "Dönme"
+
+
+msgid "Scale"
+msgstr "Ölçekle"
+
+
+msgid "Center"
+msgstr "Merkez"
+
+
+msgid "Curve"
+msgstr "Eğri"
+
+
+msgid "Brightness"
+msgstr "Parlaklık"
+
+
+msgid "RGB"
+msgstr "RGB"
+
+
+msgid "HSV"
+msgstr "HSV"
+
+
+msgid "Alpha"
+msgstr "Alfa"
+
+
+msgid "Output"
+msgstr "Çıktı"
+
+
+msgid "Input"
+msgstr "Giriş"
+
+
+msgid "Error"
+msgstr "Hata"
+
+
+msgid "Disable"
+msgstr "Pasif"
+
+
+msgid "Armature"
+msgstr "Armatür"
+
+
+msgid "Default"
+msgstr "Varsayılan"
+
+
+msgid "Camera"
+msgstr "Kamera"
+
+
+msgid "Bone"
+msgstr "Kemik"
+
+
+msgid "Vector Handle"
+msgstr "Vektör Tutamak"
+
+
+msgid "Depth"
+msgstr "Derinlik"
+
+
+msgid "Cursor"
+msgstr "İmleç"
+
+
+msgid "View"
+msgstr "Görünüş"
+
+
+msgid "Material Index"
+msgstr "Malzeme Endeksi"
+
+
+msgid "Render"
+msgstr "Sunum"
+
+
+msgid "Scene"
+msgstr "Sahne"
+
+
+msgid "ID"
+msgstr "Kimlik"
+
+
+msgid "Shading"
+msgstr "Gölgeleme"
+
+
+msgid "Transform"
+msgstr "Dönüştür"
+
+
+msgid "Source"
+msgstr "Kaynak"
+
+
+msgid "Driver type"
+msgstr "Sürücü Türü"
+
+
+msgid "Driver Target"
+msgstr "Hedef Sürücü"
+
+
+msgid "Bone Name"
+msgstr "Kemik Adı"
+
+
+msgid "Data Path"
+msgstr "Veri Yolu"
+
+
+msgid "Factor"
+msgstr "Faktör"
+
+
+msgid "Displacement"
+msgstr "Çıkarma"
+
+
+msgid "Drip"
+msgstr "Damlama"
+
+
+msgid "Resolution"
+msgstr "Çözünürlük"
+
+
+msgid "Texture"
+msgstr "Doku"
+
+
+msgid "Global gravity weight"
+msgstr "Evrensel yerçekimi ağırlığı"
+
+
+msgid "Group"
+msgstr "Gurup"
+
+
+msgid "Modifiers"
+msgstr "Değiştiriciler"
+
+
+msgid "Step Size"
+msgstr "Adım Boyutu"
+
+
+msgid "Frame"
+msgstr "Kare"
+
+
+msgid "Cone"
+msgstr "Koni"
+
+
+msgid "Tube"
+msgstr "Tüp"
+
+
+msgid "Axis"
+msgstr "Eksen"
+
+
+msgid "Noise"
+msgstr "Parazit"
+
+
+msgid "Size"
+msgstr "Boyut"
+
+
+msgid "Use Global Coordinates"
+msgstr "Evrensel Kordinatları Kullan"
+
+
+msgid "Save"
+msgstr "Kaydet"
+
+
+msgid "Environment"
+msgstr "Çevre"
+
+
+msgid "End"
+msgstr "Son"
+
+
+msgid "Start"
+msgstr "Başlat"
+
+
+msgid "Final"
+msgstr "Sonuç "
+
+
+msgid "Time"
+msgstr "Zaman"
+
+
+msgid "Delete"
+msgstr "Sil"
+
+
+msgid "Foam"
+msgstr "Köpük"
+
+
+msgid "Crease"
+msgstr "Kırışıklık"
+
+
+msgid "Visibility"
+msgstr "Görünürlük"
+
+
+msgid "Use"
+msgstr "Kullan"
+
+
+msgid "Grease Pencil Layer"
+msgstr "Eskiz Kalemi Katmanı"
+
+
+msgid "Frames"
+msgstr "Kareler"
+
+
+msgid "Layer"
+msgstr "Katman"
+
+
+msgid "Custom"
+msgstr "Özel"
+
+
+msgid "Window"
+msgstr "Pencere"
+
+
+msgid "Header"
+msgstr "Başlık "
+
+
+msgid "Tools"
+msgstr "Araçlar"
+
+
+msgid "Edit Mode"
+msgstr "Düzenleme Modu"
+
+
+msgid "Mirror"
+msgstr "Yansıtma"
+
+
+msgid "Lattice"
+msgstr "Kafes"
+
+
+msgid "Steps"
+msgstr "Adımlar"
+
+
+msgid "Ping Pong"
+msgstr "Pin Pon"
+
+
+msgid "Space"
+msgstr "Boşluk"
+
+
+msgid "R"
+msgstr "R"
+
+
+msgid "Red"
+msgstr "Kırmızı"
+
+
+msgid "Green"
+msgstr "Yeşil"
+
+
+msgid "Blue"
+msgstr "Mavi"
+
+
+msgid "Library"
+msgstr "Kütüphane"
+
+
+msgid "Box"
+msgstr "Kutu"
+
+
+msgid "Local"
+msgstr "Yerel"
+
+
+msgid "Global"
+msgstr "Evrensel"
+
+
+msgid "Curve Preset"
+msgstr "Eğri Önayarı"
+
+
+msgid "Erase"
+msgstr "Sil "
+
+
+msgid "Mask"
+msgstr "Maske"
+
+
+msgid "X Plane"
+msgstr "X Düzlemi"
+
+
+msgid "Y Plane"
+msgstr "Y Düzlemi"
+
+
+msgid "Z Plane"
+msgstr "Z Düzlemi"
+
+
+msgid "Sculpt Tool"
+msgstr "Heykeltraşlık Araçları"
+
+
+msgid "Rotate"
+msgstr "Döndür"
+
+
+msgid "Ramp"
+msgstr "Rampa"
+
+
+msgid "Smooth Stroke"
+msgstr "Yumuşatma Konturu"
+
+
+msgid "Lens Unit"
+msgstr "Lens Ölçeği"
+
+
+msgid "Vertical"
+msgstr "Dikey"
+
+
+msgid "Sensor Height"
+msgstr "Sensör Yüksekliği"
+
+
+msgid "Sensor Width"
+msgstr "Sensör Genişliği"
+
+
+msgid "Show Name"
+msgstr "İsmini Göster"
+
+
+msgid "Camera types"
+msgstr "Kamera türleri"
+
+
+msgid "Perspective"
+msgstr "Perspektif"
+
+
+msgid "Orthographic"
+msgstr "Dikçizgisel"
+
+
+msgid "Dimensions"
+msgstr "Boyutlar"
+
+
+msgid "Extrude"
+msgstr "Presle"
+
+
+msgid "Font"
+msgstr "Yazıtipi"
+
+
+msgid "Min"
+msgstr "Asg"
+
+
+msgid "Max"
+msgstr "Azm"
+
+
+msgid "Use Nodes"
+msgstr "Düğüm kullan"
+
+
+msgid "Blank"
+msgstr "Boş"
+
+
+msgid "UV Grid"
+msgstr "UV Izgarası"
+
+
+msgid "Movie"
+msgstr "Film"
+
+
+msgid "Multilayer"
+msgstr "Çoklukatman"
+
+
+msgid "Compositing"
+msgstr "Kompozisyon"
+
+
+msgid "Shadow Color"
+msgstr "Gölge Renkli"
+
+
+msgid "Intensity"
+msgstr "Yoğunluk"
+
+
+msgid "Specular"
+msgstr "Aynasal"
+
+
+msgid "Links"
+msgstr "Bağlantılar"
+
+
+msgid "Nodes"
+msgstr "Düğümler"
+
+
+msgid "Shader"
+msgstr "Gölgeleme"
+
+
+msgid "Compositing nodes"
+msgstr "Kompozisyon düğümleri"
+
+
+msgid "Data"
+msgstr "Veri"
+
+
+msgid "Cylinder"
+msgstr "Silindir"
+
+
+msgid "Solid"
+msgstr "Katı "
+
+
+msgid "Both"
+msgstr "İkisi de"
+
+
+msgid "Object Mode"
+msgstr "Nesne Modu"
+
+
+msgid "Pose Mode"
+msgstr "Poz Modu"
+
+
+msgid "Sculpt Mode"
+msgstr "Heykeltraşlık Modu"
+
+
+msgid "Vertex Paint"
+msgstr "Nokta Boyama"
+
+
+msgid "Weight Paint"
+msgstr "Ağırlık Boyama"
+
+
+msgid "Texture Paint"
+msgstr "Doku Boyama"
+
+
+msgid "Global X"
+msgstr "Evrensel X"
+
+
+msgid "Global Y"
+msgstr "Evrensel Y"
+
+
+msgid "Global Z"
+msgstr "Evrensel Z"
+
+
+msgid "Mass"
+msgstr "Kütle"
+
+
+msgid "Particle"
+msgstr "Parçacık"
+
+
+msgid "Halo"
+msgstr "Hale"
+
+
+msgid "Global Gravity"
+msgstr "Evrensel Yerçekimi"
+
+
+msgid "Sound"
+msgstr "Ses"
+
+
+msgid "Filter"
+msgstr "Filtre"
+
+
+msgid "Area"
+msgstr "Alan"
+
+
+msgid "Window Manager"
+msgstr "Pencere Yöneticisi"
+
+
+msgid "Mist"
+msgstr "Sis"
+
+
+msgid "Animation"
+msgstr "Animasyon"
+
+
+msgid "Black"
+msgstr "Siyah"
+
+
+msgid "White"
+msgstr "Beyaz"
+
+
+msgid "Codec"
+msgstr "Kodek"
+
+
+msgid "Rotation & Scale"
+msgstr "Döndürme & Ölçek"
+
+
+msgid "ID Type"
+msgstr "Kimlik Türü"
+
+
+msgid "Show/Hide"
+msgstr "Göster/Gizle"
+
+
+msgid "Console"
+msgstr "Konsol"
+
+
+msgid "Snap"
+msgstr "Yakala"
+
+
+msgid "Unwrap"
+msgstr "Açılım"
+
+
+msgid "Distort"
+msgstr "Çarpıt"
+
+
+msgid "Layout"
+msgstr "Mizanpaj"
+
+
+msgid "Text"
+msgstr "Metin"
+
+
+msgid "Mesh"
+msgstr "Örüntü"
+
+
+msgid "Apply"
+msgstr "Uygula"
+
+
+msgid "Python"
+msgstr "Python"
+
+
+msgid "System"
+msgstr "Sistem"
+
+
+msgid "File"
+msgstr "Dosya"
+
+
+msgid "Export"
+msgstr "Dışa Aktar"
+
+
+msgid "Import"
+msgstr "İçe Aktar"
+
+
+msgid "Help"
+msgstr "Yardım"
+
+
+msgid "Add Image"
+msgstr "Resim Ekle"
+
+
+msgid "Convert"
+msgstr "Çevir"
+
+
+msgid "Distortion"
+msgstr "Saptırma"
+
+
+msgid "New"
+msgstr "Yeni"
+
+
+msgid "Copy"
+msgstr "Kopya"
+
+
+msgid "World"
+msgstr "Dünya"
+
+
+msgid "Limits"
+msgstr "Limitler"
+
+
+msgid "Origin"
+msgstr "Merkez"
+
+
+msgid "Interface"
+msgstr "Arayüz"
+
+
+msgid "H"
+msgstr "H"
+
+
+msgid "S"
+msgstr "S"
+
+
+msgid "Wrap"
+msgstr "Sar"
+
+
+msgid "Feather"
+msgstr "Yumuşatma"
+
+
+msgid "Shadow"
+msgstr "Gölge"
+
+
+msgid "Combined"
+msgstr "Birleşik"
+
+
+msgid "X Axis"
+msgstr "X Eks"
+
+
+msgid "Y Axis"
+msgstr "Y Eks"
+
+
+msgid "Less Than"
+msgstr "Küçüktür"
+
+
+msgid "Greater Than"
+msgstr "Büyüktür"
+
+
+msgid "Object Info"
+msgstr "Nesne Bilgisi"
+
+
+msgid "Reflection"
+msgstr "Yansıma"
+
+
+msgid "Layer Weight"
+msgstr "Katman"
+
+
+msgid "Cycles"
+msgstr "Cycles"
+
+
+msgid "Subsurface Scattering"
+msgstr "Yüzeyaltı Saçılımı"
+
+
+msgid "X axis"
+msgstr "X Eks"
+
+
+msgid "Point Source"
+msgstr "Nokta Kaynağı"
+
+
+msgid "Z Axis"
+msgstr "Z Eks"
+
+
+msgid "Object Constraints"
+msgstr "Nesne Kısıtlamaları"
+
+
+msgid "Object Modifiers"
+msgstr "Nesne Değiştiricileri"
+
+
+msgid "Set"
+msgstr "Ayarla"
+
+
+msgid "Enable"
+msgstr "Etkin"
+
+
+msgid "Flip Names"
+msgstr "İsimleri Çevir"
+
+
+msgid "Move"
+msgstr "Taşı"
+
+
+msgid "History"
+msgstr "Geçmiş"
+
+
+msgctxt "Operator"
+msgid "Delete"
+msgstr "Sil"
+
+
+msgctxt "Operator"
+msgid "Insert"
+msgstr "Ekle"
+
+
+msgid "Language"
+msgstr "Dil"
+
+
+msgctxt "Operator"
+msgid "Move Cursor"
+msgstr "İmleci Taşı"
+
+
+msgid "Move cursor position"
+msgstr "İmleç pozisyonunu taşı"
+
+
+msgid "Report"
+msgstr "Raporla"
+
+
+msgid "To Sphere"
+msgstr "Küreselleştir"
+
+
+msgid "Push/Pull"
+msgstr "İtme/Çekme"
+
+
+msgid "Enter Edit Mode"
+msgstr "Düzenleme Moduna Gir"
+
+
+msgid "Global Space"
+msgstr "Küresel Etki Alanı"
+
+
+msgid "Lamp"
+msgstr "Lamba"
+
+
+msgid "Other"
+msgstr "Diğer"
+
+
+msgid "Open"
+msgstr "Aç"
+
+
+msgid "Limit"
+msgstr "Sınır"
+
+
+msgctxt "Operator"
+msgid "Save Image"
+msgstr "Görüntü Kaydet"
+
+
+msgctxt "Operator"
+msgid "Save As Image"
+msgstr "Resmi farklı kaydet:"
+
+
+msgid "Zoom Out"
+msgstr "Uzaklaş"
+
+
+msgid "Scene Origin"
+msgstr "Sahne Merkezi"
+
+
+msgctxt "Operator"
+msgid "Duplicate Objects"
+msgstr "Nesneleri Çoğalt"
+
+
+msgid "Object Data"
+msgstr "Nesne Verileri"
+
+
+msgctxt "Operator"
+msgid "Join"
+msgstr "Birleştir"
+
+
+msgctxt "Operator"
+msgid "Clear Origin"
+msgstr "Merkezi Temizle"
+
+
+msgid "Paste"
+msgstr "Yapıştır"
+
+
+msgid "Reload"
+msgstr "Yeniden"
+
+
+msgid "Reset"
+msgstr "Sıfırla"
+
+
+msgid "Front Faces Only"
+msgstr "Yalnızca Ön Yüz"
+
+
+msgctxt "Operator"
+msgid "New Scene"
+msgstr "Yeni Sahne"
+
+
+msgctxt "Operator"
+msgid "Play Animation"
+msgstr "Animasyonu Oynat"
+
+
+msgid "Play animation"
+msgstr "Animasyonu Oynat"
+
+
+msgid "Play in Reverse"
+msgstr "Tersine Oynat"
+
+
+msgctxt "Operator"
+msgid "Animation Step"
+msgstr "Animasyon Adımı"
+
+
+msgid "Themes"
+msgstr "Temalar"
+
+
+msgid "Editing"
+msgstr "Düzenleme"
+
+
+msgid "File Paths"
+msgstr "Dosya Yolları"
+
+
+msgid "Sharpen"
+msgstr "Keskinlik"
+
+
+msgctxt "Operator"
+msgid "Reload"
+msgstr "Yeniden"
+
+
+msgctxt "Operator"
+msgid "Replace"
+msgstr "Değiştir"
+
+
+msgctxt "Operator"
+msgid "Save"
+msgstr "Kaydet"
+
+
+msgctxt "Operator"
+msgid "Save As"
+msgstr "Farklı Kaydet..."
+
+
+msgctxt "Operator"
+msgid "Rotate"
+msgstr "Çevir"
+
+
+msgid "Pinned"
+msgstr "Sabitlendi"
+
+
+msgctxt "Operator"
+msgid "Unwrap"
+msgstr "Açılım"
+
+
+msgid "Play"
+msgstr "Oynat"
+
+
+msgid "State"
+msgstr "Durum"
+
+
+msgid "Operator"
+msgstr "Operatör"
+
+
+msgid "Color Path"
+msgstr "Renk Yolu"
+
+
+msgid "Image ID"
+msgstr "Görüntü Kimliği"
+
+
+msgid "Rotation Path"
+msgstr "Döndürme Yolu"
+
+
+msgid "Use Secondary"
+msgstr "İkincil Kullanım"
+
+
+msgctxt "Operator"
+msgid "Load Factory Settings"
+msgstr "Fabrika Ayarlarına Dön"
+
+
+msgctxt "Operator"
+msgid "Recover Last Session"
+msgstr "Son Oturumu Kurtar"
+
+
+msgid "Save Copy"
+msgstr "Kopyasını Kaydet"
+
+
+msgctxt "Operator"
+msgid "Save Blender File"
+msgstr "Blender Dosyasını Kaydet"
+
+
+msgid "Bone Constraints"
+msgstr "Kemik Kısıtlamaları"
+
+
+msgid "Bookmarks"
+msgstr "Yer imleri"
+
+
+msgid "Recent"
+msgstr "En Son"
+
+
+msgid "Physics"
+msgstr "Fizik"
+
+
+msgid "Note"
+msgstr "Not"
+
+
+msgid "Global Hair"
+msgstr "Genel Tüy"
+
+
+msgid "Active Section"
+msgstr "Aktif Bölüm"
+
+
+msgid "Edit Methods"
+msgstr "Düzenleme Metotları"
+
+
+msgid "System & OpenGL"
+msgstr "Sistem ve OpenGL"
+
+
+msgid "View & Controls"
+msgstr "Görünüm ve Kontroller"
+
+
+msgid "Material Link To"
+msgstr "Malzemeleri"
+
+
+msgid "Align Object To"
+msgstr "Nesne Hizalama"
+
+
+msgid "Global Undo"
+msgstr "Genel İşlem Geçmişi"
+
+
+msgid "Allow Negative Frames"
+msgstr "Negatif Karelere İzin"
+
+
+msgid "Animation Player"
+msgstr "Anim Oynatıcısı"
+
+
+msgid "Auto Perspective"
+msgstr "Otomatik Perspektif"
+
+
+msgid "Continue"
+msgstr "Devamlı"
+
+
+msgid "Manual"
+msgstr "Kullanım Kılavuzu"
+
+
+msgid "Show Splash"
+msgstr "Başlangıç Penceresini Göster"
+
+
+msgid "Tooltips"
+msgstr "İpuçları"
+
+
+msgid "TimeCode Style"
+msgstr "Zaman Kodu Biçimi"
+
+
+msgid "Minimal Info"
+msgstr "Asgari Bilgi"
+
+
+msgid "SMPTE (Full)"
+msgstr "SMPTE (Tam)"
+
+
+msgid "SMPTE (Compact)"
+msgstr "SMPTE (Küçük)"
+
+
+msgid "Only Seconds"
+msgstr "Sadece Saniyeler"
+
+
+msgid "Translate Tooltips"
+msgstr "Araç İpuçlarını Tercüme Et"
+
+
+msgid "Find"
+msgstr "Bul"
+
+
+msgid "Strand"
+msgstr "İplik"
+
+
+msgid "Sepia"
+msgstr "Sepya"
+
+
+msgid "Live Unwrap"
+msgstr "Anlık Açılım"
+
+
+msgid "Shadow Size"
+msgstr "Gölge Boyutu"
+
+
+msgid "Object Origin Size"
+msgstr "Nesne Merkezi Boyutu"
+
+
+msgid "Unit Scale"
+msgstr "Birim Ölçeği"
+
+
+msgid "Unit System"
+msgstr "Birim Sistemi"
+
+
+msgid "Rotation Units"
+msgstr "Döndürme Birimleri"
+
+
+msgid "Radians"
+msgstr "Radyan"
+
+
+msgid "Tracking"
+msgstr "Takip"
+
+
+msgid "Torus"
+msgstr "Halka"
+
+
+msgid "Python API Reference"
+msgstr "Python Dili Klavuzu"
+
+
+msgid "Credits"
+msgstr "Katkıda Bulunanlar"
+
+
+msgid "After"
+msgstr "Sonra"
+
+
+msgid "Out"
+msgstr "Çıkış"
+
+
+msgid "Not Set"
+msgstr "Ayarlı Değil"
+
+
+msgid "Before"
+msgstr "Önce"
+
+
+msgid "Draw:"
+msgstr "Çiz:"
+
+
+msgid "Transform:"
+msgstr "Dönüştür:"
+
+
+msgid "Date"
+msgstr "Tarih"
+
+
+msgid "Refraction"
+msgstr "Kırılma"
+
+
+msgid "Paths:"
+msgstr "Yollar:"
+
+
+msgid "B/W"
+msgstr "S/B"
+
+
+msgid "Image*"
+msgstr "Görüntü*"
+
+
+msgid "Top Level"
+msgstr "Üst Seviye"
+
+
+msgid "Sub Level"
+msgstr "Alt Seviye"
+
+
+msgid "Eraser Radius"
+msgstr "Silgi Yarıçapı"
+
+
+msgid "Minimum Grid Spacing"
+msgstr "Asgari Izgara Aralığı"
+
+
+msgid "Mixing Buffer"
+msgstr "Tampon Karıştırma"
+
+
+msgid "View Name"
+msgstr "Görünüş İsmi"
+
+
+msgid "Limit Size"
+msgstr "Boyut Sınırı"
+
+
+msgid "Invert Wheel Zoom Direction"
+msgstr "Tersine Çevir"
+
+
+msgid "Location:"
+msgstr "Lokasyon:"
+
+
+msgid "File:"
+msgstr "Dosya:"
+
+
+msgid "Version:"
+msgstr "Versiyon:"
+
+
+msgid "location"
+msgstr "lokasyon"
+
+
+msgid "Visual Transform"
+msgstr "Görsel Dönüşüm"
+
+
+msgid "Bone Settings"
+msgstr "Kemik Ayarları"
+
+
+msgid "Auto Normalize"
+msgstr "Otomatik Normalleştir"
+
+
+msgid "Multi-Paint"
+msgstr "Çoklu-Boyama"
+
+
+msgid "Path Steps"
+msgstr "Yol Adımları"
+
+
+msgid "Add New"
+msgstr "Yeni Ekle"
+
+
+msgid "Add New (Current Frame)"
+msgstr "Yeni Ekle (Şimdiki Kareye)"
+
+
+msgid "Replace Existing..."
+msgstr "Varolanla Değiştir..."
+
+
+msgid "Hex"
+msgstr "Hex"
+
+
+msgid "Hex: "
+msgstr "Hex: "
+
+
+msgid "(Gamma Corrected)"
+msgstr "(Gamma Düzeltildi)"
+
+
+msgid "Hex triplet for color (#RRGGBB)"
+msgstr "Renk için Hex üçlüsü (#RRGGBB)"
+
+
+msgid "Shortcut: %s"
+msgstr "Kısayol: %s"
+
+
+msgid "Python: %s"
+msgstr "Python: %s"
+
+
+msgid "Value: %s"
+msgstr "Değer: %s"
+
+
+msgid "Radians: %f"
+msgstr "Radyan: %f"
+
+
+msgid "Expression: %s"
+msgstr "İfade: %s"
+
+
+msgid "Library: %s"
+msgstr "Kütüphane: %s"
+
+
+msgid "Disabled: %s"
+msgstr "Devre Dışı: %s"
+
+
+msgid "Python: %s.%s"
+msgstr "Python: %s.%s"
+
+
+msgid "Reset View"
+msgstr "Görünüşü Sıfırla"
+
+
+msgid "Reset Curve"
+msgstr "Eğriyi Sıfırla"
+
+
+msgid "Anim Player"
+msgstr "Anim Oynatıcısı"
+
+
+msgid "Delete the active position"
+msgstr "Aktif pozisyonu sil"
+
+
+msgid "Zoom in"
+msgstr "Yakınlaştır"
+
+
+msgid "Zoom out"
+msgstr "Uzaklaştır"
+
+
+msgid "Clipping Options"
+msgstr "Kırpma Seçenekleri"
+
+
+msgid "Delete points"
+msgstr "Noktaları sil"
+
+
+msgid "Stop this job"
+msgstr "İşi durdur"
+
+
+msgid "Stop animation playback"
+msgstr "Animasyon oynatmayı durdur"
+
+
+msgid "Browse Scene to be linked"
+msgstr "Sahne bağlarına gözat"
+
+
+msgid "Browse Object to be linked"
+msgstr "Obje bağlarına gözat"
+
+
+msgid "Browse Mesh Data to be linked"
+msgstr "Örgü verileri bağlarına gözat"
+
+
+msgid "Browse Curve Data to be linked"
+msgstr "Eğri verileri bağlarına gözat"
+
+
+msgid "Browse Metaball Data to be linked"
+msgstr "Metaball verileri bağlarına gözat"
+
+
+msgid "Browse Material to be linked"
+msgstr "Malzeme bağlarına gözat"
+
+
+msgid "Browse Texture to be linked"
+msgstr "Doku bağlarına gözat"
+
+
+msgid "Browse Image to be linked"
+msgstr "İmaj bağlarına gözat"
+
+
+msgid "Browse Lattice Data to be linked"
+msgstr "Kafes Veri bağlarına gözat"
+
+
+msgid "Browse Camera Data to be linked"
+msgstr "Kamera Veri bağlarına gözat"
+
+
+msgid "Browse World Settings to be linked"
+msgstr "Dünya Ayarları bağına gözat"
+
+
+msgid "Browse Text to be linked"
+msgstr "Metin bağlarına gözat"
+
+
+msgid "Browse Speaker Data to be linked"
+msgstr "Hoparlör Veri bağlarına gözat"
+
+
+msgid "Browse Sound to be linked"
+msgstr "Ses bağlarına gözat"
+
+
+msgid "Browse Armature data to be linked"
+msgstr "Armatür Veri bağlarına gözat"
+
+
+msgid "Browse Action to be linked"
+msgstr "Eylem bağlarına gözat"
+
+
+msgid "Browse Node Tree to be linked"
+msgstr "Düğüm Ağacı bağlarına gözat"
+
+
+msgid "Browse Brush to be linked"
+msgstr "Fırça bağlarına gözat"
+
+
+msgid "Browse Grease Pencil Data to be linked"
+msgstr "Eskiz Kalemi Verileri bağına gözat"
+
+
+msgid "Browse ID data to be linked"
+msgstr "Kimlik Verileri bağına gözat"
+
+
+msgid "%d items"
+msgstr "%d öğe"
+
+
+msgid "Blender Render"
+msgstr "Blender Sunumu"
+
+
+msgid "OK"
+msgstr "TAMAM"
+
+
+msgid "File Path:"
+msgstr "Dosya Yolu:"
+
+
+msgid "File path"
+msgstr "Dosya yolu"
+
+
+msgid "Cancel"
+msgstr "İptal"
+
+
+msgid "File name"
+msgstr "Dosya adı"
+
+
+msgid "Cursor X"
+msgstr "İmleç X"
+
+
+msgid "Value:"
+msgstr "Değer:"
+
+
+msgid "Geometry:"
+msgstr "Geometri:"
+
+
+msgid "Vertex:"
+msgstr "Nokta:"
+
+
+msgid "Median:"
+msgstr "Medyan:"
+
+
+msgid "Weight:"
+msgstr "Ağırlık:"
+
+
+msgid "Radius:"
+msgstr "Yarıçap:"
+
+
+msgid "Mean Weight:"
+msgstr "Ağırlık Ortalaması:"
+
+
+msgid "Mean Radius:"
+msgstr "Yarıçap Ortalaması:"
+
+
+msgid "4L"
+msgstr "4L"
+
+
+msgid "No Bone Active"
+msgstr "Aktif Kemik Yok"
+
+
+msgid "Radius (Parent)"
+msgstr "Yarıçap (Veli)"
+
+
+msgid "Size:"
+msgstr "Boyut:"
+
+
+msgid "Modify"
+msgstr "Değiştirici"
+
+
+msgid "Motion"
+msgstr "Hareket"
+
+
+msgid "Path:"
+msgstr "Yol:"
+
+
+msgid "Format:"
+msgstr "Biçim:"
+
+
+msgid "On"
+msgstr "Açık"
+
+
+msgid "Transparency"
+msgstr "Saydamlık"
+
+
+msgid "Object Index"
+msgstr "Nesne Endeksi"
+
+
+msgid "Patterns"
+msgstr "Desenler"
+
+
+msgid "OK?"
+msgstr "TAMAM?"
+

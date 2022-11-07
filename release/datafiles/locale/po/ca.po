@@ -1,0 +1,792 @@
+
+msgid ""
+msgstr ""
+"Project-Id-Version: Blender 3.4.0 Alpha (b'a6b83617e9de')\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2022-10-17 10:12:11\n"
+"PO-Revision-Date: \n"
+"Last-Translator: Santiago Lizardo <santiago.lizardo@gmail.com>\n"
+"Language-Team: Blender Català (http://www.blender.cat)\n"
+"Language: ca\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Catalan"
+
+
+msgid "Name"
+msgstr "Nom"
+
+
+msgid "Color"
+msgstr "Color"
+
+
+msgid "Add"
+msgstr "Afegir"
+
+
+msgid "Empty"
+msgstr "Buit"
+
+
+msgid "Info"
+msgstr "Informació"
+
+
+msgid "Author"
+msgstr "Autor"
+
+
+msgid "Object"
+msgstr "Objecte"
+
+
+msgid "Particles"
+msgstr "Partícules"
+
+
+msgid "Fill"
+msgstr "Omplir"
+
+
+msgid "Push"
+msgstr "Empenta"
+
+
+msgid "Outline"
+msgstr "Perfilar"
+
+
+msgid "Path"
+msgstr "Camí"
+
+
+msgid "Scale"
+msgstr "Escalar"
+
+
+msgid "Center"
+msgstr "Centre"
+
+
+msgid "Curve"
+msgstr "Corba"
+
+
+msgid "Armature"
+msgstr "Armadura"
+
+
+msgid "Camera"
+msgstr "Càmera"
+
+
+msgid "Bone"
+msgstr "Os"
+
+
+msgid "Front"
+msgstr "Frontal"
+
+
+msgid "Surface"
+msgstr "Superfície"
+
+
+msgid "Plane"
+msgstr "Pla"
+
+
+msgid "View"
+msgstr "Vista"
+
+
+msgid "Render"
+msgstr "Render"
+
+
+msgid "Scene"
+msgstr "Escena"
+
+
+msgid "Smoothness"
+msgstr "Suavitat"
+
+
+msgid "Container"
+msgstr "Contenidor"
+
+
+msgid "Cone"
+msgstr "Con"
+
+
+msgid "Tube"
+msgstr "Tub"
+
+
+msgid "Save"
+msgstr "Guardar"
+
+
+msgid "Link"
+msgstr "Enllaç"
+
+
+msgid "Append"
+msgstr "Afegir"
+
+
+msgid "Delete"
+msgstr "Esborrar"
+
+
+msgid "Top"
+msgstr "Superior"
+
+
+msgid "Spray"
+msgstr "Esprai"
+
+
+msgid "Fire"
+msgstr "Foc"
+
+
+msgid "Grid"
+msgstr "Reixa"
+
+
+msgid "Header"
+msgstr "Capçalera"
+
+
+msgid "Lattice"
+msgstr "Lattice"
+
+
+msgid "Grow"
+msgstr "Créixer"
+
+
+msgid "Merge"
+msgstr "Unir"
+
+
+msgid "Global"
+msgstr "Global"
+
+
+msgid "Erase"
+msgstr "Esborrar"
+
+
+msgid "Rotate"
+msgstr "Rotar"
+
+
+msgid "Extrude"
+msgstr "Extrusionar"
+
+
+msgid "Shear"
+msgstr "Inclinar"
+
+
+msgid "Movie"
+msgstr "Pel·lícula"
+
+
+msgid "Cube"
+msgstr "Cub"
+
+
+msgid "Cylinder"
+msgstr "Cilindre"
+
+
+msgid "Circle"
+msgstr "Cercle"
+
+
+msgid "Black"
+msgstr "Negre"
+
+
+msgid "White"
+msgstr "Blanc"
+
+
+msgid "Owner"
+msgstr "Propietari"
+
+
+msgid "Edit"
+msgstr "Editar"
+
+
+msgid "Text"
+msgstr "Texte"
+
+
+msgid "Mesh"
+msgstr "Malla"
+
+
+msgid "System"
+msgstr "Sistema"
+
+
+msgid "File"
+msgstr "Arxiu"
+
+
+msgid "New"
+msgstr "Nou"
+
+
+msgid "Debug"
+msgstr "Depuració"
+
+
+msgid "Overwrite"
+msgstr "Sobreescriure"
+
+
+msgid "Limits"
+msgstr "Límits"
+
+
+msgid "Beauty"
+msgstr "Bellesa"
+
+
+msgid "Equal"
+msgstr "Igual"
+
+
+msgid "Not Equal"
+msgstr "No és igual"
+
+
+msgctxt "Operator"
+msgid "Extrude"
+msgstr "Extrusionar"
+
+
+msgctxt "Operator"
+msgid "Hide Selected"
+msgstr "Amagar Seleccionats"
+
+
+msgid "Siblings"
+msgstr "Germans"
+
+
+msgctxt "Operator"
+msgid "Symmetrize"
+msgstr "Simetrizar"
+
+
+msgctxt "Operator"
+msgid "Zoom In"
+msgstr "Ampliar"
+
+
+msgctxt "Operator"
+msgid "Delete"
+msgstr "Esborrar"
+
+
+msgctxt "Operator"
+msgid "Insert"
+msgstr "Insertar"
+
+
+msgid "Language"
+msgstr "Idioma"
+
+
+msgid "Shrink/Fatten"
+msgstr "Contreure/Engreixar"
+
+
+msgid "Less"
+msgstr "Menys"
+
+
+msgid "Item"
+msgstr "Element"
+
+
+msgid "Undo Message"
+msgstr "Desfer Missatge"
+
+
+msgid "Lamp"
+msgstr "Làmpada"
+
+
+msgid "Increment"
+msgstr "Increment"
+
+
+msgid "Lower or upper case"
+msgstr "Majúscules o minúscules"
+
+
+msgid "Delta"
+msgstr "Delta"
+
+
+msgid "Style"
+msgstr "Estil"
+
+
+msgid "Bold"
+msgstr "Negreta"
+
+
+msgid "Italic"
+msgstr "Cursiva"
+
+
+msgid "Eraser"
+msgstr "Goma d'esborrar"
+
+
+msgid "Side"
+msgstr "Costat"
+
+
+msgid "No Timing"
+msgstr "Sense Sincronització"
+
+
+msgid "Ignore timing"
+msgstr "Passar per alt la sincronització"
+
+
+msgid "Join"
+msgstr "Unir"
+
+
+msgid "Square Threshold"
+msgstr "Llindar rectangular"
+
+
+msgid "Black Point"
+msgstr "Punt negre"
+
+
+msgid "White Point"
+msgstr "Punt blanc"
+
+
+msgid "Counter Clockwise"
+msgstr "Antihorària"
+
+
+msgctxt "Operator"
+msgid "Fill"
+msgstr "Omplir"
+
+
+msgid "Outset"
+msgstr "Començament"
+
+
+msgid "Ring"
+msgstr "Anell"
+
+
+msgid "Merge selected vertices"
+msgstr "Amagar Seleccionats"
+
+
+msgid "Fill Holes"
+msgstr "Omplir els forats"
+
+
+msgid "Equal To"
+msgstr "Igual"
+
+
+msgid "Not Equal To"
+msgstr "No és igual a"
+
+
+msgid "Exit"
+msgstr "Sortir"
+
+
+msgid "Delay"
+msgstr "Retard"
+
+
+msgctxt "Operator"
+msgid "Join"
+msgstr "Unir"
+
+
+msgid "Primitive"
+msgstr "Primitiu"
+
+
+msgid "Heavy"
+msgstr "Pesat"
+
+
+msgid "Unlink"
+msgstr "Deslligar"
+
+
+msgid "Name of the file"
+msgstr "Nom del fitxer"
+
+
+msgctxt "Operator"
+msgid "Reveal"
+msgstr "Revelar"
+
+
+msgctxt "Operator"
+msgid "Render"
+msgstr "Render"
+
+
+msgid "Sync"
+msgstr "Sincronitzar"
+
+
+msgid "Add a new screen"
+msgstr "Afegir una nova pantalla"
+
+
+msgid "Overlap"
+msgstr "Superposició"
+
+
+msgid "Sound Name"
+msgstr "Nom del so"
+
+
+msgctxt "Operator"
+msgid "Jump"
+msgstr "Saltar"
+
+
+msgctxt "Operator"
+msgid "Save"
+msgstr "Guardar"
+
+
+msgctxt "Operator"
+msgid "Rotate"
+msgstr "Rotar"
+
+
+msgctxt "Operator"
+msgid "Shear"
+msgstr "Inclinar"
+
+
+msgctxt "Operator"
+msgid "Shrink/Fatten"
+msgstr "Contreure/Engreixar"
+
+
+msgctxt "Operator"
+msgid "Tilt"
+msgstr "Inclinar"
+
+
+msgid "Values"
+msgstr "Valors"
+
+
+msgctxt "Operator"
+msgid "Eyedropper"
+msgstr "Comptagotes"
+
+
+msgid "Add a new background image"
+msgstr "Afegir una nova imatge de fons"
+
+
+msgid "Move the view"
+msgstr "Moure la vista"
+
+
+msgid "Enumerate"
+msgstr "Enumerar"
+
+
+msgid "Run once and exit"
+msgstr "Executar un cop i sortir"
+
+
+msgid "Load UI"
+msgstr "Carregar la interfície d'usuari"
+
+
+msgid "Operator"
+msgstr "Operador"
+
+
+msgid "Context"
+msgstr "Context"
+
+
+msgid "Quit Blender"
+msgstr "Sortir de Blender"
+
+
+msgid "Draw Region"
+msgstr "Dibuixar Regió"
+
+
+msgid "URL"
+msgstr "URL"
+
+
+msgid "URL to open"
+msgstr "URL per obrir"
+
+
+msgid "Bleed"
+msgstr "Sagnar"
+
+
+msgid "Cull"
+msgstr "Rebuig"
+
+
+msgid "Solve"
+msgstr "Resoldre"
+
+
+msgid "Lens"
+msgstr "Lent"
+
+
+msgid "Film"
+msgstr "Pel·licula"
+
+
+msgid "Threads"
+msgstr "Llustrós"
+
+
+msgid "Recent"
+msgstr "Recent"
+
+
+msgid "Scopes"
+msgstr "Àmbits"
+
+
+msgid "Physics"
+msgstr "Física"
+
+
+msgid "Friend"
+msgstr "Amic"
+
+
+msgid "Neutral"
+msgstr "Neutral"
+
+
+msgid "Enemy"
+msgstr "Enemic"
+
+
+msgid "Undo Steps"
+msgstr "Passos de desfer"
+
+
+msgid "Global Undo"
+msgstr "Desfer Global"
+
+
+msgid "Sounds Directory"
+msgstr "Directori de sons"
+
+
+msgid "Compress File"
+msgstr "Comprimir fitxer"
+
+
+msgid "Softness"
+msgstr "Blandura"
+
+
+msgid "44.1 kHz"
+msgstr "44.1 khz"
+
+
+msgid "48 kHz"
+msgstr "48 khz"
+
+
+msgid "96 kHz"
+msgstr "96 khz"
+
+
+msgid "192 kHz"
+msgstr "192 khz"
+
+
+msgid "Find"
+msgstr "Trobar"
+
+
+msgid "Engine"
+msgstr "Motor"
+
+
+msgid "Movie Format"
+msgstr "Format de pel·lícula"
+
+
+msgid "File Extensions"
+msgstr "Extensions de Fitxer"
+
+
+msgid "Placeholders"
+msgstr "Marcadors de posició"
+
+
+msgid "Base"
+msgstr "Base"
+
+
+msgid "Plasticity"
+msgstr "Plasticitat"
+
+
+msgid "Input 1"
+msgstr "Entrada 1"
+
+
+msgid "Input 2"
+msgstr "Entrada 2"
+
+
+msgid "Show Thumbnails"
+msgstr "Mostrar miniatures"
+
+
+msgid "Maximal"
+msgstr "Màxim"
+
+
+msgid "Pull"
+msgstr "Tirar"
+
+
+msgid "Use Goal"
+msgstr "Feu servir objectiu"
+
+
+msgid "Show Margin"
+msgstr "Mostrar Marge"
+
+
+msgid "Word Wrap"
+msgstr "Ajust de línia"
+
+
+msgid "Points U"
+msgstr "Punts U"
+
+
+msgid "Points V"
+msgstr "Punts V"
+
+
+msgid "Stencil"
+msgstr "Plantilla"
+
+
+msgid "Rough"
+msgstr "Aspre"
+
+
+msgid "Name of the theme"
+msgstr "Nom del tema"
+
+
+msgid "Wires"
+msgstr "Filferros"
+
+
+msgid "Inner"
+msgstr "Interior"
+
+
+msgid "Metric"
+msgstr "Mètric"
+
+
+msgid "Radians"
+msgstr "Radians"
+
+
+msgid "Heat"
+msgstr "Calor"
+
+
+msgid "Lower"
+msgstr "Inferior"
+
+
+msgid "Upper"
+msgstr "Superior"
+
+
+msgid "Storage"
+msgstr "Emmagatzematge"
+
+
+msgid "Unpack"
+msgstr "Desempaquetar"
+
+
+msgid "Pack"
+msgstr "Empaquetar"
+
+
+msgid "Author:"
+msgstr "Autor"
+
+
+msgid "Version:"
+msgstr "Versió:"
+
+
+msgid "Basic"
+msgstr "Bàsic"
+
+
+msgid "%d items"
+msgstr "%d elements"
+
+
+msgid "Fields"
+msgstr "Camps"
+
+
+msgid "Home"
+msgstr "Casa"
+
+
+msgid "True"
+msgstr "Veritable"
+
+
+msgid "Not yet implemented"
+msgstr "Encara no s'ha implementat"
+

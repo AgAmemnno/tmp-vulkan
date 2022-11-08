@@ -2,6 +2,7 @@
 
 #include "testing/testing.h"
 
+#include "BLI_threads.h"
 #include "GPU_capabilities.h"
 #include "GPU_compute.h"
 #include "GPU_index_buffer.h"
@@ -9,6 +10,8 @@
 #include "GPU_texture.h"
 #include "GPU_vertex_buffer.h"
 #include "GPU_vertex_format.h"
+#include "intern/gpu_vertex_buffer_private.hh"
+#include "GPU_batch_presets.h"
 #include "GPU_init_exit.h" /* interface */
 #include "MEM_guardedalloc.h"
 
@@ -173,7 +176,7 @@ TEST(ContextVk, RenderBegin)
 }
 #endif
 
-
+#if 1
 TEST(ContextVk, Pipeline)
 {
   CLG_init();
@@ -215,8 +218,12 @@ TEST(ContextVk, Pipeline)
    //config.vkRP = swapChain->renderPass, config.vkPC = swapChain->pipelineCache;
   tone->createPipeline(config);
   tone->writeout(desc);
+  tone->make = [&](VkCommandBuffer cmd, VkSemaphore sema) -> bool {
+    tone->make_tonemapping(cmd);
+    return true;
+  };
 
-  for (int i = 0; i < 12; i++) {
+   for (int i = 0; i < 12; i++) {
 
     context->commandLoop(*tone);
     context->swapBuffers();
@@ -229,6 +236,126 @@ TEST(ContextVk, Pipeline)
   test_Destroy();
 
 };
+
+#endif
+
+#if 1
+TEST(ContextVk, Input)
+{
+  BLI_threadapi_init();
+  CLG_init();
+  ghost_window = test_ghost_window(VULKAN_DEBUG_UTILS, 0);
+  if (ghost_window && ghost_context == NULL) {
+    GHOST_Window *ghostWin = reinterpret_cast<GHOST_Window *>(ghost_window);
+    ghost_context = (GHOST_ContextHandle)((ghostWin ? ghostWin->getContext() : NULL));
+  }
+  BLI_assert(ghost_context);
+  GHOST_ContextVK *context = (GHOST_ContextVK *)ghost_context;
+  VkDevice device = context->getDevice();
+
+  test_CreateVulkanContext();
+  GPU_render_begin();
+  GPU_init();
+  /*
+  typedef struct GPUBatch {
+    // verts[0] is required, others can be NULL 
+    GPUVertBuf *verts[GPU_BATCH_VBO_MAX_LEN];
+    // Instance attributes. 
+    GPUVertBuf *inst[GPU_BATCH_INST_VBO_MAX_LEN];
+    // NULL if element list not needed 
+    GPUIndexBuf *elem;
+    // Resource ID attribute workaround. 
+    GPUStorageBuf *resource_id_buf;
+    // Bookkeeping. 
+    eGPUBatchFlag flag;
+    // Type of geometry to draw.
+    GPUPrimType prim_type;
+    /// Current assigned shader. DEPRECATED. Here only for uniform binding. 
+    struct GPUShader *shader;
+  } GPUBatch;
+  */
+
+
+  VKCommandBufferManager *cmm = new VKCommandBufferManager(device);
+  cmm->prepare(context);
+  MBIVSIvk desc(device);
+  createImage(*cmm, desc, 32, 32);
+
+
+
+
+  GPUBatch *   sphere =   GPU_batch_preset_sphere(1);
+  GPUVertBuf *verts_ = sphere->verts[0];
+  VertBuf *verts =  reinterpret_cast<VertBuf *>(verts_);
+ 
+  const GPUVertFormat *format = &verts->format;
+  const GPUVertAttr *a = &format->attrs[0];
+  BLI_assert(0 < format->attr_len);
+  BLI_assert(verts->data != nullptr);
+
+  //verts->flag |= GPU_VERTBUF_DATA_DIRTY;
+  //verts->flag &= ~GPU_VERTBUF_DATA_UPLOADED;
+
+
+  GPUVertBufRaw access;
+  access.size = verts->vertex_len * format->stride;
+  access.stride = format->stride;
+  access.data = (uchar *)verts->data;
+  access.data_init = access.data;
+  MBvk input(cmm->device);
+
+
+   $createBuffer$(input,*cmm, access);
+   VInfo.$set$("Preset",format);
+   vkPVISci &vinfo = VInfo.Info["Preset"];
+   
+   auto tone = new MaterialVk(device);
+   tone->SetUp(MODE_GEOMTEST);
+   tone->make = [&](VkCommandBuffer cmd, VkSemaphore sema) -> bool {
+     tone->make_geomtest(cmd, input, verts->vertex_len);
+     return true;
+   };
+  PipelineConfigure config = {};
+  VkImage image;
+  VkFramebuffer framebuffer;
+  VkCommandBuffer command_buffer;
+  uint32_t fb_id;
+  VkExtent2D extent;
+
+  context->getVulkanBackbuffer((void *)&image,
+                               (void *)&framebuffer,
+                               (void *)&command_buffer,
+                               (void *)&config.vkRP,
+                               (void *)&extent,
+                               (uint32_t *)&fb_id);
+  config.vkPVISci = &vinfo.info;
+  tone->createPipeline(config);
+  tone->writeout(desc);
+
+  for (int i = 0; i < 12; i++) {
+
+    context->commandLoop(*tone);
+    context->swapBuffers();
+  }
+
+
+
+
+
+
+   input.dealloc();
+   desc.dealloc();
+   delete cmm;
+   delete tone;
+
+  GPU_exit();
+  test_Destroy();
+  BLI_threadapi_exit();
+};
+
+#endif
+
+
 
 #if 0
 TEST(ContextVk, Window)

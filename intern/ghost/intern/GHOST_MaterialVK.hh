@@ -82,7 +82,35 @@ static VkPipelineShaderStageCreateInfo loadShader(VkDevice device,std::string fi
   BLI_assert(shaderStage.module != VK_NULL_HANDLE);
   return shaderStage;
 };
+typedef struct MBvk {
+  VkDevice device;
+  VkDeviceMemory memory;
+  VkBuffer buffer = VK_NULL_HANDLE;
+  VkIndexType idxType;
+  int version = {-1};
+  uint32_t count;
+  MBvk(VkDevice device_)
+      : device(device_),
+        memory(VK_NULL_HANDLE),
+        buffer(VK_NULL_HANDLE),
+        version(-1),
+        count(0),
+        idxType(VK_INDEX_TYPE_UINT32){};
+  bool isValid()
+  {
+    return buffer != VK_NULL_HANDLE;
+  }
+  void dealloc()
+  {
+    if (buffer != VK_NULL_HANDLE) {
+      vkDestroyBuffer(device, buffer, nullptr);
+      vkFreeMemory(device, memory, nullptr);
+      buffer = VK_NULL_HANDLE;
+      memory = VK_NULL_HANDLE;
+    };
+  };
 
+} MBvk;
 typedef struct MIVSIvk {
   size_t size;
   uint32_t w, h, d, l, c, mipLevel;
@@ -248,6 +276,25 @@ struct ImmidiateCmdPool {
   GHOST_TSuccess end();
   GHOST_TSuccess submit(int i = 0);
   GHOST_TSuccess wait();
+
+ GHOST_TSuccess Map(void *src, VkDeviceSize offset, VkDeviceSize size)
+  {
+
+    char *dst;
+    VK_CHECK(vkMapMemory(device, staging.memory, offset, size, 0, (void **)&dst));
+    memcpy(dst, src, size);
+    vkUnmapMemory(device, staging.memory);
+    return GHOST_kSuccess;
+  };
+  template<class B>
+  bool Copy(B &_, VkDeviceSize size, VkDeviceSize srcOffset, VkDeviceSize dstOffset)
+  {
+    VkBufferCopy copyRegion = {srcOffset, dstOffset, size};
+    vkCmdCopyBuffer(cmd, staging.buffer, _.buffer, 1, &copyRegion);
+    return true;
+  };
+
+
 };
 
 void setImageLayout(VkCommandBuffer cmdbuffer,
@@ -1172,6 +1219,287 @@ typedef struct Bache {
 #  endif
 } Bache;
 
+
+enum class VERTEX_INPUT : UINT32 {
+
+  vertexPRS = 0b000001,
+  vertexPC = 0b000010,
+  vertexPUN = 0b000011,
+  vertexPV = 0b000100,
+  vertexPNC = 0b000101,
+  vertexPQS = 0b000110,
+  vertexPQS4 = 0b000111,
+  vertexPN = 0b001000,
+  vertexSprite = 0b001001,
+  vertexP = 0b001010,
+  ALL_TYPE,
+
+  vertex_F = 0b0000000000010000,
+  vertex_F_SCALE,
+  vertex_V2 = 0b0000000100000000,
+  vertex_V2_UV,
+  vertex_V2_POSITION,
+  vertex_V3 = 0b0001000000000000,
+  vertex_V3_POSITION,
+  vertex_V3_NORMAL,
+  vertex_V3_COLOR,
+  vertex_V3_TANGENT,
+  vertex_V3_BITANGENT,
+  vertex_V3_ROTATION,
+  vertex_V3_SCALE,
+  vertex_V4 = 0b10000000000000000,
+  vertex_V4_POSITION,
+  vertex_V4_QUATERNION,
+  vertex_V4_VELOCITY,
+  vertex_V4_SCALE,
+  vertex_INDEX,
+  ALL
+
+};
+struct vkPVISci {
+
+  std::vector<VkVertexInputBindingDescription> vertexInputBindings;
+  std::vector<VkVertexInputAttributeDescription> vertexInputAttributes;
+  VkPipelineVertexInputStateCreateInfo info;
+  VERTEX_INPUT  type;
+};
+
+
+
+struct vkPVISciMem {
+
+  /// vkPVISci                                           Info[arth::INPUT_TYPE_ALL];
+  std::unordered_map<std::string, vkPVISci> Info;
+  SRWLOCK SlimLock;
+  vkPVISciMem(){};
+
+ 
+  template<class FormatTy>
+  void $set$(std::string Name,
+             const FormatTy *format,
+             VkVertexInputRate rate = VK_VERTEX_INPUT_RATE_VERTEX)
+  {
+
+
+    BLI_assert(Info.count(Name) == 0);
+    vkPVISci& mem = Info[Name];
+   
+ 
+
+    mem.vertexInputBindings.clear();
+    mem.vertexInputAttributes.clear();
+
+
+    VkVertexInputBindingDescription vib;
+    vib.binding = 0;
+    vib.stride = (uint32_t)format->stride;
+    vib.inputRate = rate;
+
+
+    mem.vertexInputBindings.push_back(vib);
+
+    for (int i = 0; i < format->attr_len; i++) {
+      VkVertexInputAttributeDescription desc;
+      desc.location = (UINT32)i;
+      desc.binding = 0;
+      const GPUVertAttr *a = &format->attrs[i];
+      if (a->size == 4) {
+        desc.format = VK_FORMAT_R32_SFLOAT;
+      }
+      else if (a->size == 8) {
+        desc.format = VK_FORMAT_R32G32_SFLOAT;
+      }
+      else if (a->size == 12) {
+        desc.format = VK_FORMAT_R32G32B32_SFLOAT;
+      }
+      else if (a->size == 16) {
+        desc.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+      }
+      desc.offset = a->offset;
+      mem.vertexInputAttributes.push_back(desc);
+    };
+
+    VkPipelineVertexInputStateCreateInfo &info = mem.info;
+
+    info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+    info.vertexBindingDescriptionCount = static_cast<uint32_t>(mem.vertexInputBindings.size()),
+    info.pVertexBindingDescriptions = mem.vertexInputBindings.data(),
+    info.vertexAttributeDescriptionCount = static_cast<uint32_t>(mem.vertexInputAttributes.size()),
+    info.pVertexAttributeDescriptions = mem.vertexInputAttributes.data();
+  
+
+    GHOST_MAT_PRINTF(" Set VertexType   %x  \n", mem.info);
+
+
+    ReleaseSRWLockExclusive(&SlimLock);
+  };
+
+  #if 0
+  template<class Geom> void $setSprite$(Geom *geometry)
+  {
+
+    if (!enterAttr(geometry))
+      return;
+
+    vkPVISci mem;
+    mem.type = ty;
+
+    mem.vertexInputBindings = {
+        {.binding = 0, .stride = (uint32_t)4 * 4, .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}};
+
+    mem.vertexInputAttributes.clear();
+    for (int i = 0; i < geometry->array.fieldNum; i++) {
+      mem.vertexInputAttributes.push_back({.location = (UINT32)i,
+                                           .binding = 0,
+                                           .format = geometry->array.format[i],
+                                           .offset = (UINT32)geometry->array.offset[i]});
+    };
+
+    mem.info = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+        .vertexBindingDescriptionCount = static_cast<uint32_t>(mem.vertexInputBindings.size()),
+        .pVertexBindingDescriptions = mem.vertexInputBindings.data(),
+        .vertexAttributeDescriptionCount = static_cast<uint32_t>(mem.vertexInputAttributes.size()),
+        .pVertexAttributeDescriptions = mem.vertexInputAttributes.data()};
+
+    log_obj(" Set VertexType   %x  \n", mem.info);
+    Info[sty] = std::move(mem);
+
+    ReleaseSRWLockExclusive(&SlimLock);
+  };
+
+  template<class Geom> void $setInstanced$(Geom *geometry)
+  {
+
+    auto insta = geometry->instance->buffer;
+    if (geometry->attributes == nullptr) {
+      $set$(insta, VK_VERTEX_INPUT_RATE_INSTANCE);
+      return;
+    }
+
+    auto attr = geometry->attributes->buffer;
+    if (!enterGeom(attr, insta))
+      return;
+
+    vkPVISci mem;
+    mem.type = ty;
+
+    mem.vertexInputBindings = {
+        {.binding = 0,
+         .stride = (uint32_t)attr->array.structSize,
+         .inputRate = VK_VERTEX_INPUT_RATE_VERTEX},
+        {.binding = 1,
+         .stride = (uint32_t)insta->array.structSize,
+         .inputRate = VK_VERTEX_INPUT_RATE_INSTANCE},
+    };
+
+    mem.vertexInputAttributes.clear();
+    int i = 0;
+    for (i = 0; i < attr->array.fieldNum; i++) {
+      mem.vertexInputAttributes.push_back({.location = (UINT32)i,
+                                           .binding = 0,
+                                           .format = attr->array.format[i],
+                                           .offset = (UINT32)attr->array.offset[i]});
+    };
+
+    for (int j = 0; j < insta->array.fieldNum; j++) {
+      mem.vertexInputAttributes.push_back({.location = (UINT32)i++,
+                                           .binding = 1,
+                                           .format = insta->array.format[j],
+                                           .offset = (UINT32)insta->array.offset[j]});
+    };
+
+    mem.info = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+        .vertexBindingDescriptionCount = static_cast<uint32_t>(mem.vertexInputBindings.size()),
+        .pVertexBindingDescriptions = mem.vertexInputBindings.data(),
+        .vertexAttributeDescriptionCount = static_cast<uint32_t>(mem.vertexInputAttributes.size()),
+        .pVertexAttributeDescriptions = mem.vertexInputAttributes.data()};
+
+    log_obj(" Set VertexType   %x  \n", mem.info);
+    Info[sty] = std::move(mem);
+
+    ReleaseSRWLockExclusive(&SlimLock);
+  };
+  #endif
+};
+
+#  define $VInfo VInfo
+vkPVISciMem VInfo;
+
+    //template<class T, class Geom>
+enum BUFFER_ATTR_TYPE {
+  BUFFER_ATTR_VERTEX,
+  BUFFER_ATTR_INDEX
+};
+
+
+template<typename T>
+GHOST_TSuccess $createBuffer$(MBvk& input,VKCommandBufferManager &cmder,
+                              T& geom,
+                              BUFFER_ATTR_TYPE btype = BUFFER_ATTR_VERTEX)
+{
+
+  VkDeviceSize Size = geom.size;
+  VkDevice device = cmder.device;
+
+  //MBvk index(cmder.device);
+  {
+
+    VkMemoryRequirements memReqs;
+    VkMemoryAllocateInfo memAlloc = {};
+    memAlloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+
+    VkBufferCreateInfo BufferInfo = {};
+    BufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    BufferInfo.size = Size;
+    BufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+    VK_CHECK(vkCreateBuffer(device, &BufferInfo, nullptr, &input.buffer));
+    vkGetBufferMemoryRequirements(device, input.buffer, &memReqs);
+    memAlloc.allocationSize = memReqs.size;
+    memAlloc.memoryTypeIndex = getMemoryTypeIndex( memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    VK_CHECK(vkAllocateMemory(device, &memAlloc, nullptr, &input.memory));
+    VK_CHECK(vkBindBufferMemory(device, input.buffer, input.memory, 0));
+
+
+
+    /*
+    BufferInfo.size = geometry->Size.index;
+    size += geometry->Size.index;
+    BufferInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    VK_CHECK(vkCreateBuffer(device, &BufferInfo, nullptr, &index.buffer));
+    vkGetBufferMemoryRequirements(device, index.buffer, &memReqs);
+    memAlloc.allocationSize = memReqs.size;
+    memAlloc.memoryTypeIndex = getMemoryTypeIndex(
+        memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    VK_CHECK(vkAllocateMemory(device, &memAlloc, nullptr, &index.memory));
+    VK_CHECK(vkBindBufferMemory(device, index.buffer, index.memory, 0));
+    */
+
+  }
+
+  cmder.allocStaging(Size);
+  cmder.Map(geom.data, 0, geom.size);
+  cmder.begin();
+  cmder.Copy(input, geom.size, 0, 0);
+  cmder.end();
+  cmder.submit();
+  cmder.wait();
+  
+
+
+  return GHOST_kSuccess;
+};
+
+
+
+
+
+
+
+
+
 struct UniformVk {
 
   VkDevice device;
@@ -1680,7 +2008,7 @@ bool UniformVk::createWriteSets(VkDescriptorSet set,
 
 enum eConfigu_PIPE {
   MODE_TONEMAPPING,
-  MODE_TONEMAPPING2,
+  MODE_GEOMTEST,
   PIPE_MODE_ALL
 };
 
@@ -1927,7 +2255,7 @@ __Blend Blend0;
 
     auto Set = uniform.descriptorSets[0];
 
-    if ((mode == MODE_TONEMAPPING)) {
+    if ((mode == MODE_TONEMAPPING || mode == MODE_GEOMTEST )) {
 
       desc.Info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       VkWriteDescriptorSet wd = {};
@@ -1945,14 +2273,14 @@ __Blend Blend0;
                        .pImageInfo = &desc.Info});
       */
     }
-    else if (mode == MODE_TONEMAPPING2)
+    /* else if (mode == MODE_GEOMTEST)
       {
         VkWriteDescriptorSet wd = {};
         wd.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, wd.dstSet = Set[0], wd.dstBinding = 0,
         wd.dstArrayElement = 0, wd.descriptorCount = 1,
         wd.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, wd.pBufferInfo = &desc.bInfo;
         write.push_back(wd);
-      }
+      }*/
     
     vkUpdateDescriptorSets(device, static_cast<uint32_t>(write.size()), write.data(), 0, nullptr);
   };
@@ -1972,10 +2300,39 @@ __Blend Blend0;
                         VkPrimitiveTopology topology,
                         Raster &raster,
                         VkGraphicsPipelineCreateInfo &pipelineCreateInfo);
-
-  bool make(VkCommandBuffer cmd, VkSemaphore sema);
+  std::function<bool(VkCommandBuffer cmd, VkSemaphore sema)> make;
+  //bool make(VkCommandBuffer cmd, VkSemaphore sema);
   bool make_fullscreen(VkCommandBuffer cmd);
   bool make_tonemapping(VkCommandBuffer cmd);
+
+  template<typename T> bool make_geomtest(VkCommandBuffer cmd, T &vinfo,uint32_t count)
+  {
+    VkDeviceSize offsets[1] = {0};
+    VkPipeline *pipe = nullptr;
+    if (!(get(pipe, mode, makeblend))) {
+      fprintf(stderr, "Not Found  Pipeline Instances  \n");
+      exit(-1);
+    }
+
+    VkPipelineLayout draft = descVk->draft;
+    VkShaderStageFlags pushStage = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, *pipe);
+
+    vkCmdBindVertexBuffers(cmd, 0, 1, &(vinfo.buffer), offsets);
+
+    vkCmdBindDescriptorSets(
+        cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, draft, 0, 1, &uniform.descriptorSets[0][0], 0, 0);
+    size_t psize = sizeof(push4);
+    void *pptr = (void *)&push4;
+
+    vkCmdPushConstants(cmd, draft, pushStage, 0, psize, pptr);
+    // vkCmdDraw(cmd, 3, 1, 0, 0);
+    vkCmdDraw(cmd, count, 1, 0, 0);
+
+    return true;
+  }
+
   //bool make(VkCommandBuffer cmd, const std::vector<Object3D *> &child, uint32_t drawCount);
 };
 
@@ -2198,11 +2555,11 @@ void MaterialVk::createDraft()
       pushRange.offset = 0, pushRange.size = sizeof(push4);
       //};
   }
-  else if (mode == MODE_TONEMAPPING2) {
+  else if (mode == MODE_GEOMTEST) {
 
-     pushRange = {};
+      pushRange = {};
     pushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-    pushRange.offset = 0, pushRange.size = sizeof(push4) + sizeof(push5);
+    pushRange.offset = 0, pushRange.size = sizeof(push4);
     //};
   }
 
@@ -2263,7 +2620,7 @@ bool MaterialVk::arangeLayoutSet()
   std::vector<VkDescriptorSetLayoutBinding> Set(1);
 
   //if ((mode == MODE_FULLSCREEN2) |
-  if(mode == MODE_TONEMAPPING) {
+  if (mode == MODE_TONEMAPPING || mode == MODE_GEOMTEST) {
 
     Set[0].binding = 0, Set[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
     Set[0].descriptorCount = 1, Set[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -2272,7 +2629,7 @@ bool MaterialVk::arangeLayoutSet()
     BLI_assert(0 == uniform.createSet(descVk, "CombFrag", Set, draft));
     return true;
   }
-  else if (mode == MODE_TONEMAPPING2) {
+  else  {
 
     Set[0].binding = 0, Set[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
     Set[0].descriptorCount = 1, Set[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -2396,9 +2753,9 @@ std::vector<VkPipelineShaderStageCreateInfo> &MaterialVk::setShaderState(eConfig
         shaders = sh;
         spv = getAssetPath() + "tonemapping";
       }
-      if ((type == eConfigu_PIPE::MODE_TONEMAPPING2) && sh[0] == VK_NULL_HANDLE) {
+      if ((type == eConfigu_PIPE::MODE_GEOMTEST) && sh[0] == VK_NULL_HANDLE) {
         shaders = sh;
-        spv = getAssetPath() + "fullscreen//prg4";
+        spv = getAssetPath() + "geomtest";
       }
 
       int j = 0;
@@ -2431,7 +2788,7 @@ std::vector<VkPipelineShaderStageCreateInfo> &MaterialVk::setShaderState(eConfig
     case MODE_FULLSCREEN2:
       #endif
     case MODE_TONEMAPPING:
-    case MODE_TONEMAPPING2:
+    case MODE_GEOMTEST:
     case PIPE_MODE_ALL:
       shaderStages.resize(2);
 
@@ -2459,13 +2816,13 @@ void MaterialVk::setCommonInformation(VkGraphicsPipelineCreateInfo &pipelineCrea
 
    pipelineCreateInfo.pVertexInputState = configu.vkPVISci;
 
-  if (
-      (mode == eConfigu_PIPE::MODE_TONEMAPPING)) {
+  if ((mode == eConfigu_PIPE::MODE_TONEMAPPING || mode == eConfigu_PIPE::MODE_GEOMTEST)) {
 
     static VkPipelineMultisampleStateCreateInfo pipelineMultisampleStateCreateInfo{};
     pipelineMultisampleStateCreateInfo.sType =
         VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    pipelineMultisampleStateCreateInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    pipelineMultisampleStateCreateInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;  //VK_SAMPLE_COUNT_8_BIT;
+       
     pipelineMultisampleStateCreateInfo.flags = 0;
     pipelineCreateInfo.pMultisampleState = &pipelineMultisampleStateCreateInfo;
 
@@ -2574,7 +2931,10 @@ bool MaterialVk::createPipeline(eConfigu_PIPE _type, PipelineConfigure &config, 
     case MaterialVk::MODE_FULLSCREEN2:
       #endif
     case eConfigu_PIPE::MODE_TONEMAPPING:
-    case eConfigu_PIPE::MODE_TONEMAPPING2:
+      $createExclusive(
+          mode, blend, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, rsterFill, pipelineCreateInfo);
+      break;
+    case eConfigu_PIPE::MODE_GEOMTEST:
     case PIPE_MODE_ALL:
       $createExclusive(
           mode, blend, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, rsterFill, pipelineCreateInfo);
@@ -2613,7 +2973,7 @@ bool MaterialVk::$createExclusive(eConfigu_PIPE type,
 
   pipelineCreateInfo.pColorBlendState = PSci.ColorBlend(&blend);
   if (
-      (type == eConfigu_PIPE::MODE_TONEMAPPING) | (type == eConfigu_PIPE::MODE_TONEMAPPING2)) {
+      (type == eConfigu_PIPE::MODE_TONEMAPPING)) {
     static VkPipelineVertexInputStateCreateInfo vinfo;
     vinfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
     vinfo.vertexBindingDescriptionCount = 0, vinfo.vertexAttributeDescriptionCount = 0;
@@ -2646,17 +3006,7 @@ bool MaterialVk::$createExclusive(eConfigu_PIPE type,
   return true;
 };
 
-bool MaterialVk::make(VkCommandBuffer cmd, VkSemaphore sema)
-{
 
-  //if (mode == eConfigu_PIPE::MODE_FULLSCREEN)
-  //  make_fullscreen(cmd);
-  //if ((mode == eConfigu_PIPE::MODE_FULLSCREEN2) | (mode == eConfigu_PIPE::MODE_TONEMAPPING) |
-  //    if(mode == eConfigu_PIPE::MODE_TONEMAPPING2)
-  make_tonemapping(cmd);
-
-  return true;
-}
 bool MaterialVk::make_fullscreen(VkCommandBuffer cmd)
 {
   /*
@@ -2703,18 +3053,14 @@ bool MaterialVk::make_tonemapping(VkCommandBuffer cmd)
   }
   else
     #endif
-    if (mode == eConfigu_PIPE::MODE_TONEMAPPING || mode == eConfigu_PIPE::MODE_TONEMAPPING2) {
+    if (mode == eConfigu_PIPE::MODE_TONEMAPPING ) {
     psize = sizeof(push4);
     pptr = (void *)&push4;
   }
 
   vkCmdPushConstants(cmd, draft, pushStage, 0, psize, pptr);
-
-  if (mode == eConfigu_PIPE::MODE_TONEMAPPING2) {
-    vkCmdPushConstants(cmd, draft, pushStage, sizeof(push4), sizeof(push5), (void *)&push5);
-  };
-
-  vkCmdDraw(cmd, 3, 1, 0, 0);
+  //vkCmdDraw(cmd, 3, 1, 0, 0);
+  vkCmdDraw(cmd, 4, 1, 0, 0);
 
   return true;
 }

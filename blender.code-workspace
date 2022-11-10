@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../build_tmp-vulkan_revision/x64-Debug/source/blender/gpu"
+		},
+		{
+			"path": "../../download"
+		},
+		{
+			"path": "../build_test2"
+		}
+	],
+	"settings": {}
+}

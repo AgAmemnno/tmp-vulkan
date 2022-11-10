@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: Apache-2.0 */
-#ifdef TEST_OFF
+#ifdef 1 //TEST_OFF
 #include "gpu_testing.hh"
 
 #include "GPU_shader.h"

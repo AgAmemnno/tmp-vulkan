@@ -21,11 +21,11 @@ WIP ( forked from tmp-vulkan  args [ --gpu-backend vulkan] WITH_VULKAN_BACKEND=O
 
 BUILD & TEST
 -------
-cmake  ../blender -G "Visual Studio 16 2019" -A x64  -DCMAKE_CONFIGURATION_TYPES:STRING="Debug" -DCMAKE_INSTALL_PREFIX:PATH="install/dir" -DWITH_BUILDINFO=OFF -DWITH_VULKAN_BACKEND=ON -DWITH_GTESTS=ON -DWITH_CYCLES_OSL=OFF
-cmake --build . 
-cmake --install . --prefix "/home/myuser/installdir"
-bf_gpu_test.exe 
--------
+cmake  ../blender -G "Visual Studio 16 2019" -A x64  -DCMAKE_CONFIGURATION_TYPES:STRING="Debug" -DCMAKE_INSTALL_PREFIX:PATH="install/dir" -DWITH_BUILDINFO=OFF -DWITH_VULKAN_BACKEND=ON -DWITH_GTESTS=ON -DWITH_CYCLES_OSL=OFF \n
+cmake --build . \n
+cmake --install . --prefix "/home/myuser/installdir"\n
+bf_gpu_test.exe \n
+
 
 
 -------

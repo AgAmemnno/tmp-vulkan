@@ -1,0 +1,251 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
+/** \file
+ * \ingroup gpu
+ */
+#pragma once
+
+#include "BLI_assert.h"
+
+enum eVKDataType {
+  VK_DATATYPE_CHAR,
+  VK_DATATYPE_CHAR2,
+  VK_DATATYPE_CHAR3,
+  VK_DATATYPE_CHAR4,
+
+  VK_DATATYPE_UCHAR,
+  VK_DATATYPE_UCHAR2,
+  VK_DATATYPE_UCHAR3,
+  VK_DATATYPE_UCHAR4,
+
+  VK_DATATYPE_BOOL,
+  VK_DATATYPE_BOOL2,
+  VK_DATATYPE_BOOL3,
+  VK_DATATYPE_BOOL4,
+
+  VK_DATATYPE_SHORT,
+  VK_DATATYPE_SHORT2,
+  VK_DATATYPE_SHORT3,
+  VK_DATATYPE_SHORT4,
+
+  VK_DATATYPE_USHORT,
+  VK_DATATYPE_USHORT2,
+  VK_DATATYPE_USHORT3,
+  VK_DATATYPE_USHORT4,
+
+  VK_DATATYPE_INT,
+  VK_DATATYPE_INT2,
+  VK_DATATYPE_INT3,
+  VK_DATATYPE_INT4,
+
+  VK_DATATYPE_UINT,
+  VK_DATATYPE_UINT2,
+  VK_DATATYPE_UINT3,
+  VK_DATATYPE_UINT4,
+
+  VK_DATATYPE_FLOAT,
+  VK_DATATYPE_FLOAT2,
+  VK_DATATYPE_FLOAT3,
+  VK_DATATYPE_FLOAT4,
+
+  VK_DATATYPE_LONG,
+  VK_DATATYPE_LONG2,
+  VK_DATATYPE_LONG3,
+  VK_DATATYPE_LONG4,
+
+  VK_DATATYPE_ULONG,
+  VK_DATATYPE_ULONG2,
+  VK_DATATYPE_ULONG3,
+  VK_DATATYPE_ULONG4,
+
+  VK_DATATYPE_HALF2x2,
+  VK_DATATYPE_HALF2x3,
+  VK_DATATYPE_HALF2x4,
+  VK_DATATYPE_HALF3x2,
+  VK_DATATYPE_HALF3x3,
+  VK_DATATYPE_HALF3x4,
+  VK_DATATYPE_HALF4x2,
+  VK_DATATYPE_HALF4x3,
+  VK_DATATYPE_HALF4x4,
+
+  VK_DATATYPE_FLOAT2x2,
+  VK_DATATYPE_FLOAT2x3,
+  VK_DATATYPE_FLOAT2x4,
+  VK_DATATYPE_FLOAT3x2,
+  VK_DATATYPE_FLOAT3x3,
+  VK_DATATYPE_FLOAT3x4,
+  VK_DATATYPE_FLOAT4x2,
+  VK_DATATYPE_FLOAT4x3,
+  VK_DATATYPE_FLOAT4x4,
+
+  VK_DATATYPE_UINT1010102_NORM,
+  VK_DATATYPE_INT1010102_NORM
+};
+
+inline uint vk_get_data_type_size(eVKDataType type)
+{
+  switch (type) {
+    case VK_DATATYPE_CHAR:
+    case VK_DATATYPE_UCHAR:
+    case VK_DATATYPE_BOOL:
+      return 1;
+    case VK_DATATYPE_CHAR2:
+    case VK_DATATYPE_UCHAR2:
+    case VK_DATATYPE_BOOL2:
+    case VK_DATATYPE_SHORT:
+    case VK_DATATYPE_USHORT:
+      return 2;
+
+    case VK_DATATYPE_CHAR3:
+    case VK_DATATYPE_UCHAR3:
+    case VK_DATATYPE_BOOL3:
+      return 3;
+    case VK_DATATYPE_CHAR4:
+    case VK_DATATYPE_UCHAR4:
+    case VK_DATATYPE_INT:
+    case VK_DATATYPE_UINT:
+    case VK_DATATYPE_BOOL4:
+    case VK_DATATYPE_SHORT2:
+    case VK_DATATYPE_USHORT2:
+    case VK_DATATYPE_FLOAT:
+    case VK_DATATYPE_UINT1010102_NORM:
+    case VK_DATATYPE_INT1010102_NORM:
+      return 4;
+
+    case VK_DATATYPE_SHORT3:
+    case VK_DATATYPE_USHORT3:
+    case VK_DATATYPE_SHORT4:
+    case VK_DATATYPE_USHORT4:
+    case VK_DATATYPE_INT2:
+    case VK_DATATYPE_UINT2:
+    case VK_DATATYPE_FLOAT2:
+    case VK_DATATYPE_LONG:
+    case VK_DATATYPE_ULONG:
+    case VK_DATATYPE_HALF2x2:
+      return 8;
+
+    case VK_DATATYPE_HALF3x2:
+      return 12;
+
+    case VK_DATATYPE_INT3:
+    case VK_DATATYPE_INT4:
+    case VK_DATATYPE_UINT3:
+    case VK_DATATYPE_UINT4:
+    case VK_DATATYPE_FLOAT3:
+    case VK_DATATYPE_FLOAT4:
+    case VK_DATATYPE_LONG2:
+    case VK_DATATYPE_ULONG2:
+    case VK_DATATYPE_HALF2x3:
+    case VK_DATATYPE_HALF2x4:
+    case VK_DATATYPE_HALF4x2:
+      return 16;
+
+    case VK_DATATYPE_HALF3x3:
+    case VK_DATATYPE_HALF3x4:
+    case VK_DATATYPE_FLOAT3x2:
+      return 24;
+
+    case VK_DATATYPE_LONG3:
+    case VK_DATATYPE_LONG4:
+    case VK_DATATYPE_ULONG3:
+    case VK_DATATYPE_ULONG4:
+    case VK_DATATYPE_HALF4x3:
+    case VK_DATATYPE_HALF4x4:
+    case VK_DATATYPE_FLOAT2x3:
+    case VK_DATATYPE_FLOAT2x4:
+    case VK_DATATYPE_FLOAT4x2:
+      return 32;
+
+    case VK_DATATYPE_FLOAT3x3:
+    case VK_DATATYPE_FLOAT3x4:
+      return 48;
+
+    case VK_DATATYPE_FLOAT4x3:
+    case VK_DATATYPE_FLOAT4x4:
+      return 64;
+    default:
+      BLI_assert(false);
+      return 0;
+  };
+}
+
+inline uint vk_get_data_type_alignment(eVKDataType type)
+{
+  switch (type) {
+    case VK_DATATYPE_CHAR:
+    case VK_DATATYPE_UCHAR:
+    case VK_DATATYPE_BOOL:
+      return 1;
+    case VK_DATATYPE_CHAR2:
+    case VK_DATATYPE_UCHAR2:
+    case VK_DATATYPE_BOOL2:
+    case VK_DATATYPE_SHORT:
+    case VK_DATATYPE_USHORT:
+      return 2;
+
+    case VK_DATATYPE_CHAR3:
+    case VK_DATATYPE_UCHAR3:
+    case VK_DATATYPE_BOOL3:
+      return 3;
+    case VK_DATATYPE_CHAR4:
+    case VK_DATATYPE_UCHAR4:
+    case VK_DATATYPE_INT:
+    case VK_DATATYPE_UINT:
+    case VK_DATATYPE_BOOL4:
+    case VK_DATATYPE_SHORT2:
+    case VK_DATATYPE_USHORT2:
+    case VK_DATATYPE_FLOAT:
+    case VK_DATATYPE_HALF2x2:
+    case VK_DATATYPE_HALF3x2:
+    case VK_DATATYPE_HALF4x2:
+    case VK_DATATYPE_UINT1010102_NORM:
+    case VK_DATATYPE_INT1010102_NORM:
+      return 4;
+
+    case VK_DATATYPE_SHORT3:
+    case VK_DATATYPE_USHORT3:
+    case VK_DATATYPE_SHORT4:
+    case VK_DATATYPE_USHORT4:
+    case VK_DATATYPE_INT2:
+    case VK_DATATYPE_UINT2:
+    case VK_DATATYPE_FLOAT2:
+    case VK_DATATYPE_LONG:
+    case VK_DATATYPE_ULONG:
+    case VK_DATATYPE_HALF2x3:
+    case VK_DATATYPE_HALF2x4:
+    case VK_DATATYPE_HALF3x3:
+    case VK_DATATYPE_HALF3x4:
+    case VK_DATATYPE_HALF4x3:
+    case VK_DATATYPE_HALF4x4:
+    case VK_DATATYPE_FLOAT2x2:
+    case VK_DATATYPE_FLOAT3x2:
+    case VK_DATATYPE_FLOAT4x2:
+      return 8;
+
+    case VK_DATATYPE_INT3:
+    case VK_DATATYPE_INT4:
+    case VK_DATATYPE_UINT3:
+    case VK_DATATYPE_UINT4:
+    case VK_DATATYPE_FLOAT3:
+    case VK_DATATYPE_FLOAT4:
+    case VK_DATATYPE_LONG2:
+    case VK_DATATYPE_ULONG2:
+    case VK_DATATYPE_FLOAT2x3:
+    case VK_DATATYPE_FLOAT2x4:
+    case VK_DATATYPE_FLOAT3x3:
+    case VK_DATATYPE_FLOAT3x4:
+    case VK_DATATYPE_FLOAT4x3:
+    case VK_DATATYPE_FLOAT4x4:
+      return 16;
+
+    case VK_DATATYPE_LONG3:
+    case VK_DATATYPE_LONG4:
+    case VK_DATATYPE_ULONG3:
+    case VK_DATATYPE_ULONG4:
+      return 32;
+
+    default:
+      BLI_assert_msg(false, "Unrecognized VK datatype.");
+      return 0;
+  };
+}

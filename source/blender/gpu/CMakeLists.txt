@@ -185,6 +185,11 @@ set(OPENGL_SRC
   opengl/gl_vertex_buffer.hh
 )
 set(VULKAN_SRC
+
+  vulkan/vk_memory.cc
+  vulkan/vk_shaders.cc
+  vulkan/vk_shader.cc
+  vulkan/vk_layout.cc
   vulkan/vk_backend.cc
   vulkan/vk_batch.cc
   vulkan/vk_context.cc
@@ -193,9 +198,21 @@ set(VULKAN_SRC
   vulkan/vk_query.cc
   vulkan/vk_debug.cc
   vulkan/vk_index_buffer.cc
-   vulkan/vk_vertex_buffer.cc
+  vulkan/vk_vertex_buffer.cc
+  vulkan/vk_state.cc
+  vulkan/vk_texture.cc
+  vulkan/vk_immediate.cc
+  vulkan/vk_shader_interface.cc
 
-  
+  vulkan/vk_memory.hh
+  vulkan/vk_shaders.hh
+  vulkan/vk_shader.hh
+  vulkan/vk_layout.hh
+  vulkan/vk_shader_interface.hh
+  vulkan/vk_shader_interface_type.hh
+  vulkan/vk_immediate.hh
+  vulkan/vk_mem_alloc.h
+  vulkan/vk_texture.hh
   vulkan/vk_backend.hh
   vulkan/vk_batch.hh
   vulkan/vk_context.hh
@@ -205,6 +222,7 @@ set(VULKAN_SRC
   vulkan/vk_vertex_buffer.hh
   vulkan/vk_query.hh
   vulkan/vk_debug.hh
+  vulkan/vk_state.hh
 )
 set(METAL_SRC
   metal/mtl_backend.mm
@@ -256,10 +274,52 @@ set(METAL_SRC
 if(WITH_OPENGL)
   list(APPEND SRC ${OPENGL_SRC})
 endif()
+
 if(WITH_VULKAN_BACKEND)
-  set(INC_SYS ${INC_SYS} ${Vulkan_INCLUDE_DIRS})
+
+    if(EXISTS ${LIBDIR}/vulkan)
+      set(Vulkan_FOUND On)
+      set(Vulkan_ROOT_DIR ${LIBDIR}/vulkan)
+      set(Vulkan_INCLUDE_DIR ${Vulkan_ROOT_DIR}/include)
+      set(Vulkan_INCLUDE_DIRS ${Vulkan_INCLUDE_DIR})
+      set(Vulkan_LIBRARY ${Vulkan_ROOT_DIR}/lib/vulkan-1.lib ${Vulkan_ROOT_DIR}/Lib/shaderc_shared.lib)
+      set(Vulkan_LIBRARIES ${Vulkan_LIBRARY})
+     else()
+      message(ERROR "vulkan was not found, disabling WITH_VULKAN_BACKEND")
+    endif()
+    set(INC_SYS ${INC_SYS} ${Vulkan_INCLUDE_DIRS})
+    if(EXISTS ${LIBDIR}/shaderc)
+      set(Shaderc_FOUND On)
+      set(Shaderc_ROOT_DIR ${LIBDIR}/shaderc)
+      set(Shaderc_INCLUDE_DIR ${LIBDIR}/shaderc/include)
+      set(Shaderc_INCLUDE_DIRS ${Shaderc_INCLUDE_DIR})
+      set(Shaderc_LIBRARY ${LIBDIR}/shaderc/Lib/shaderc_shared.lib)
+      set(Shaderc_LIBRARIES ${Shaderc_LIBRARY})
+       set(INC_SYS ${INC_SYS} ${LIBDIR}/shaderc/include)
+     
+     else() 
+      message(ERROR "shaderc was not found, disabling WITH_VULKAN_BACKEND")
+    endif()
+
+     if(EXISTS ${LIBDIR}/SPIRV-Cross)
+      set(SPIRV-Cross_FOUND On)
+      set(SPIRV-Cross_ROOT_DIR ${LIBDIR}/SPIRV-Cross)
+      set(SPIRV-Cross_INCLUDE_DIR   ${LIBDIR}/SPIRV-Cross/include)
+      set(SPIRV-Cross_INCLUDE_DIRS  ${SPIRV-Cross_INCLUDE_DIR} )
+      set(SPIRV-Cross_LIBRARY ${LIBDIR}/SPIRV-Cross/Lib/spirv-cross-cored.lib  ${LIBDIR}/SPIRV-Cross/Lib/spirv-cross-glsld.lib)
+      set(SPIRV-Cross_LIBRARIES  ${SPIRV-Cross_LIBRARY})
+       set(INC_SYS ${INC_SYS} ${LIBDIR}/SPIRV-Cross/include)
+     
+     else() 
+      message(ERROR "SPIRV-Cross  was not found, disabling WITH_VULKAN_BACKEND")
+    endif()
+    
   list(APPEND SRC ${VULKAN_SRC})
 endif()
+
+
+
+
 if(WITH_METAL_BACKEND)
   list(APPEND SRC ${METAL_SRC})
 endif()
@@ -781,44 +841,4 @@ if(WITH_GPU_BUILDTIME_SHADER_BUILDER)
 endif()
 
 
-if(WITH_GTESTS)
-    if(EXISTS ${LIBDIR}/vulkan)
-      set(Vulkan_FOUND On)
-      set(Vulkan_ROOT_DIR ${LIBDIR}/vulkan)
-      set(Vulkan_INCLUDE_DIR ${Vulkan_ROOT_DIR}/include)
-      set(Vulkan_INCLUDE_DIRS ${Vulkan_INCLUDE_DIR})
-      set(Vulkan_LIBRARY ${Vulkan_ROOT_DIR}/lib/vulkan-1.lib)
-      set(Vulkan_LIBRARIES ${Vulkan_LIBRARY})
-    else()
-      message(ERROR "vulkan was not found, disabling WITH_VULKAN_BACKEND")
 
-    endif()
-    set(TEST_SRC
-      tests/gpu_testing.cc
-      #tests/gpu_index_buffer_test.cc
-      #tests/gpu_shader_builtin_test.cc
-      tests/gpu_vulkan_basic_test.cc
-      tests/gpu_testing.hh
-    )
-    set(TEST_INC
-    ${Vulkan_INCLUDE_DIRS}
-    )
-    set(TEST_LIB
-    bf_gpu
-    bf_intern_clog
-    bf_blenlib
-    bf_intern_ghost
-    bf_blenkernel
-    ${Vulkan_LIBRARIES}
-    )
-
-    include(GTestTesting)
-    set(CMAKE_SUPPRESS_REGENERATION ON)
-    #set(_TEST_INSTALL_DIR  ${TEST_INSTALL_DIR})
-    set(TESTS_OUTPUT_DIR  ${CMAKE_INSTALL_PREFIX})
-    blender_add_test_executable(bf_gpu "${TEST_SRC}" "${INC};${TEST_INC}" "${INC_SYS}" "${LIB};${TEST_LIB}")
-    #set(TEST_INSTALL_DIR  ${_TEST_INSTALL_DIR})
-
-   # blender_add_test_lib(bf_gpu_tests "${TEST_SRC}" "${INC};${TEST_INC}" "${INC_SYS}" "${LIB};${TEST_LIB}")
-
-endif()

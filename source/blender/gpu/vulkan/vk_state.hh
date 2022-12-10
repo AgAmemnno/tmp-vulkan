@@ -55,13 +55,7 @@ class VKStateManager : public StateManager {
   /** Limits. */
   float line_width_range_[2];
 
-  /** Texture state:
-   * We keep the full stack of textures and sampler bounds to use multi bind, and to be able to
-   * edit and restore texture binds on the fly without querying the context.
-   * Also this allows us to keep track of textures bounds to many texture units.
-   * Keep the targets to know what target to set to 0 for unbinding (legacy).
-   * Init first target to GL_TEXTURE_2D for texture_bind_temp to work.
-   */
+
   GLuint targets_[64] = {GL_TEXTURE_2D};
   GLuint textures_[64] = {0};
   GLuint samplers_[64] = {0};

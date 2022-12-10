@@ -143,10 +143,7 @@ VKStateManager::VKStateManager(VKContext *_ctx) : ctx_(_ctx)
   dynamic.pDynamicStates = dynamicStateEnables.data();
   dynamic.dynamicStateCount = (uint32_t)dynamicStateEnables.size();
 
-  /// <summary>
-  /// Is mutable state  dynamic state ? then, set_mutable_state needs a command buffer.
-  /// </summary>
-  /// <param name="_ctx"></param>
+
   ///set_mutable_state(mutable_state);
 }
 

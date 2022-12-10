@@ -26,12 +26,22 @@
 #include "MEM_guardedalloc.h"
 
 #include <vulkan/vulkan.h>
+#define WITH_VULKAN_SHADER_COMPILATION
+
 
 #include "gpu_shader_private.hh"
 
-/* TODO move this deps to the .cc file. */
+
 #include "vk_context.hh"
 #include "vk_shader_interface.hh"
+#include "vk_layout.hh"
+#include <shaderc/shaderc.hpp>
+
+#if VK_SHADER_TRANSLATION_DEBUG_OUTPUT
+#  define shader_debug_printf printf
+#else
+#  define shader_debug_printf(...) /* Null print. */
+#endif
 
 namespace blender {
 namespace gpu {
@@ -43,58 +53,131 @@ enum class VKShaderStageType {
   ComputeShader,
 };
 
+
 std::ostream &operator<<(std::ostream &os, const VKShaderStageType &stage);
 
 /**
- * Implementation of shader compilation and uniforms handling using OpenGL.
+ * Implementation of shader compilation and uniforms handling using Vulkan.
  **/
 class VKShader : public Shader {
+
+
+
  private:
   VKContext *context_ = nullptr;
+  enum SHADER {
+    VKSHADER_VERTEX,
+    VKSHADER_FRAGMENT,
+    VK_SHADER_GEOMETRY,
+    VKSHADER_COMPUTE,
+    VK_SHADER_ALL
+  };
+  ShaderModule shaders_[VK_SHADER_ALL];
+  Vector<VkPipelineShaderStageCreateInfo> shaderstages;
 
-  VkShaderModule vertex_shader_ = VK_NULL_HANDLE;
-  VkShaderModule geometry_shader_ = VK_NULL_HANDLE;
-  VkShaderModule fragment_shader_ = VK_NULL_HANDLE;
-  VkShaderModule compute_shader_ = VK_NULL_HANDLE;
+  /* Transform feedback mode. */
+  eGPUShaderTFBType transform_feedback_type_ = GPU_SHADER_TFB_NONE;
+  bool transform_feedback_active_ = false;
+  GPUVertBuf *transform_feedback_vertbuf_ = nullptr;
+
+  VkPipeline                                                           pipe = VK_NULL_HANDLE;
 
   /** True if any shader failed to compile. */
   bool compilation_failed_ = false;
 
+  /// <summary>
+  /// This compiler flag affects pipeline layout.
+  /// Whether to include unused variables in the layout ? .. etc
+  /// </summary>
+  shaderc_optimization_level m_shadercOptimizationLevel = shaderc_optimization_level_zero;//shaderc_optimization_level_performance;
+
+
  public:
+
+
   VKShader(const char *name);
+  VKShader(
+           VKShaderInterface *interface,
+           const char *name,
+           std::string input_vertex_source,
+           std::string input_fragment_source,
+           std::string&& vert_function_name,
+           std::string&& frag_function_name);
   ~VKShader();
+  bool getShaderModule(ShaderModule & sm,int i)
+  {
+    if (shaders_[i].module == VK_NULL_HANDLE)
+      return false;
+    sm.module = shaders_[i].module;
+    sm.shaderModuleInfo = shaders_[i].shaderModuleInfo;
+    return true;
+  }
+
+  void set_optimization_level(shaderc_optimization_level level){
+    m_shadercOptimizationLevel = level;
+  };
 
   void vertex_shader_from_glsl(MutableSpan<const char *> sources) override;
   void geometry_shader_from_glsl(MutableSpan<const char *> sources) override;
   void fragment_shader_from_glsl(MutableSpan<const char *> sources) override;
   void compute_shader_from_glsl(MutableSpan<const char *> sources) override;
   /* Return true on success. */
-  bool finalize(void);
 
-  void transform_feedback_names_set(Span<const char *> name_list,
-                                    const eGPUShaderTFBType geom_type) override{};
-  bool transform_feedback_enable(GPUVertBuf *buf) override
+  bool finalize(const shader::ShaderCreateInfo *info = nullptr) override;
+
+  bool is_valid()
   {
     return true;
   };
-  void transform_feedback_disable(void) override{};
+  VkPipeline get_pipeline()
+  {
+    return pipe;
+  };
 
-  void bind(void) override{};
-  void unbind(void) override{};
+  VKShaderInterface *get_interface()
+  {
+    return static_cast<VKShaderInterface *>(this->interface);
+  }
 
-  void uniform_float(int location, int comp_len, int array_size, const float *data) override{};
-  void uniform_int(int location, int comp_len, int array_size, const int *data) override{};
+  std::string resources_declare(const shader::ShaderCreateInfo &info) const override;
+  std::string vertex_interface_declare(const shader::ShaderCreateInfo &info) const override;
+  std::string fragment_interface_declare(const shader::ShaderCreateInfo &info) const override;
+  std::string geometry_interface_declare(const shader::ShaderCreateInfo &info) const override;
+  std::string geometry_layout_declare(const shader::ShaderCreateInfo &info) const override;
+  std::string compute_layout_declare(const shader::ShaderCreateInfo &info) const override;
+  void transform_feedback_names_set(Span<const char *> name_list,
+                                    const eGPUShaderTFBType geom_type) override;
+  bool transform_feedback_enable(GPUVertBuf *buf) override;
+  void transform_feedback_disable(void) override;
+  void bind(void) override;
+  void unbind(void) override;
 
-  void vertformat_from_shader(GPUVertFormat *format) const override{};
+
+  void append_write_descriptor(VKTexture *tex,eGPUSamplerState samp_state,uint binding);
+  bool update_descriptor_set();
+
+
+  void uniform_float(int location, int comp_len, int array_size, const float *data) override;
+  void uniform_int(int location, int comp_len, int array_size, const int *data) override;
+
 
   int program_handle_get() const override
   {
-    return 0;
+    return -1;
   }
 
+
+  void set_interface(VKShaderInterface *interface);
+  VkPipeline CreatePipeline(VkRenderPass renderpass);
+
+
+  VkCommandBuffer current_cmd_ = VK_NULL_HANDLE;
+  VkPipelineLayout current_layout_ = VK_NULL_HANDLE;
+  Vector<VkWriteDescriptorSet> write_descs_;
+
  private:
-  std::unique_ptr<std::vector<uint32_t>> compile_source(Span<const char *> sources,
-                                                        VKShaderStageType stage);
+  bool is_valid_ = false;
+  GHOST_TSuccess compile_source(Span<const char *> sources, VKShaderStageType stage);
   VkShaderModule create_shader_module(MutableSpan<const char *> sources, VKShaderStageType stage);
 
   MEM_CXX_CLASS_ALLOC_FUNCS("VKShader");
@@ -108,7 +191,7 @@ class VKLogParser : public GPULogParser {
   char *skip_name_and_stage(char *log_line);
   char *skip_severity_keyword(char *log_line, GPULogItem &log_item);
 
-  MEM_CXX_CLASS_ALLOC_FUNCS("GLLogParser");
+  MEM_CXX_CLASS_ALLOC_FUNCS("VKLogParser");
 };
 
 }  // namespace gpu

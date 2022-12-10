@@ -39,32 +39,101 @@
 #include "BLI_vector.hh"
 
 #include "gpu_texture_private.hh"
+#include "vk_context.hh"
+#include "vk_memory.hh"
 
-struct GPUFrameBuffer;
 
 namespace blender {
 namespace gpu {
 
 class VKTexture : public Texture {
+  friend class VKContext;
+  friend class VKStateManager;
+  friend class VKFrameBuffer;
+ public:
+  friend class VKStateManager;
+  friend class VKFrameBuffer;
+   eGPUTextureType getType()
+  {
+    return type_;
+  }
+  int geth()
+  {
+    return h_;
+  }
+  int getw()
+  {
+    return w_;
+  }
+
+    int getd()
+  {
+    return d_;
+  }
+
+VkSampler getsampler(eGPUSamplerState id)
+  {
+  return VKContext::get()->get_sampler_from_state(id);
+  
+  }
+const char *  get_name()
+{
+    return name_;
+  }
+void generate_mipmaps(const void *data);
+  bool get_needs_update()
+  {
+    return needs_update_descriptor_;
+  }
+  void set_needs_update(bool t)
+  {
+    needs_update_descriptor_ = t;
+  }
  protected:
+
+  /* Core parameters and sub-resources. */
+ 
+  unsigned int target_ = -1;
+  /** opengl identifier for texture. */
+  //GLuint
+    unsigned int tex_id_ = 0;
+
+  /** True if this texture is bound to at least one texture unit. */
+  /* TODO(fclem): How do we ensure thread safety here? */
+  bool is_bound_ = false;
+  /** Same as is_bound_ but for image slots. */
+  bool is_bound_image_ = false;
+  /** True if pixels in the texture have been initialized. */
+  bool has_pixels_ = false;
+  bool needs_update_descriptor_ = false;
+
+  VkDescriptorImageInfo info_;
+
+
   /* Vulkan context who created the object. */
   VKContext *context_ = nullptr;
   /* Vulkan object handle. */
   VkImage vk_image_ = VK_NULL_HANDLE;
+  VkImageLayout vk_image_layout_;
   /* GPU Memory allocated by this object. */
   VmaAllocation vk_allocation_ = VK_NULL_HANDLE;
   /* Vulkan format used to initialize the texture. */
   VkFormat vk_format_ = VK_FORMAT_MAX_ENUM;
   /* Image views for each mipmap and each layer. */
   Vector<VkImageView> views_;
+  int current_view_id_ = -1;
   /* Swizzle state. */
   VkComponentMapping vk_swizzle_ = {VK_COMPONENT_SWIZZLE_IDENTITY,
                                     VK_COMPONENT_SWIZZLE_IDENTITY,
                                     VK_COMPONENT_SWIZZLE_IDENTITY,
                                     VK_COMPONENT_SWIZZLE_IDENTITY};
 
+  VkDescriptorImageInfo vk_info_;
+
  public:
-  VKTexture(const char *name);
+  eGPUTextureUsage gpu_image_usage_flags_;
+  ///VKTexture(const char *name);
+  VKTexture(const char *name, VKContext *context);
   ~VKTexture();
 
   void update_sub(
@@ -86,7 +155,17 @@ class VKTexture : public Texture {
     size_t texture_size = sample_len * sample_size;
     return MEM_callocN(texture_size, __func__);
   };
-
+  void read_internal(int mip,
+                     int x_off,
+                     int y_off,
+                     int z_off,
+                     int width,
+                     int height,
+                     int depth,
+                     eGPUDataFormat desired_output_format,
+                     int num_output_components,
+                     int debug_data_size,
+                     void *r_data);
   /* TODO(fclem) Legacy. Should be removed at some point. */
   uint gl_bindcode_get(void) const override
   {
@@ -96,20 +175,46 @@ class VKTexture : public Texture {
   /* Vulkan specific functions. */
   VkImageView vk_image_view_get(int mip);
   VkImageView vk_image_view_get(int mip, int layer);
+ VkDescriptorImageInfo* get_image_info(eGPUSamplerState id = (eGPUSamplerState)257)
+  {
+    BLI_assert((int)id <= 257);
+  
+    info_.imageLayout = vk_image_layout_;
+    info_.imageView = vk_image_view_get(mip_min_);
+    if (id == 257) {
+      info_.sampler = NULL;
+    }
+    else
+      info_.sampler  = getsampler(id);
 
+     return &info_;
+  };
   VkFormat vk_format_get(void) const
   {
     return this->vk_format_;
   }
+  void check_feedback_loop();
+  void set_minmip(int i)
+  {
+    if (mipmaps_ > i)
+      mip_min_ = i;
+    else
+      mip_min_ = 0;
+
+  };
 
  protected:
   bool init_internal(void) override;
   bool init_internal(GPUVertBuf *vbo) override
   {
-    return true;
+    return false;
   };
-
+  bool init_internal(const GPUTexture *src, int mip_offset, int layer_offset) override{
+    return false;
+  };
+   void stencil_texture_mode_set(bool use_stencil) override{};
   VkImageView create_image_view(int mip, int layer);
+
 
   MEM_CXX_CLASS_ALLOC_FUNCS("VKTexture")
 };
@@ -183,6 +288,7 @@ inline VkComponentSwizzle swizzle_to_vk(const char swizzle)
   }
 }
 
+#define VK_FORMAT_INVALID VK_FORMAT_MAX_ENUM
 inline VkFormat to_vk(eGPUTextureFormat format)
 {
   switch (format) {
@@ -286,5 +392,27 @@ inline VkFormat to_vk(eGPUTextureFormat format)
   return VK_FORMAT_R32G32B32A32_SFLOAT;
 }
 
+
+struct VKAttachment {
+  bool used;
+  VKTexture *texture;
+  union {
+    float color[4];
+    float depth;
+    uint stencil;
+  } clear_value;
+
+  eGPULoadOp load_action;
+  eGPUStoreOp store_action;
+  uint mip;
+  uint slice;
+  uint depth_plane;
+
+  /* If Array Length is larger than zero, use multilayered rendering. */
+  uint render_target_array_length;
+};
+
 }  // namespace gpu
+
+
 }  // namespace blender

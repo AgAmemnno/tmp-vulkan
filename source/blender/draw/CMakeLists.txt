@@ -730,6 +730,9 @@ if(WITH_GTESTS)
   if(WITH_OPENGL_DRAW_TESTS)
     add_definitions(-DWITH_OPENGL_DRAW_TESTS)
   endif()
+  if(WITH_VULKAN_DRAW_TESTS)
+  add_definitions(-DWITH_VULKAN_DRAW_TESTS)
+endif()
 endif()
 
 if(WITH_TBB)
@@ -754,12 +757,77 @@ blender_add_lib(bf_draw "${SRC}" "${INC}" "${INC_SYS}" "${LIB}")
 add_dependencies(bf_draw bf_dna)
 
 if(WITH_GTESTS)
+  
+  if(WITH_VULKAN_DRAW_TESTS)
+    if(EXISTS ${LIBDIR}/vulkan)
+      set(Vulkan_FOUND On)
+      set(Vulkan_ROOT_DIR ${LIBDIR}/vulkan)
+      set(Vulkan_INCLUDE_DIR ${Vulkan_ROOT_DIR}/include)
+      set(Vulkan_INCLUDE_DIRS ${Vulkan_INCLUDE_DIR})
+      set(Vulkan_LIBRARY ${Vulkan_ROOT_DIR}/lib/vulkan-1.lib )
+      set(Vulkan_LIBRARIES ${Vulkan_LIBRARY})
+    else()
+      message(ERROR "vulkan was not found, disabling WITH_VULKAN_BACKEND")
+
+    endif()
+
+    if(EXISTS ${LIBDIR}/shaderc)
+        set(Shaderc_FOUND On)
+        set(Shaderc_ROOT_DIR ${LIBDIR}/shaderc)
+        set(Shaderc_INCLUDE_DIR ${LIBDIR}/shaderc/include)
+        set(Spirv_cross_INCLUDE_DIR  ${LIBDIR}/SPIRV-Cross/include)
+        set(Shaderc_INCLUDE_DIRS ${Shaderc_INCLUDE_DIR} ${Spirv_cross_INCLUDE_DIR})
+        set(Shaderc_LIBRARY ${LIBDIR}/shaderc/Lib/shaderc_shared.lib)
+        set(Spirv_cross_LIBRARIES ${LIBDIR}/SPIRV-Cross/lib/spirv-cross-cored.lib ${LIBDIR}/SPIRV-Cross/lib/spirv-cross-glsld.lib ${LIBDIR}/SPIRV-Cross/lib/spirv-cross-utild.lib ${LIBDIR}/SPIRV-Cross/lib/spirv-cross-reflectd.lib )
+        set(Shaderc_LIBRARIES ${Shaderc_LIBRARY} ${Spirv_cross_LIBRARIES})
+    else()
+        message(ERROR "shaderc was not found, disabling WITH_VULKAN_BACKEND")
+    endif()
+
+
+
+    set(TEST_SRC
+      vktests/draw_capa_test.cc
+      vktests/draw_icon_test.cc
+      vktests/draw_testing.cc
+      vktests/draw_testing.hh
+    )
+
+    include(GTestTesting)
+    set(TEST_INC
+     ../../../intern/ghost
+      ../gpu/tests
+      ../editors/screen
+    ${Vulkan_INCLUDE_DIRS} 
+     ${Shaderc_INCLUDE_DIRS}
+  ${Epoxy_INCLUDE_DIRS}
+  ${Spirv-Reflect_INCLUDE_DIRS}
+    )
+    
+    set(TEST_LIB
+    bf_gpu
+    bf_intern_clog
+    bf_blenlib
+    bf_intern_ghost
+    bf_blenkernel
+    ${Vulkan_LIBRARIES}
+    ${Shaderc_LIBRARIES}
+    ${Spirv-Reflect_LIBRARY}
+    )
+
+
+
+    set(TESTS_OUTPUT_DIR  ${CMAKE_INSTALL_PREFIX})
+    blender_add_test_executable(bf_draw "${TEST_SRC}" "${INC};${TEST_INC}" "${INC_SYS}" "${LIB};${TEST_LIB}")
+    message(STATUS ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>. VULKAN DRAW TEST ON >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+  endif()
+
   if(WITH_OPENGL_DRAW_TESTS)
     set(TEST_SRC
+
       tests/draw_pass_test.cc
       tests/draw_testing.cc
       tests/shaders_test.cc
-
       tests/draw_testing.hh
     )
     set(TEST_INC

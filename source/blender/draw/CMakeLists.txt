@@ -795,13 +795,12 @@ if(WITH_GTESTS)
 
     include(GTestTesting)
     set(TEST_INC
-     ../../../intern/ghost
+      ../../../intern/ghost
       ../gpu/tests
       ../editors/screen
-    ${Vulkan_INCLUDE_DIRS} 
-     ${Shaderc_INCLUDE_DIRS}
-  ${Epoxy_INCLUDE_DIRS}
-  ${Spirv-Reflect_INCLUDE_DIRS}
+      ${Vulkan_INCLUDE_DIRS} 
+      ${Shaderc_INCLUDE_DIRS}
+      ${Epoxy_INCLUDE_DIRS}
     )
     
     set(TEST_LIB
@@ -812,7 +811,6 @@ if(WITH_GTESTS)
     bf_blenkernel
     ${Vulkan_LIBRARIES}
     ${Shaderc_LIBRARIES}
-    ${Spirv-Reflect_LIBRARY}
     )
 
 

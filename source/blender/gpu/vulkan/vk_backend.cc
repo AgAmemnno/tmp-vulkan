@@ -6,20 +6,36 @@
  */
 
 #include "vk_backend.hh"
-
 #include "vk_batch.hh"
-#include "vk_context.hh"
 #include "vk_drawlist.hh"
 #include "vk_framebuffer.hh"
 #include "vk_index_buffer.hh"
 #include "vk_vertex_buffer.hh"
 #include "vk_query.hh"
+#include "vk_shader.hh"
+#include "vk_texture.hh"
+#include "vk_context.hh"
 #include "gpu_platform_private.hh"
+#include "gpu_capabilities_private.hh"
+#include "intern/GHOST_ContextVK.h"
 
 namespace blender::gpu {
+
+  namespace vulkan {
+
+static VkPhysicalDeviceProperties properties;
+VkPhysicalDeviceProperties& getProperties() {
+  ///BLI_assert(GPG.initialized);
+  return properties;
+};
+
+};
+ 
+
 VKBackend::~VKBackend()
 {
   GPG.clear();
+ 
 }
  
 
@@ -43,7 +59,7 @@ void VKBackend::compute_dispatch_indirect(StorageBuf * /*indirect_buf*/)
 
 Context *VKBackend::context_alloc(void *ghost_window, void *ghost_context)
 {
-  return new VKContext(ghost_window, ghost_context);
+  return new VKContext(ghost_window, ghost_context, shared_orphan_list_);
 }
 
 Batch *VKBackend::batch_alloc()
@@ -71,14 +87,14 @@ QueryPool *VKBackend::querypool_alloc()
   return new VKQueryPool();
 }
 
-Shader *VKBackend::shader_alloc(const char * /*name*/)
+Shader *VKBackend::shader_alloc(const char * name)
 {
-  return nullptr;
+  return new VKShader(name);
 }
 
-Texture *VKBackend::texture_alloc(const char * /*name*/)
+Texture *VKBackend::texture_alloc(const char * name)
 {
-  return nullptr;
+  return new VKTexture(name,VKContext::get());
 }
 
 UniformBuf *VKBackend::uniformbuf_alloc(int /*size*/, const char * /*name*/)
@@ -112,23 +128,24 @@ void VKBackend::render_step()
 
 
 
+  
 
 void VKBackend::platform_init(VKContext *ctx)
 {
 
    BLI_assert(!GPG.initialized);
 
-  GHOST_ContextVK *ctxVk = ctx->ghost_context_;
+  GHOST_ContextVK *ctxVk = (GHOST_ContextVK *)ctx->ghost_context_;
    VkInstance instance;
   VkPhysicalDevice physical_device;
    VkDevice device;
   uint32_t r_graphic_queue_familly;
    ctxVk->getVulkanHandles(&instance, &physical_device, &device, &r_graphic_queue_familly);
 
-  VkPhysicalDeviceProperties properties;
- 
-  vkGetPhysicalDeviceProperties(physical_device, &properties);
 
+  auto &properties = vulkan::properties;
+  vkGetPhysicalDeviceProperties(physical_device, &properties);
+  
    
   VkPhysicalDeviceShaderSMBuiltinsFeaturesNV Vkpdss = {};
   Vkpdss.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SM_BUILTINS_FEATURES_NV;
@@ -244,10 +261,133 @@ void VKBackend::platform_init(VKContext *ctx)
     vkGetPhysicalDeviceProperties2(
       physical_device, &properties2);
 
-  BLI_assert(VkpdBOAprop.advancedBlendAllOperations);
+    BLI_assert(VkpdBOAprop.advancedBlendAllOperations);
 
+   
 
 
 }
+
+void VKBackend::capabilities_init(VKContext *ctx)
+{
+  
+   GHOST_ContextVK *ctxVk = (GHOST_ContextVK *)( ctx->ghost_context_);
+   VkInstance instance;
+   VkPhysicalDevice physical_device;
+   VkDevice device;
+   uint32_t r_graphic_queue_familly;
+   ctxVk->getVulkanHandles(&instance, &physical_device, &device, &r_graphic_queue_familly);
+   VkPhysicalDeviceProperties &properties = vulkan::properties;
+  vkGetPhysicalDeviceProperties(physical_device, &properties);
+   VkPhysicalDeviceLimits limits = properties.limits;
+  GCaps.max_texture_size = max(
+      limits.maxImageDimension3D,
+      max(limits.maxImageDimension1D, limits.maxImageDimension2D));
+  GCaps.max_texture_3d_size = limits.maxImageDimension3D;
+  GCaps.max_texture_layers = limits.maxImageArrayLayers;
+  GCaps.max_textures = limits.maxDescriptorSetSampledImages;
+  GCaps.max_textures_vert = limits.maxPerStageDescriptorSampledImages;
+  GCaps.max_textures_geom = limits.maxPerStageDescriptorSampledImages;
+  GCaps.max_textures_frag = limits.maxPerStageDescriptorSampledImages;
+  GCaps.max_samplers = limits.maxSamplerAllocationCount;
+  for (int i = 0; i < 3; i++) {
+    GCaps.max_work_group_count[i] = limits.maxComputeWorkGroupCount[i];
+    GCaps.max_work_group_size[i] = limits.maxComputeWorkGroupSize[i];
+  }
+  GCaps.max_uniforms_vert = limits.maxPerStageDescriptorUniformBuffers;
+  GCaps.max_uniforms_frag = limits.maxPerStageDescriptorUniformBuffers;
+  GCaps.max_batch_indices = limits.maxDrawIndirectCount;
+  GCaps.max_batch_vertices = limits.maxDrawIndexedIndexValue;
+  GCaps.max_vertex_attribs = limits.maxVertexInputAttributes;
+  GCaps.max_varying_floats = limits.maxVertexOutputComponents;
+  GCaps.max_shader_storage_buffer_bindings = limits.maxPerStageDescriptorStorageBuffers;
+  GCaps.max_compute_shader_storage_blocks = limits.maxPerStageDescriptorStorageBuffers;
+  ///TODO 
+  #if 0 
+
+  glGetIntegerv(GL_NUM_EXTENSIONS, &GCaps.extensions_len);
+  GCaps.extension_get = gl_extension_get;
+
+  GCaps.max_samplers = GCaps.max_textures;
+  GCaps.mem_stats_support = epoxy_has_gl_extension("GL_NVX_gpu_memory_info") ||
+                            epoxy_has_gl_extension("GL_ATI_meminfo");
+  GCaps.shader_image_load_store_support = epoxy_has_gl_extension("GL_ARB_shader_image_load_store");
+  GCaps.shader_draw_parameters_support = epoxy_has_gl_extension("GL_ARB_shader_draw_parameters");
+  GCaps.compute_shader_support = epoxy_has_gl_extension("GL_ARB_compute_shader") &&
+                                 epoxy_gl_version() >= 43;
+  GCaps.max_samplers = GCaps.max_textures;
+
+  if (GCaps.compute_shader_support) {
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &GCaps.max_work_group_count[0]);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &GCaps.max_work_group_count[1]);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &GCaps.max_work_group_count[2]);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &GCaps.max_work_group_size[0]);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &GCaps.max_work_group_size[1]);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &GCaps.max_work_group_size[2]);
+    glGetIntegerv(GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS,
+                  &GCaps.max_shader_storage_buffer_bindings);
+    glGetIntegerv(GL_MAX_COMPUTE_SHADER_STORAGE_BLOCKS, &GCaps.max_compute_shader_storage_blocks);
+  }
+  GCaps.shader_storage_buffer_objects_support = epoxy_has_gl_extension(
+      "GL_ARB_shader_storage_buffer_object");
+  GCaps.transform_feedback_support = true;
+
+  /* GL specific capabilities. */
+  glGetIntegerv(GL_MAX_3D_TEXTURE_SIZE, &GCaps.max_texture_3d_size);
+  glGetIntegerv(GL_MAX_CUBE_MAP_TEXTURE_SIZE, &GLContext::max_cubemap_size);
+  glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_BLOCKS, &GLContext::max_ubo_binds);
+  glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &GLContext::max_ubo_size);
+  if (GCaps.shader_storage_buffer_objects_support) {
+    GLint max_ssbo_binds;
+    GLContext::max_ssbo_binds = 999999;
+    glGetIntegerv(GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS, &max_ssbo_binds);
+    GLContext::max_ssbo_binds = min_ii(GLContext::max_ssbo_binds, max_ssbo_binds);
+    glGetIntegerv(GL_MAX_FRAGMENT_SHADER_STORAGE_BLOCKS, &max_ssbo_binds);
+    GLContext::max_ssbo_binds = min_ii(GLContext::max_ssbo_binds, max_ssbo_binds);
+    glGetIntegerv(GL_MAX_COMPUTE_SHADER_STORAGE_BLOCKS, &max_ssbo_binds);
+    GLContext::max_ssbo_binds = min_ii(GLContext::max_ssbo_binds, max_ssbo_binds);
+    if (GLContext::max_ssbo_binds < 8) {
+      /* Does not meet our minimum requirements. */
+      GCaps.shader_storage_buffer_objects_support = false;
+    }
+    glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &GLContext::max_ssbo_size);
+  }
+  GLContext::base_instance_support = epoxy_has_gl_extension("GL_ARB_base_instance");
+  GLContext::clear_texture_support = epoxy_has_gl_extension("GL_ARB_clear_texture");
+  GLContext::copy_image_support = epoxy_has_gl_extension("GL_ARB_copy_image");
+  GLContext::debug_layer_support = epoxy_gl_version() >= 43 ||
+                                   epoxy_has_gl_extension("GL_KHR_debug") ||
+                                   epoxy_has_gl_extension("GL_ARB_debug_output");
+  GLContext::direct_state_access_support = epoxy_has_gl_extension("GL_ARB_direct_state_access");
+  GLContext::explicit_location_support = epoxy_gl_version() >= 43;
+  GLContext::geometry_shader_invocations = epoxy_has_gl_extension("GL_ARB_gpu_shader5");
+  GLContext::fixed_restart_index_support = epoxy_has_gl_extension("GL_ARB_ES3_compatibility");
+  GLContext::layered_rendering_support = epoxy_has_gl_extension("GL_AMD_vertex_shader_layer");
+  GLContext::native_barycentric_support = epoxy_has_gl_extension(
+      "GL_AMD_shader_explicit_vertex_parameter");
+  GLContext::multi_bind_support = epoxy_has_gl_extension("GL_ARB_multi_bind");
+  GLContext::multi_draw_indirect_support = epoxy_has_gl_extension("GL_ARB_multi_draw_indirect");
+  GLContext::shader_draw_parameters_support = epoxy_has_gl_extension(
+      "GL_ARB_shader_draw_parameters");
+  GLContext::stencil_texturing_support = epoxy_gl_version() >= 43;
+  GLContext::texture_cube_map_array_support = epoxy_has_gl_extension(
+      "GL_ARB_texture_cube_map_array");
+  GLContext::texture_filter_anisotropic_support = epoxy_has_gl_extension(
+      "GL_EXT_texture_filter_anisotropic");
+  GLContext::texture_gather_support = epoxy_has_gl_extension("GL_ARB_texture_gather");
+  GLContext::texture_storage_support = epoxy_gl_version() >= 43;
+  GLContext::vertex_attrib_binding_support = epoxy_has_gl_extension(
+      "GL_ARB_vertex_attrib_binding");
+
+  detect_workarounds();
+
+  /* Disable this feature entirely when not debugging. */
+  if ((G.debug & G_DEBUG_GPU) == 0) {
+    GLContext::debug_layer_support = false;
+    GLContext::debug_layer_workaround = false;
+  }
+  #endif
+}
+
 
 }  // namespace blender::gpu

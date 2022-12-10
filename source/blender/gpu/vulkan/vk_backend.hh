@@ -9,12 +9,17 @@
 
 #include "gpu_backend.hh"
 
+#include "vk_context.hh"
+
 namespace blender::gpu {
 
  class VKContext;
 
 class VKBackend : public GPUBackend {
   friend class VKContext;
+
+ private:
+   VKSharedOrphanLists shared_orphan_list_;
  public:
   ~VKBackend();
 
@@ -44,9 +49,16 @@ class VKBackend : public GPUBackend {
   void render_step() override;
 
 
-private:
-  static void platform_init(VKContext *ctx);
 
+
+ private:
+
+  static void platform_init(VKContext *ctx);
+  static void capabilities_init(VKContext *ctx);
+};
+
+namespace vulkan {
+VkPhysicalDeviceProperties& getProperties();
 };
 
 }  // namespace blender::gpu

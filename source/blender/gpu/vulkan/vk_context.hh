@@ -6,49 +6,272 @@
  */
 
 #pragma once
+///Capabilities
+///
+#define VK_MAX_TEXTURE_SLOTS 128
+#define VK_MAX_SAMPLER_SLOTS VK_MAX_TEXTURE_SLOTS
+/* Max limit without using bind-less for samplers. */
+#define VK_MAX_DEFAULT_SAMPLERS 16
+#define VK_MAX_UNIFORM_BUFFER_BINDINGS 31
+#define VK_MAX_VERTEX_INPUT_ATTRIBUTES 31
+#define VK_MAX_UNIFORMS_PER_BLOCK 64
 
+#define VK_FRAME_AVERAGE_COUNT 5
+#define VK_MAX_DRAWABLES 3
+#define VK_MAX_SET_BYTES_SIZE 4096
+#define VK_FORCE_WAIT_IDLE 0
+
+#define VK_MAX_COMMAND_BUFFERS 64
+#define VK_NUM_SAFE_FRAMES (VK_MAX_DRAWABLES + 1)
+
+/* Display debug information about missing attributes and incorrect vertex formats. */
+#define VK_DEBUG_SHADER_ATTRIBUTES 0
+
+///Capabilities
+
+
+
+#include "DNA_userdef_types.h"
+#include "vk_mem_alloc.h"
 #include "MEM_guardedalloc.h"
 #include "gpu_context_private.hh"
 #include "GPU_common_types.h"
 #include "GPU_context.h"
-
 #include "intern/GHOST_Context.h"
-#include "intern/GHOST_ContextVK.h"
-#include "intern/GHOST_Window.h"
-
-
-#define GPU_VK_DEBUG
-
-#ifdef GPU_VK_DEBUG
-#  define GPU_VK_DEBUG_PRINTF(...) printf(__VA_ARGS__);
+#include "vk_layout.hh"
+#include "vk_memory.hh"
+#ifdef __APPLE__
+#  include <MoltenVK/vk_mvk_moltenvk.h>
 #else
-#  define GPU_VK_DEBUG_PRINTF(...)
+#  include <vulkan/vulkan.h>
 #endif
 
 
 
+#include <mutex>
+
 namespace blender::gpu {
 
+  static VkPrimitiveTopology to_vk(const GPUPrimType prim_type)
+  {
 
+    switch (prim_type) {
+      case GPU_PRIM_POINTS:
+        return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+      case GPU_PRIM_LINES:
+        return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+      case GPU_PRIM_LINES_ADJ:
+        return VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY;
+      case GPU_PRIM_LINE_LOOP:
+        return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+      case GPU_PRIM_LINE_STRIP:
+        return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+      case GPU_PRIM_LINE_STRIP_ADJ:
+        return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY;
+      case GPU_PRIM_TRIS:
+        return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+      case GPU_PRIM_TRIS_ADJ:
+        return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY;
+      case GPU_PRIM_TRI_FAN:
+        return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
+      case GPU_PRIM_TRI_STRIP:
+        return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+      case GPU_PRIM_NONE:
+        return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
+    };
+    return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
+  }
 
-
-class VKContext : public Context {
+class VKSharedOrphanLists {
+ public:
+  /** Mutex for the below structures. */
+  std::mutex lists_mutex;
+  /** Buffers and textures are shared across context. Any context can free them. */
+  Vector<GLuint> textures;
+  Vector<GLuint> buffers;
 
  public:
-  VKContext(void *ghost_window, void *ghost_context);
-   /*
-  VKScratchBufferManager memory_manager;
-  static VKBufferPool global_memory_manager;
+  void orphans_clear();
+};
+
+
+
+
+class VKFrameBuffer;
+class VKCommandBufferManager;
+class VKContext;
+class VKShader;
+class VKImmediate;
+class VKShaderInterface;
+class VKTexture;
+    /* Metal Context Render Pass State -- Used to track active RenderCommandEncoder state based on
+ * bound MTLFrameBuffer's.Owned by MTLContext. */
+class VKRenderPassState {
+  friend class VKContext;
+
+ public:
+  VKRenderPassState(VKContext &context, VKCommandBufferManager &command_buffer_manager)
+      : ctx(context), cmd(command_buffer_manager){
+
+    for (int i = 0; i < VK_MAX_TEXTURE_SLOTS; i++) {
+      cached_vertex_sampler_state_bindings[i].sampler_state = VK_NULL_HANDLE;
+    }
+
+  };
+  ~VKRenderPassState()
+  {
+
+
+  };
+  /* Given a RenderPassState is associated with a live RenderCommandEncoder,
+   * this state sits within the MTLCommandBufferManager. */
+  VKContext &ctx;
+  VKCommandBufferManager &cmd;
+
+  /* Caching of resource bindings for active MTLRenderCommandEncoder.
+   * In Metal, resource bindings are local to the MTLCommandEncoder,
+   * not globally to the whole pipeline/cmd buffer. */
+  struct VKBoundShaderState {
+    VKShader *shader_ = nullptr;
+    uint pso_index_;
+    void set(VKShader *shader, uint pso_index)
+    {
+      shader_ = shader;
+      pso_index_ = pso_index;
+    }
+  };
+
+  VKBoundShaderState last_bound_shader_state;
+//  VkRenderPipelineStateCreateInfo  bound_pso = nil;
+//  id<MTLDepthStencilState> bound_ds_state = nil;
+  uint last_used_stencil_ref_value = 0;
+  VkRect2D last_scissor_rect;
+
+  /* Caching of CommandEncoder Vertex/Fragment buffer bindings. */
+  struct BufferBindingCached {
+    /* Whether the given binding slot uses byte data (Push Constant equivalent)
+     * or an MTLBuffer. */
+    bool is_bytes;
+    VkBuffer metal_buffer;
+    int offset;
+  };
+
+  VkDescriptorBufferInfo cached_vertex_buffer_bindings[VK_MAX_UNIFORM_BUFFER_BINDINGS];
+  VkDescriptorBufferInfo cached_fragment_buffer_bindings[VK_MAX_UNIFORM_BUFFER_BINDINGS];
+
+
+
+
+  struct SamplerStateBindingCached {
+    //MTLSamplerState binding_state;
+    //id<MTLSamplerState> sampler_state;
+    VKSamplerState  binding_state;
+    VkSampler  sampler_state;
+    bool is_arg_buffer_binding;
+  };
+
+  SamplerStateBindingCached cached_vertex_sampler_state_bindings[VK_MAX_TEXTURE_SLOTS];
+  SamplerStateBindingCached cached_fragment_sampler_state_bindings[VK_MAX_TEXTURE_SLOTS];
+
+  Vector<VkWriteDescriptorSet> write_outs;
+
+
+  void append_write_texture(VkWriteDescriptorSet &write);
+
+
+    /* Sampler Binding (RenderCommandEncoder). */
+  bool append_sampler(VKSamplerBinding &sampler_binding,
+                      bool use_argument_buffer_for_samplers,
+                      uint slot);
+
+  /* Reset RenderCommandEncoder binding state. */
+  void reset_state();
+
+  /* Texture Binding (RenderCommandEncoder). */
+
+  void bind_vertex_texture(VkImageView iinfo, uint32_t slot);
+  void bind_fragment_texture(VkDescriptorImageInfo iinfo, uint32_t slot);
+
+
+
+
+  void bind_fragment_sampler(SamplerStateBindingCached &sampler_binding,
+                             bool use_argument_buffer_for_samplers,
+                             uint slot);
+
+  /* Buffer binding (RenderCommandEncoder). */
+
+  void bind_vertex_buffer(VkDescriptorBufferInfo buffer,
+                                              uint buffer_offset,
+                                              uint index);
+
+  void bind_fragment_buffer(VkBuffer buffer, uint buffer_offset, uint index);
+  void bind_vertex_bytes(void *bytes, uint length, uint index);
+  void bind_fragment_bytes(void *bytes, uint length, uint index);
+
+
+
+};
+
+
+class VKStateManager;
+class VKContext : public Context {
+ private:
+  /** Copies of the handles owned by the GHOST context. */
+  VkInstance instance_ = VK_NULL_HANDLE;
+  VkPhysicalDevice physical_device_ = VK_NULL_HANDLE;
+  VkDevice device_ = VK_NULL_HANDLE;
+  uint32_t graphic_queue_familly_ = 0;
+  /** Allocator used for texture and buffers and other resources. */
+  VmaAllocator mem_allocator_ = VK_NULL_HANDLE;
+
+
+  /** Mutex for the below structures. */
+  std::mutex lists_mutex_;
+  /** VertexArrays and framebuffers are not shared across context. */
+  Vector<GLuint> orphaned_vertarrays_;
+  Vector<GLuint> orphaned_framebuffers_;
+  /** #GLBackend owns this data. */
+  VKSharedOrphanLists &shared_orphan_list_;
+  uint32_t current_frame_index_;
+
+  bool is_inside_frame_ = false;
+
+  VkSampler sampler_state_cache_[GPU_SAMPLER_MAX];
+  VkSampler default_sampler_state_;
+
+
+ public:
+  VkSampler get_default_sampler_state();
+  VkSampler get_sampler_from_state(VKSamplerState sampler_state);
+  VkSampler generate_sampler_from_state(VKSamplerState sampler_state);
+
+
+ VkRenderPass get_renderpass();
+  VkPhysicalDevice get_physical_device();
+  void *ghost_context_;
+
+
+  VKStagingBufferManager*  buffer_manager_;
+  PipelineStateCreateInfoVk       pipeline_state;
+  VkCommandBuffer                     current_cmd_;
+  VKContext(void *ghost_window, void *ghost_context,VKSharedOrphanLists &shared_orphan_list);
+  ~VKContext();
+  void init(void *ghost_window, void *ghost_context);
+
+
   
   /* CommandBuffer managers.   */
-  //VKCommandBufferManager main_command_buffer;
-
-
-  VkDevice device;
+  //
   void activate() override;
   void deactivate() override;
   void begin_frame() override;
   void end_frame() override;
+
+  void begin_submit(int N);
+  void end_submit();
+  void submit();
+  void submit_nonblocking();
 
   void flush() override;
   void finish() override;
@@ -57,11 +280,66 @@ class VKContext : public Context {
 
   void debug_group_begin(const char *, int) override;
   void debug_group_end() override;
-  GHOST_ContextVK *ghost_context_; 
+
+  bool cmd_valid_[2] = {false, false};
+
+  void begin_render_pass(VkCommandBuffer &cmd, int i = -1);
+  void end_render_pass(VkCommandBuffer &cmd, int i = -1);
   
+  
+  VmaAllocator mem_allocator_get() const
+  {
+    return mem_allocator_;
+  }
+  VkDevice device_get() {
+    return device_;
+  };
+  VkQueue queue_get(uint32_t type_);
+  void fbo_free(GLuint fbo_id);
+  static VKContext *get()
+  {
+    return static_cast<VKContext *>(Context::get());
+  }
+
+  uint32_t get_current_frame_index() {
+    return current_frame_index_;
+  };
+  uint32_t get_transferQueueIndex();
+  uint32_t get_graphicQueueIndex();
+  VKStagingBufferManager *get_buffer_manager()
+  {
+    return buffer_manager_;
+  }
+  void framebuffer_bind(VKFrameBuffer *framebuffer);
+  void framebuffer_restore();
+
+  blender::gpu::VKFrameBuffer *get_default_framebuffer();
+  blender::gpu::VKFrameBuffer *get_current_framebuffer();
+  void set_viewport(int origin_x, int origin_y, int width, int height);
+
+  void set_scissor(int scissor_x, int scissor_y, int scissor_width, int scissor_height);
+
+  void set_scissor_enabled(bool scissor_enabled);
+
+  bool ensure_render_pipeline_state(GPUPrimType prim_type);
+
+
+
+  bool get_inside_frame()
+  {
+    return is_inside_frame_;
+  }
+  /** Dummy Resources */
+  /* Maximum of 32 texture types. Though most combinations invalid. */
+  VKTexture *dummy_textures_[GPU_TEXTURE_BUFFER] = {nullptr};
+  GPUVertFormat dummy_vertformat_;
+  GPUVertBuf *dummy_verts_ = nullptr;
+  VKTexture *get_dummy_texture(eGPUTextureType type);
+ 
   private:
   /* Parent Context. */
-  
+   void orphans_clear();
+   void orphans_add(Vector<GLuint> &orphan_list, std::mutex &list_mutex, GLuint id);
 };
 
 }  // namespace blender::gpu

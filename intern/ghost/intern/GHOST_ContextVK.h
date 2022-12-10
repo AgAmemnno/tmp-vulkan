@@ -5,11 +5,14 @@
  */
 
 #pragma once
+#pragma warning(push)
+#pragma warning(disable : 5038)
 
 #include "GHOST_Context.h"
+#include "BKE_global.h"
 
-
-#define VULKAN_ERROR_CHECK
+#include <unordered_map>
+#include <array>
 
 #ifdef _WIN32
 #  include "GHOST_SystemWin32.h"
@@ -25,6 +28,7 @@
 #  endif
 #endif
 
+
 #include <vector>
 
 #ifdef __APPLE__
@@ -32,6 +36,21 @@
 #else
 #  include <vulkan/vulkan.h>
 #endif
+#define VK_ENABLE_DebugPrint
+#define VULKAN_ERROR_CHECK
+
+
+
+
+
+
+
+
+#define DEBUG_PRINTF(...) printf(__VA_ARGS__); 
+
+
+
+
 
 
 #ifdef VULKAN_ERROR_CHECK
@@ -45,6 +64,14 @@
   VULKAN_DEBUG_NONE
 };
 #endif
+
+ 
+
+
+
+
+
+class VKFrameBuffer;
 
 #ifndef GHOST_OPENGL_VK_CONTEXT_FLAGS
 /* leave as convenience define for the future */
@@ -63,8 +90,8 @@
     } GHOST_TVulkanPlatformType;
 
     const char *vulkan_error_as_string(VkResult result);
-
 #define __STR(A) "" #A
+#ifndef VK_CHECK
 #define VK_CHECK(__expression) \
   do { \
     VkResult r = (__expression); \
@@ -78,15 +105,195 @@
       return GHOST_kFailure; \
     } \
   } while (0)
+#endif
+#ifndef VK_CHECK2
+#define VK_CHECK2(__expression) \
+  do { \
+    VkResult r = (__expression); \
+    if (r != VK_SUCCESS) { \
+      fprintf(stderr, \
+              "Vulkan Error : %s:%d : %s failled with %s\n", \
+              __FILE__, \
+              __LINE__, \
+              __STR(__expression), \
+              vulkan_error_as_string(r)); \
+      exit(-1); \
+    } \
+  } while (0)
+#endif
+
+  class GHOST_ContextVK;
 
 
-uint32_t getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32* memTypeFound= nullptr);
-uint32_t getMemoryTypeIndex(uint32_t typeBits, VkMemoryPropertyFlags properties);
+    uint32_t getMemoryType(uint32_t typeBits,
+                           VkMemoryPropertyFlags properties,
+                           VkBool32 *memTypeFound = nullptr);
+    uint32_t getMemoryTypeIndex(uint32_t typeBits, VkMemoryPropertyFlags properties);
 bool MemoryTypeFromProperties(uint32_t nMemoryTypeBits,
                               VkMemoryPropertyFlags nMemoryProperties,
                               uint32_t *pTypeIndexOut);
+static void setImageLayout(VkCommandBuffer cmdbuffer,
+                           VkImage image,
+                           VkImageLayout oldImageLayout,
+                           VkImageLayout newImageLayout,
+                           VkImageSubresourceRange subresourceRange,
+                           VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                           VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT)
+{
+  // Create an image barrier object
+  VkImageMemoryBarrier imageMemoryBarrier{};
+  imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+  imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  imageMemoryBarrier.oldLayout = oldImageLayout;
+  imageMemoryBarrier.newLayout = newImageLayout;
+  imageMemoryBarrier.image = image;
+  imageMemoryBarrier.subresourceRange = subresourceRange;
 
-    class GHOST_ContextVK : public GHOST_Context {
+  // Source layouts (old)
+  // Source access mask controls actions that have to be finished on the old layout
+  // before it will be transitioned to the new layout
+  switch (oldImageLayout) {
+    case VK_IMAGE_LAYOUT_UNDEFINED:
+      // Image layout is undefined (or does not matter)
+      // Only valid as initial layout
+      // No flags required, listed only for completeness
+      imageMemoryBarrier.srcAccessMask = 0;
+      break;
+
+    case VK_IMAGE_LAYOUT_PREINITIALIZED:
+      // Image is preinitialized
+      // Only valid as initial layout for linear images, preserves memory contents
+      // Make sure host writes have been finished
+      imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+      break;
+
+    case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+      // Image is a color attachment
+      // Make sure any writes to the color buffer have been finished
+      imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+      break;
+
+    case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+      // Image is a depth/stencil attachment
+      // Make sure any writes to the depth/stencil buffer have been finished
+      imageMemoryBarrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+      break;
+
+    case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+      // Image is a transfer source
+      // Make sure any reads from the image have been finished
+      imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+      break;
+
+    case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+      // Image is a transfer destination
+      // Make sure any writes to the image have been finished
+      imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+      break;
+
+    case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+      // Image is read by a shader
+      // Make sure any shader reads from the image have been finished
+      imageMemoryBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+      break;
+    default:
+      // Other source layouts aren't handled (yet)
+      break;
+  }
+
+  // Target layouts (new)
+  // Destination access mask controls the dependency for the new image layout
+  switch (newImageLayout) {
+    case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+      // Image will be used as a transfer destination
+      // Make sure any writes to the image have been finished
+      imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+      break;
+
+    case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+      // Image will be used as a transfer source
+      // Make sure any reads from the image have been finished
+      imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+      break;
+
+    case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+      // Image will be used as a color attachment
+      // Make sure any writes to the color buffer have been finished
+      imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+      break;
+
+    case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+      // Image layout will be used as a depth/stencil attachment
+      // Make sure any writes to depth/stencil buffer have been finished
+      imageMemoryBarrier.dstAccessMask = imageMemoryBarrier.dstAccessMask |
+                                         VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+      break;
+
+    case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+      // Image will be read in a shader (sampler, input attachment)
+      // Make sure any writes to the image have been finished
+      if (imageMemoryBarrier.srcAccessMask == 0) {
+        imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+      }
+      imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+      break;
+    default:
+      // Other source layouts aren't handled (yet)
+      break;
+  }
+
+  // Put barrier inside setup command buffer
+  vkCmdPipelineBarrier(
+      cmdbuffer, srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
+}
+
+static void setImageLayout(VkCommandBuffer cmdbuffer,
+                           VkImage image,
+                           VkImageAspectFlags aspectMask,
+                           VkImageLayout oldImageLayout,
+                           VkImageLayout newImageLayout,
+                           VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                           VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT)
+{
+  VkImageSubresourceRange subresourceRange = {};
+  subresourceRange.aspectMask = aspectMask;
+  subresourceRange.baseMipLevel = 0;
+  subresourceRange.levelCount = 1;
+  subresourceRange.layerCount = 1;
+  setImageLayout(cmdbuffer,
+                 image,
+                 oldImageLayout,
+                 newImageLayout,
+                 subresourceRange,
+                 srcStageMask,
+                 dstStageMask);
+}
+
+
+
+
+struct ExtensionEntry {
+  ExtensionEntry(const char *entryName,
+                 bool isOptional = false,
+                 void *pointerFeatureStruct = nullptr,
+                 uint32_t checkVersion = 0)
+      : name(entryName),
+        optional(isOptional),
+        pFeatureStruct(pointerFeatureStruct),
+        version(checkVersion)
+  {
+  }
+  const char *name{nullptr};
+  bool optional{false};
+  void *pFeatureStruct{nullptr};
+  uint32_t version{0};
+};
+
+
+
+
+class GHOST_ContextVK : public GHOST_Context {
  public:
   /**
    * Constructor.
@@ -121,63 +328,68 @@ bool MemoryTypeFromProperties(uint32_t nMemoryTypeBits,
    */
   ~GHOST_ContextVK();
 
+   GHOST_TSuccess begin_frame(VkCommandBuffer &cmd,int i=-1)
+    {
+      if (i==-1)i = m_currentFrame;
 
-  template<class M> GHOST_TSuccess commandLoop(M &mat)
-  {
-    uint32_t i = m_currentFrame;
+      cmd = m_command_buffers[i];
+      static bool ini = true;
 
+      static VkCommandBufferBeginInfo cmdBufInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+      static VkClearValue clearValues[2];
+      static VkRenderPassBeginInfo renderPassBeginInfo = {
+          VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
 
-    static bool ini = true;
+      if (ini) {
 
-    static VkCommandBufferBeginInfo cmdBufInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-    static VkClearValue clearValues[2];
-    static VkRenderPassBeginInfo renderPassBeginInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
+        clearValues[0].color = {{0.025f, 0.025f, 0.025f, 1.0f}};
+        clearValues[1].depthStencil = {1.0f, 0};
 
+        renderPassBeginInfo.renderPass = m_render_pass;
+        renderPassBeginInfo.renderArea.offset.x = 0;
+        renderPassBeginInfo.renderArea.offset.y = 0;
+        renderPassBeginInfo.renderArea.extent.width = m_render_extent.width;
+        renderPassBeginInfo.renderArea.extent.height = m_render_extent.height;
+        renderPassBeginInfo.clearValueCount = 2;
+        renderPassBeginInfo.pClearValues = clearValues;
+      }
 
+      renderPassBeginInfo.framebuffer = m_swapchain_framebuffers[i];
 
-    if (ini) {
+      VK_CHECK(vkBeginCommandBuffer(m_command_buffers[i], &cmdBufInfo));
 
-      clearValues[0].color = {{0.025f, 0.025f, 0.025f, 1.0f}};
-      clearValues[1].depthStencil = {1.0f, 0};
+      vkCmdBeginRenderPass(m_command_buffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-      renderPassBeginInfo.renderPass = m_render_pass;
-      renderPassBeginInfo.renderArea.offset.x = 0;
-      renderPassBeginInfo.renderArea.offset.y = 0;
-      renderPassBeginInfo.renderArea.extent.width = m_render_extent.width;
-      renderPassBeginInfo.renderArea.extent.height = m_render_extent.height;
-      renderPassBeginInfo.clearValueCount = 2;
-      renderPassBeginInfo.pClearValues = clearValues;
-    }
+      VkViewport viewport = {};
+      viewport.width = (float)m_render_extent.width;
+      viewport.height = (float)m_render_extent.height;
+      viewport.minDepth = 0.f;
+      viewport.maxDepth = 1.f;
 
-    renderPassBeginInfo.framebuffer = m_swapchain_framebuffers[i];
+      VkRect2D scissor = {};
+      scissor.extent.width = m_render_extent.width;
+      scissor.extent.height = m_render_extent.height;
+      scissor.offset.x = 0;
+      scissor.offset.y = 0;
+      vkCmdSetViewport(m_command_buffers[i], 0, 1, &viewport);
+      vkCmdSetScissor(m_command_buffers[i], 0, 1, &scissor);
+      return GHOST_kSuccess;
+    };
 
-    VK_CHECK(vkBeginCommandBuffer(m_command_buffers[i], &cmdBufInfo));
+    GHOST_TSuccess end_frame(VkCommandBuffer &cmd)
+    {
 
-    vkCmdBeginRenderPass(m_command_buffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+      vkCmdEndRenderPass(cmd);
+      VK_CHECK(vkEndCommandBuffer(cmd));
 
-    VkViewport viewport = {};
-    viewport.width = (float)m_render_extent.width;
-    viewport.height = (float)m_render_extent.height;
-    viewport.minDepth = 0.f;
-    viewport.maxDepth = 1.f;
+            return GHOST_kSuccess;
 
-    VkRect2D scissor = {};
-    scissor.extent.width = m_render_extent.width;
-    scissor.extent.height = m_render_extent.height;
-    scissor.offset.x = 0;
-    scissor.offset.y = 0;
-    vkCmdSetViewport(m_command_buffers[i], 0, 1, &viewport);
-    vkCmdSetScissor(m_command_buffers[i], 0, 1, &scissor);
+    };
+    GHOST_TSuccess begin_submit(int N);
+    GHOST_TSuccess end_submit();
 
-    mat.make(m_command_buffers[i], m_render_finished_semaphores[i]);
-
-    vkCmdEndRenderPass(m_command_buffers[i]);
-    VK_CHECK(vkEndCommandBuffer(m_command_buffers[i]));
-
-    return GHOST_kSuccess;
-  };
-
-
+    int current_wait_sema_ = 0;
+    GHOST_TSuccess submit_nonblocking();
 
   /**
    * Swaps front and back buffers of a window.
@@ -214,11 +426,31 @@ bool MemoryTypeFromProperties(uint32_t nMemoryTypeBits,
   GHOST_TSuccess getQueue(uint32_t qty,
                                            void *r_queue,
                                            uint32_t *r_graphic_queue_familly);
+  uint32_t getQueueIndex(uint32_t i);
 
+  int getCurrent(VkCommandBuffer& cmd)
+  {
+    cmd = m_command_buffers[m_currentFrame];
+    return m_currentFrame;
+  }
   VkDevice getDevice()
   {
     return m_device;
   };
+  VkPhysicalDevice getPhysicalDevice()
+  {
+    return m_physical_device;
+  };
+  VkRenderPass getRenderPass()
+  {
+    return m_render_pass;
+  };
+int getFrame()
+  {
+    return m_currentFrame;
+  };
+
+  bool getCommandBuffer(VkCommandBuffer &cmd, int i);
   /**
    * Gets the Vulkan context related resource handles.
    * \return  A boolean success indicator.
@@ -262,10 +494,19 @@ bool MemoryTypeFromProperties(uint32_t nMemoryTypeBits,
    
 
 
-   #ifdef VULKAN_ERROR_CHECK
-    GHOST_TSuccess Check_Context(int mode = 0);
-   #endif
+  GHOST_TSuccess acquireCustom();
+  GHOST_TSuccess waitCustom();
+  GHOST_TSuccess beginCustom(int i= -1);
+  GHOST_TSuccess submitCustom2();
+  GHOST_TSuccess submitCustom();
+  GHOST_TSuccess presentCustom();
+
+
+  
  private:
+
+
+
 #ifdef _WIN32
   HWND m_hwnd;
 #elif defined(__APPLE__)
@@ -319,16 +560,25 @@ bool MemoryTypeFromProperties(uint32_t nMemoryTypeBits,
 
   const char *getPlatformSpecificSurfaceExtension() const;
   GHOST_TSuccess pickPhysicalDevice(std::vector<const char *> required_exts);
+
   GHOST_TSuccess createSwapchain(void);
   GHOST_TSuccess destroySwapchain(void);
   GHOST_TSuccess createCommandBuffers(void);
   GHOST_TSuccess recordCommandBuffers(void);
 
 
-  VkPhysicalDeviceMemoryProperties m_memoryProperties;
+ GHOST_TSuccess pickPhysicalDevice2(std::vector<ExtensionEntry>& required_exts);
+ std::vector<void *> featureStructs;
+ std::vector<const char *> enabledDeviceExts;
+
+ VkPhysicalDeviceMemoryProperties m_memoryProperties;
 #ifdef VULKAN_ERROR_CHECK
   VULKAN_DEBUG_TYPE m_debugMode;
 #endif
 
+
 };
 
+
+
+#pragma warning(pop)

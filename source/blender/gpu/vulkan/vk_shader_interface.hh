@@ -40,8 +40,8 @@
 
 ///https://github.com/KhronosGroup/SPIRV-Cross
 ///Dependent packages for reverse engineering and code modifications
-#include "spirv_cross/spirv_cross.hpp"
-#include "spirv_cross/spirv_glsl.hpp"
+#include "spirv_cross.hpp"
+#include "spirv_glsl.hpp"
 
 
 

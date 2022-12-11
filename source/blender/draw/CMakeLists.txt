@@ -300,6 +300,7 @@ set(LIB
   bf_blenlib
   bf_realtime_compositor
   bf_windowmanager
+
 )
 
 set(GLSL_SRC
@@ -775,11 +776,9 @@ if(WITH_GTESTS)
         set(Shaderc_FOUND On)
         set(Shaderc_ROOT_DIR ${LIBDIR}/shaderc)
         set(Shaderc_INCLUDE_DIR ${LIBDIR}/shaderc/include)
-        set(Spirv_cross_INCLUDE_DIR  ${LIBDIR}/SPIRV-Cross/include)
-        set(Shaderc_INCLUDE_DIRS ${Shaderc_INCLUDE_DIR} ${Spirv_cross_INCLUDE_DIR})
+        set(Shaderc_INCLUDE_DIRS ${Shaderc_INCLUDE_DIR})
         set(Shaderc_LIBRARY ${LIBDIR}/shaderc/Lib/shaderc_shared.lib)
-        set(Spirv_cross_LIBRARIES ${LIBDIR}/SPIRV-Cross/lib/spirv-cross-cored.lib ${LIBDIR}/SPIRV-Cross/lib/spirv-cross-glsld.lib ${LIBDIR}/SPIRV-Cross/lib/spirv-cross-utild.lib ${LIBDIR}/SPIRV-Cross/lib/spirv-cross-reflectd.lib )
-        set(Shaderc_LIBRARIES ${Shaderc_LIBRARY} ${Spirv_cross_LIBRARIES})
+        set(Shaderc_LIBRARIES ${Shaderc_LIBRARY})
     else()
         message(ERROR "shaderc was not found, disabling WITH_VULKAN_BACKEND")
     endif()
@@ -795,12 +794,13 @@ if(WITH_GTESTS)
 
     include(GTestTesting)
     set(TEST_INC
-      ../../../intern/ghost
+     ../../../intern/ghost
       ../gpu/tests
       ../editors/screen
-      ${Vulkan_INCLUDE_DIRS} 
-      ${Shaderc_INCLUDE_DIRS}
-      ${Epoxy_INCLUDE_DIRS}
+    ${Vulkan_INCLUDE_DIRS} 
+     ${Shaderc_INCLUDE_DIRS}
+  ${Epoxy_INCLUDE_DIRS}
+
     )
     
     set(TEST_LIB
@@ -811,6 +811,9 @@ if(WITH_GTESTS)
     bf_blenkernel
     ${Vulkan_LIBRARIES}
     ${Shaderc_LIBRARIES}
+      # added external module.
+      extern_spirv_cross
+      extern_spirv_cross_glsl
     )
 
 

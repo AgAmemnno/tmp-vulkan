@@ -29,8 +29,8 @@
 
 
 
-#include "spirv_cross/spirv_cross.hpp"
-#include "spirv_cross/spirv_glsl.hpp"
+#include <spirv_cross.hpp>
+#include <spirv_glsl.hpp>
 
 namespace blender::gpu {
 const int UNIFORM_SORT_OFS = 1000;

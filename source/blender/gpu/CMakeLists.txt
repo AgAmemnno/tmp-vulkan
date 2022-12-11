@@ -38,6 +38,9 @@ set(INC
   ../../../intern/ghost
   ../../../intern/guardedalloc
   ../../../intern/mantaflow/extern
+
+
+
 )
 
 set(INC_SYS
@@ -276,7 +279,7 @@ if(WITH_OPENGL)
 endif()
 
 if(WITH_VULKAN_BACKEND)
-
+    set(INC ${INC}    ../../../extern/spirv_cross/src)
     if(EXISTS ${LIBDIR}/vulkan)
       set(Vulkan_FOUND On)
       set(Vulkan_ROOT_DIR ${LIBDIR}/vulkan)
@@ -301,18 +304,7 @@ if(WITH_VULKAN_BACKEND)
       message(ERROR "shaderc was not found, disabling WITH_VULKAN_BACKEND")
     endif()
 
-     if(EXISTS ${LIBDIR}/SPIRV-Cross)
-      set(SPIRV-Cross_FOUND On)
-      set(SPIRV-Cross_ROOT_DIR ${LIBDIR}/SPIRV-Cross)
-      set(SPIRV-Cross_INCLUDE_DIR   ${LIBDIR}/SPIRV-Cross/include)
-      set(SPIRV-Cross_INCLUDE_DIRS  ${SPIRV-Cross_INCLUDE_DIR} )
-      set(SPIRV-Cross_LIBRARY ${LIBDIR}/SPIRV-Cross/Lib/spirv-cross-cored.lib  ${LIBDIR}/SPIRV-Cross/Lib/spirv-cross-glsld.lib)
-      set(SPIRV-Cross_LIBRARIES  ${SPIRV-Cross_LIBRARY})
-       set(INC_SYS ${INC_SYS} ${LIBDIR}/SPIRV-Cross/include)
-     
-     else() 
-      message(ERROR "SPIRV-Cross  was not found, disabling WITH_VULKAN_BACKEND")
-    endif()
+
     
   list(APPEND SRC ${VULKAN_SRC})
 endif()
@@ -782,6 +774,10 @@ if(CXX_WARN_NO_SUGGEST_OVERRIDE)
   target_compile_options(bf_gpu PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-Wsuggest-override>)
 endif()
 
+
+if(WITH_VULKAN_BACKEND)
+target_link_libraries(bf_gpu PUBLIC extern_spirv_cross extern_spirv_cross_glsl)
+endif()
 
 
 if(WITH_GPU_BUILDTIME_SHADER_BUILDER)

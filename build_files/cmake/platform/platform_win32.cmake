@@ -917,6 +917,18 @@ if(WITH_HARU)
 endif()
 
 if(WITH_VULKAN_BACKEND)
+
+  if(EXISTS ${LIBDIR}/shaderc)
+    set(Shaderc_FOUND On)
+    set(Shaderc_ROOT_DIR ${LIBDIR}/shaderc)
+    set(Shaderc_INCLUDE_DIR ${LIBDIR}/shaderc/include)
+    set(Shaderc_INCLUDE_DIRS ${Shaderc_INCLUDE_DIR})
+    set(Shaderc_LIBRARY ${LIBDIR}/shaderc/Lib/shaderc_shared.lib)
+    set(Shaderc_LIBRARIES ${Shaderc_LIBRARY})
+  else()
+    message(ERROR "shaderc was not found, disabling WITH_VULKAN_BACKEND")
+  endif()
+
   if(EXISTS ${LIBDIR}/vulkan)
     set(Vulkan_FOUND On)
     set(Vulkan_ROOT_DIR ${LIBDIR}/vulkan)

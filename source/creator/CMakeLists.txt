@@ -36,7 +36,11 @@ endif()
 
 if(WITH_VULKAN_BACKEND)
   list(APPEND INC ${Vulkan_INCLUDE_DIRS})
+  list(APPEND INC ${Shaderc_INCLUDE_DIRS})
+
   list(INSERT LIB 0 ${Vulkan_LIBRARIES})
+  list(INSERT LIB 0 ${Shaderc_LIBRARIES})
+
 endif()
 
 if(WIN32)

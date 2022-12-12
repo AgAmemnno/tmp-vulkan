@@ -732,7 +732,7 @@ namespace spirv_cross {
   spirv_cross::CompilerBlender fcom(Code, *this, VK_SHADER_STAGE_FRAGMENT_BIT);
 
 
-  BLI_assert(apply(&vcom, &fcom));
+  apply(&vcom, &fcom);
   this->sort_inputs();
   this->sortUniformLocation();
 

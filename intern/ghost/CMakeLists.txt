@@ -88,13 +88,13 @@ if(WITH_VULKAN_BACKEND)
     intern/GHOST_ContextVK.cpp
     intern/GHOST_ContextVK.h
 
-    intern/GHOST_MaterialVK.cpp
-    intern/GHOST_MaterialVK.hh
+   
     ${Vulkan_INCLUDE_DIRS}/vulkan/extensions_vk.cpp
   )
 
   list(APPEND INC_SYS
     ${Vulkan_INCLUDE_DIRS}
+    ../../source/blender/blenkernel
   )
 
   list(APPEND LIB

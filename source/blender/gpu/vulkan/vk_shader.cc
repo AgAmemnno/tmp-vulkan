@@ -513,9 +513,9 @@ bool VKShader::finalize(const shader::ShaderCreateInfo *info )
     VKShaderInterface &iface = *((VKShaderInterface *)interface);
     if (!iface.valid) {
       blender::gpu::ShaderModule vsm, fsm;
-      BLI_assert(getShaderModule(vsm, 0));
-      BLI_assert(getShaderModule(fsm, 2));
-      BLI_assert(iface.parse(vsm, fsm));
+      getShaderModule(vsm, 0);
+      getShaderModule(fsm, 2);
+      iface.parse(vsm, fsm);
       iface.valid = true;
     }
 

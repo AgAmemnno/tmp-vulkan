@@ -3311,7 +3311,7 @@ void DRW_xr_drawing_end(void)
 /** \name Internal testing API for gtests
  * \{ */
 
-#ifdef WITH_OPENGL_DRAW_TESTS
+#if defined(WITH_OPENGL_DRAW_TESTS) || defined(WITH_VULKAN_DRAW_TESTS)
 
 void DRW_draw_state_init_gtests(eGPUShaderConfig sh_cfg)
 {

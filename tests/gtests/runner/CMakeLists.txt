@@ -15,9 +15,16 @@ if(WITH_BUILDINFO)
 endif()
 
 
+
+
+
 # Test libraries need to be linked "whole archive", because they're not
 # directly referenced from other code.
 get_property(_test_libs GLOBAL PROPERTY BLENDER_TEST_LIBS)
+
+
+
+
 if(WIN32 OR APPLE)
   # Windows and macOS set target_link_options after target creation.
 elseif(UNIX)
@@ -25,6 +32,9 @@ elseif(UNIX)
 else()
   message(FATAL_ERROR "Unknown how to link whole-archive with your compiler ${CMAKE_CXX_COMPILER_ID}")
 endif()
+
+
+
 
 # This builds `bin/tests/blender_test`, but does not add it as a single test.
 blender_src_gtest_ex(
@@ -35,6 +45,7 @@ blender_src_gtest_ex(
 )
 setup_platform_linker_libs(blender_test)
 
+
 if(WIN32)
   foreach(_lib ${_test_libs})
     # Both target_link_libraries and target_link_options are required here
@@ -42,6 +53,9 @@ if(WIN32)
     # the wholearchive flag in target link options will not.
     target_link_libraries(blender_test ${_lib})
     target_link_options(blender_test PRIVATE /wholearchive:$<TARGET_FILE:${_lib}>)
+    
+    target_link_libraries(blender_test ${Vulkan_LIBRARIES} ${Shaderc_LIBRARIES})
+
   endforeach()
 elseif(APPLE)
   # force_load for `_test_libs` ensures that all symbols definitely make it into the test binary.

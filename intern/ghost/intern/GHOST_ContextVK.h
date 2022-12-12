@@ -10,6 +10,7 @@
 
 #include "GHOST_Context.h"
 #include "BKE_global.h"
+#include <cassert>
 
 #include <unordered_map>
 #include <array>

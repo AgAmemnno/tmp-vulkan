@@ -75,7 +75,7 @@ void DrawVulkanTest::SetUp()
 void GPUTest::SetUp()
 {
   ghost_context = NULL;
-  G.debug |= VULKAN_RENDERPASS_SUB0;
+
   CLG_init();
   ghost_system = GHOST_CreateSystem();
   /// GHOST_GLSettings glSettings = {0};

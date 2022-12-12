@@ -184,7 +184,7 @@ option(WITH_PYTHON_SAFETY "Enable internal API error checking to track invalid d
 mark_as_advanced(WITH_PYTHON_SAFETY)
 option(WITH_PYTHON_MODULE "Enable building as a python module which runs without a user interface, like running regular blender in background mode (experimental, only enable for development), installs to PYTHON_SITE_PACKAGES (or CMAKE_INSTALL_PREFIX if WITH_INSTALL_PORTABLE is enabled)." OFF)
 
-option(WITH_BUILDINFO     "Include extra build details (only disable for development & faster builds)" ON)
+option(WITH_BUILDINFO     "Include extra build details (only disable for development & faster builds)" OFF)
 set(BUILDINFO_OVERRIDE_DATE "" CACHE STRING "Use instead of the current date for reproducible builds (empty string disables this option)")
 set(BUILDINFO_OVERRIDE_TIME "" CACHE STRING "Use instead of the current time for reproducible builds (empty string disables this option)")
 set(CPACK_OVERRIDE_PACKAGENAME "" CACHE STRING "Use instead of the standard packagename (empty string disables this option)")
@@ -296,9 +296,9 @@ endif()
 
 
 # Modifiers
-option(WITH_MOD_FLUID           "Enable Mantaflow Fluid Simulation Framework" ON)
-option(WITH_MOD_REMESH          "Enable Remesh Modifier" ON)
-option(WITH_MOD_OCEANSIM        "Enable Ocean Modifier" ON)
+option(WITH_MOD_FLUID           "Enable Mantaflow Fluid Simulation Framework" OFF)
+option(WITH_MOD_REMESH          "Enable Remesh Modifier" OFF)
+option(WITH_MOD_OCEANSIM        "Enable Ocean Modifier" OFF)
 
 # Image format support
 option(WITH_OPENIMAGEIO         "Enable OpenImageIO Support (http://www.openimageio.org)" ON)
@@ -366,8 +366,8 @@ endif()
 option(WITH_DRACO         "Enable Draco mesh compression Python module (used for glTF)" ON)
 
 # Camera/motion tracking
-option(WITH_LIBMV         "Enable Libmv structure from motion library" ON)
-option(WITH_LIBMV_SCHUR_SPECIALIZATIONS "Enable fixed-size schur specializations." ON)
+option(WITH_LIBMV         "Enable Libmv structure from motion library" OFF)
+option(WITH_LIBMV_SCHUR_SPECIALIZATIONS "Enable fixed-size schur specializations." OFF)
 mark_as_advanced(WITH_LIBMV_SCHUR_SPECIALIZATIONS)
 
 # Logging/unbit test libraries.
@@ -425,11 +425,11 @@ option(WITH_CPU_SIMD              "Enable SIMD instruction if they're detected o
 mark_as_advanced(WITH_CPU_SIMD)
 
 # Cycles
-option(WITH_CYCLES                   "Enable Cycles Render Engine" ON)
-option(WITH_CYCLES_OSL               "Build Cycles with OpenShadingLanguage support" ON)
-option(WITH_CYCLES_PATH_GUIDING      "Build Cycles with path guiding support" ON)
-option(WITH_CYCLES_EMBREE            "Build Cycles with Embree support" ON)
-option(WITH_CYCLES_LOGGING           "Build Cycles with logging support" ON)
+option(WITH_CYCLES                   "Enable Cycles Render Engine" OFF)
+option(WITH_CYCLES_OSL               "Build Cycles with OpenShadingLanguage support" OFF)
+option(WITH_CYCLES_PATH_GUIDING      "Build Cycles with path guiding support" OFF)
+option(WITH_CYCLES_EMBREE            "Build Cycles with Embree support" OFF)
+option(WITH_CYCLES_LOGGING           "Build Cycles with logging support" OFF)
 option(WITH_CYCLES_DEBUG             "Build Cycles with options useful for debugging (e.g., MIS)" OFF)
 
 option(WITH_CYCLES_STANDALONE        "Build Cycles standalone application" OFF)
@@ -448,15 +448,15 @@ mark_as_advanced(WITH_CYCLES_NATIVE_ONLY)
 
 # NVIDIA CUDA & OptiX
 if(NOT APPLE)
-  option(WITH_CYCLES_DEVICE_CUDA       "Enable Cycles NVIDIA CUDA compute support" ON)
-  option(WITH_CYCLES_DEVICE_OPTIX      "Enable Cycles NVIDIA OptiX support" ON)
+  option(WITH_CYCLES_DEVICE_CUDA       "Enable Cycles NVIDIA CUDA compute support" OFF)
+  option(WITH_CYCLES_DEVICE_OPTIX      "Enable Cycles NVIDIA OptiX support" OFF)
   mark_as_advanced(WITH_CYCLES_DEVICE_CUDA)
 
   option(WITH_CYCLES_CUDA_BINARIES     "Build Cycles NVIDIA CUDA binaries" OFF)
   set(CYCLES_CUDA_BINARIES_ARCH sm_30 sm_35 sm_37 sm_50 sm_52 sm_60 sm_61 sm_70 sm_75 sm_86 compute_75 CACHE STRING "CUDA architectures to build binaries for")
   option(WITH_CYCLES_CUBIN_COMPILER    "Build cubins with nvrtc based compiler instead of nvcc" OFF)
   option(WITH_CYCLES_CUDA_BUILD_SERIAL "Build cubins one after another (useful on machines with limited RAM)" OFF)
-  option(WITH_CUDA_DYNLOAD             "Dynamically load CUDA libraries at runtime (for developers, makes cuda-gdb work)" ON)
+  option(WITH_CUDA_DYNLOAD             "Dynamically load CUDA libraries at runtime (for developers, makes cuda-gdb work)" OFF)
 
   set(OPTIX_ROOT_DIR                   "" CACHE PATH "Path to the OptiX SDK root directory, for building Cycles OptiX kernels.")
   set(CYCLES_RUNTIME_OPTIX_ROOT_DIR    "" CACHE PATH "Path to the OptiX SDK root directory. When set, this path will be used at runtime to compile OptiX kernels.")
@@ -547,7 +547,7 @@ else()
 endif()
 
 # Unit testing
-option(WITH_GTESTS "Enable GTest unit testing" OFF)
+option(WITH_GTESTS "Enable GTest unit testing" ON)
 option(WITH_OPENGL_RENDER_TESTS "Enable OpenGL render related unit testing (Experimental)" OFF)
 option(WITH_OPENGL_DRAW_TESTS "Enable OpenGL UI drawing related unit testing (Experimental)" OFF)
 set(TEST_PYTHON_EXE "" CACHE PATH "Python executable to run unit tests")
@@ -570,13 +570,15 @@ mark_as_advanced(
 )
 
 
-
 # Vulkan
 option(WITH_VULKAN_BACKEND "Enable Vulkan as graphics backend" ON)
 mark_as_advanced(
   WITH_VULKAN_BACKEND
 )
-
+option(WITH_VULKAN_DRAW_TESTS "Enable Vulkan draw test" ON)
+mark_as_advanced(
+  WITH_VULKAN_DRAW_TESTS
+)
 
 # Metal
 
@@ -1914,6 +1916,11 @@ if(FIRST_RUN)
   info_cfg_option(WITH_TBB)
   info_cfg_option(WITH_USD)
   info_cfg_option(WITH_XR_OPENXR)
+  
+  info_cfg_option(WITH_VULKAN_BACKEND)
+  info_cfg_option(WITH_VULKAN_DRAW_TESTS)
+  info_cfg_option(WITH_GTESTS)
+
 
   info_cfg_text("Compiler Options:")
   info_cfg_option(WITH_BUILDINFO)

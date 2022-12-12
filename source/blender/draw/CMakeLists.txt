@@ -794,12 +794,12 @@ if(WITH_GTESTS)
 
     include(GTestTesting)
     set(TEST_INC
-     ../../../intern/ghost
+      ../../../intern/ghost
       ../gpu/tests
       ../editors/screen
-    ${Vulkan_INCLUDE_DIRS} 
-     ${Shaderc_INCLUDE_DIRS}
-  ${Epoxy_INCLUDE_DIRS}
+      ${Vulkan_INCLUDE_DIRS} 
+      ${Shaderc_INCLUDE_DIRS}
+      ${Epoxy_INCLUDE_DIRS}
 
     )
     
@@ -818,7 +818,7 @@ if(WITH_GTESTS)
 
 
 
-    set(TESTS_OUTPUT_DIR  ${CMAKE_INSTALL_PREFIX})
+    #set(TESTS_OUTPUT_DIR  ${CMAKE_INSTALL_PREFIX})
     blender_add_test_executable(bf_draw "${TEST_SRC}" "${INC};${TEST_INC}" "${INC_SYS}" "${LIB};${TEST_LIB}")
     message(STATUS ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>. VULKAN DRAW TEST ON >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
   endif()

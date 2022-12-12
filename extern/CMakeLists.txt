@@ -92,3 +92,7 @@ endif()
 if(WITH_COMPOSITOR_CPU)
   add_subdirectory(smaa_areatex)
 endif()
+
+if(WITH_VULKAN_BACKEND)
+  add_subdirectory(spirv_cross)
+endif()

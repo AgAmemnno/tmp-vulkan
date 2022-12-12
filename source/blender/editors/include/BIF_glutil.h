@@ -24,6 +24,7 @@ typedef struct IMMDrawPixelsTexState {
   struct GPUShader *shader;
   unsigned int pos;
   unsigned int texco;
+  unsigned int pos_dim;
   bool do_shader_unbind;
 } IMMDrawPixelsTexState;
 

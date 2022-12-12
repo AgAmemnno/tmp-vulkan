@@ -33,6 +33,9 @@
 
   /* ******************************************** */
 
+
+
+/// Fix for GPU_SHADER_3D_IMAGE_COLOR
 static void immDrawPixelsTexSetupAttributes(IMMDrawPixelsTexState* state)
 {
     GPUVertFormat* vert_format = immVertexFormat();

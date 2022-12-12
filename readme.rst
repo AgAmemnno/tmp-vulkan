@@ -31,9 +31,12 @@ BUILD & TEST
   
 - $git clone git@github.com:AgAmemnno/tmp-vulkan.git  
 - $cd tmp-vulkan  
-- $make update  
-| 
-| 
+- $make update
+Block quotes are just:
+
+    Indented paragraphs,
+
+        and they may nest.
 | The following flags should be ON.  
 |    WITH_VULKAN_BACKEND=ON  
 |    WITH_VULKAN_DRAW_TESTS=ON  

@@ -21,20 +21,20 @@ WIP
 
 BUILD & TEST
 -------
-./<br/>
-   /lib/win64_vc15<br/>
-   /current_directory<br/>
-<br/>
-$git clone git@github.com:AgAmemnno/tmp-vulkan.git<br/>
-$cd tmp-vulkan<br/>
-$make update<br/>
-<br/>
-The following flags should be ON.<br/>
-WITH_VULKAN_BACKEND=ON<br/>
-WITH_VULKAN_DRAW_TESTS=ON<br/>
-WITH_GTESTS=ON<br/>
-<br/>
-$make<br/>
+./\
+   /lib/win64_vc15\
+   /current_directory\
+\
+$git clone git@github.com:AgAmemnno/tmp-vulkan.git\
+$cd tmp-vulkan\
+$make update\
+\
+The following flags should be ON.\
+WITH_VULKAN_BACKEND=ON\
+WITH_VULKAN_DRAW_TESTS=ON\
+WITH_GTESTS=ON\
+\
+$make\
 Build will start.
 
 

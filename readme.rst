@@ -19,32 +19,28 @@ motion tracking and video editing.
 WIP
 -------
 
+
+
 BUILD & TEST
 -------
-| ./  
-|   /lib/win64_vc15  
-|   /current_directory  
-| 
-| 
 
-  
-  
-- $git clone git@github.com:AgAmemnno/tmp-vulkan.git  
-- $cd tmp-vulkan  
-- $make update
-Block quotes are just:
+**Please set the directory.**
+    **./**
+      **\/lib**
+        **\/win64_vc15**
+      **\/current_directory**
 
-    Indented paragraphs,
+| $git clone git@github.com:AgAmemnno/tmp-vulkan.git  
+| $cd tmp-vulkan  
+| $make update
 
-        and they may nest.
-| The following flags should be ON.  
-|    WITH_VULKAN_BACKEND=ON  
-|    WITH_VULKAN_DRAW_TESTS=ON  
-|    WITH_GTESTS=ON  
-  
-- $make  
-| Build will start.
+**The following flags should be ON.**
 
+    | **WITH_VULKAN_BACKEND=ON**
+    | **WITH_VULKAN_DRAW_TESTS=ON**
+    | **WITH_GTESTS=ON** 
+| **Build will start.**
+| $make  
 
 
 -------

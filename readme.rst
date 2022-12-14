@@ -23,12 +23,12 @@ WIP
 
 BUILD & TEST
 -------
-
+| Windows only, some early development, so be careful.
 **Please set the directory.**
     **./**
       **\/lib**
         **\/win64_vc15**
-      **\/current_directory**
+    **\/current_directory**
 
 | $git clone git@github.com:AgAmemnno/tmp-vulkan.git  
 | $cd tmp-vulkan  

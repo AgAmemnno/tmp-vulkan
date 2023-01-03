@@ -33,14 +33,12 @@ BUILD & TEST
 | $git clone git@github.com:AgAmemnno/tmp-vulkan.git  
 | $cd tmp-vulkan  
 | $make update
+**Since it is difficult to debug the source with window using gtest, draw_testing.exe is generated for testing.**
+**A custom configuration can be found below.**
+https://github.com/AgAmemnno/tmp-vulkan/blob/master/build_files/cmake/config/blender_dev_vulkan.cmake**
 
-**The following flags should be ON.**
-
-    | **WITH_VULKAN_BACKEND=ON**
-    | **WITH_VULKAN_DRAW_TESTS=ON**
-    | **WITH_GTESTS=ON** 
-| **Build will start.**
-| $make  
+**Build will start.**
+| $make dev_vulkan builddir build-tmp 
 
 
 -------

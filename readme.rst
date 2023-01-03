@@ -35,9 +35,10 @@ BUILD & TEST
 | $make update
 **Since it is difficult to debug the source with window using gtest, draw_testing.exe is generated for testing.**
 **A custom configuration can be found below.**
-https://github.com/AgAmemnno/tmp-vulkan/blob/master/build_files/cmake/config/blender_dev_vulkan.cmake**
+https://github.com/AgAmemnno/tmp-vulkan/blob/master/build_files/cmake/config/blender_dev_vulkan.cmake
 
 **Build will start.**
+| 
 | $make dev_vulkan builddir build-tmp 
 
 

@@ -827,6 +827,10 @@ if(WITH_GTESTS)
 
     #blender_add_test_executable("draw_capa" "./vktests/draw_capa_test.cc" "${INC};${TEST_INC}" "${INC_SYS}" "${LIB};${TEST_LIB}")
     message(STATUS "============================ MANIFEST ${CMAKE_BINARY_DIR}/blender.exe.manifest ")
+
+    configure_file(${CMAKE_SOURCE_DIR}/release/windows/manifest/blender.exe.manifest.in ${CMAKE_CURRENT_BINARY_DIR}/draw_testing.exe.manifest @ONLY)
+
+
     add_executable(bf_draw_alone "./vktests/draw_testing.cc" "${CMAKE_BINARY_DIR}/draw_testing.exe.manifest")# "${CMAKE_BINARY_DIR}/blender.crt.manifest")
     add_dependencies(bf_draw_alone bf_draw)
     add_dependencies(bf_draw_alone bf_intern_ghost)

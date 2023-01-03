@@ -1077,7 +1077,6 @@ elseif(APPLE)
   include(platform_apple)
 endif()
 
-
 # -----------------------------------------------------------------------------
 # Common Checks for Compatible Options
 

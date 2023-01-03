@@ -113,7 +113,7 @@ add_definitions(-D_WIN32_WINNT=0x603)
 
 # First generate the manifest for tests since it will not need the dependency on the CRT.
 configure_file(${CMAKE_SOURCE_DIR}/release/windows/manifest/blender.exe.manifest.in ${CMAKE_CURRENT_BINARY_DIR}/tests.exe.manifest @ONLY)
-
+configure_file(${CMAKE_SOURCE_DIR}/release/windows/manifest/blender.exe.manifest.in ${CMAKE_CURRENT_BINARY_DIR}/draw_testing.exe.manifest @ONLY)
 if(WITH_WINDOWS_BUNDLE_CRT)
   set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
   set(CMAKE_INSTALL_UCRT_LIBRARIES TRUE)

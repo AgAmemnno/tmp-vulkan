@@ -826,23 +826,20 @@ if(WITH_GTESTS)
 
 
     #blender_add_test_executable("draw_capa" "./vktests/draw_capa_test.cc" "${INC};${TEST_INC}" "${INC_SYS}" "${LIB};${TEST_LIB}")
-    message(STATUS "============================ MANIFEST ${CMAKE_BINARY_DIR}/blender.exe.manifest ")
+ 
 
-    configure_file(${CMAKE_SOURCE_DIR}/release/windows/manifest/blender.exe.manifest.in ${CMAKE_CURRENT_BINARY_DIR}/draw_testing.exe.manifest @ONLY)
-
-
-    add_executable(bf_draw_alone "./vktests/draw_testing.cc" "${CMAKE_BINARY_DIR}/draw_testing.exe.manifest")# "${CMAKE_BINARY_DIR}/blender.crt.manifest")
-    add_dependencies(bf_draw_alone bf_draw)
-    add_dependencies(bf_draw_alone bf_intern_ghost)
-    setup_platform_linker_libs(bf_draw_alone)
-    setup_platform_linker_flags(bf_draw_alone)
-    blender_target_include_dirs(bf_draw_alone ${INC})
-    blender_target_include_dirs(bf_draw_alone ${TEST_INC})
-    blender_target_include_dirs_sys(bf_draw_alone ${INC_SYS})
+    add_executable(bf_draw_testing "./vktests/draw_testing.cc" "${CMAKE_BINARY_DIR}/bf_draw_testing.exe.manifest")# "${CMAKE_BINARY_DIR}/blender.crt.manifest")
+    add_dependencies(bf_draw_testing bf_draw)
+    add_dependencies(bf_draw_testing bf_intern_ghost)
+    setup_platform_linker_libs(bf_draw_testing)
+    setup_platform_linker_flags(bf_draw_testing)
+    blender_target_include_dirs(bf_draw_testing ${INC})
+    blender_target_include_dirs(bf_draw_testing ${TEST_INC})
+    blender_target_include_dirs_sys(bf_draw_testing ${INC_SYS})
      
-     target_link_libraries(bf_draw_alone bf_draw)
-     target_link_libraries(bf_draw_alone ${LIB})
-     target_link_libraries(bf_draw_alone ${TEST_LIB})
+     target_link_libraries(bf_draw_testing bf_draw)
+     target_link_libraries(bf_draw_testing ${LIB})
+     target_link_libraries(bf_draw_testing ${TEST_LIB})
    
   endif()
 

@@ -76,30 +76,28 @@ set(SRC
 
 
 if(WITH_VULKAN_BACKEND)
-
+ add_definitions(-DWITH_VULKAN_BACKEND)
  message("Generate Nvidia Extensions Source >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ${LIBDIR}/vulkan/include/vulkan/extensions_vk.cpp")
-   execute_process(COMMAND python  ../../blender/tests/vulkan_extensions/extensions_vk.py --libdir=${LIBDIR}
+   execute_process(COMMAND python  ./tests/vulkan_extensions/extensions_vk.py --libdir=${LIBDIR}
    RESULT_VARIABLE CMD_ERROR
       OUTPUT_FILE CMD_OUTPUT)
-      message("Generate Nvidia Extensions Source >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ${LIBDIR}/vulkan/include/vulkan/extensions_vk.cpp")
-
-
+  
   list(APPEND SRC
     intern/GHOST_ContextVK.cpp
     intern/GHOST_ContextVK.h
 
-   
-    ${Vulkan_INCLUDE_DIRS}/vulkan/extensions_vk.cpp
+    ${VULKAN_INCLUDE_DIR}/vulkan/extensions_vk.cpp
   )
 
   list(APPEND INC_SYS
-    ${Vulkan_INCLUDE_DIRS}
+    ${VULKAN_INCLUDE_DIRS}
     ../../source/blender/blenkernel
   )
 
   list(APPEND LIB
-    ${Vulkan_LIBRARIES}
+    ${VULKAN_LIBRARIES}
   )
+
 endif()
 
 set(LIB

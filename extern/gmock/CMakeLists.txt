@@ -45,4 +45,3 @@ set(SRC_HEADERS
 include_directories(${INC})
 include_directories(SYSTEM ${INC_SYS})
 add_library(extern_gmock ${SRC} ${SRC_HEADERS})
-message(STATUS "ADDLIBRARY  ================${SRC}")

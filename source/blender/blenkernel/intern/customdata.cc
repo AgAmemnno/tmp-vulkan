@@ -19,7 +19,6 @@
 
 #include "BLI_bitmap.h"
 #include "BLI_color.hh"
-#include "BLI_cpp_type_make.hh"
 #include "BLI_endian_switch.h"
 #include "BLI_index_range.hh"
 #include "BLI_math.h"
@@ -2348,8 +2347,7 @@ bool CustomData_merge(const CustomData *source,
       newlayer->active_rnd = lastrender;
       newlayer->active_clone = lastclone;
       newlayer->active_mask = lastmask;
-      newlayer->flag |= flag & (CD_FLAG_EXTERNAL | CD_FLAG_IN_MEMORY | CD_FLAG_COLOR_ACTIVE |
-                                CD_FLAG_COLOR_RENDER);
+      newlayer->flag |= flag & (CD_FLAG_EXTERNAL | CD_FLAG_IN_MEMORY);
       changed = true;
 
       if (layer->anonymous_id != nullptr) {
@@ -2799,7 +2797,11 @@ static CustomDataLayer *customData_add_layer__internal(CustomData *data,
   const LayerTypeInfo *typeInfo = layerType_getInfo(type);
   int flag = 0;
 
+  /* Some layer types only support a single layer. */
   if (!typeInfo->defaultname && CustomData_has_layer(data, type)) {
+    /* This function doesn't support dealing with existing layer data for these layer types when
+     * the layer already exists. */
+    BLI_assert(layerdata == nullptr);
     return &data->layers[CustomData_get_layer_index(data, type)];
   }
 
@@ -3595,39 +3597,6 @@ const char *CustomData_get_layer_name(const CustomData *data, const int type, co
 }
 
 /* BMesh functions */
-
-void CustomData_bmesh_update_active_layers(CustomData *fdata, CustomData *ldata)
-{
-  int act;
-
-  if (CustomData_has_layer(ldata, CD_MLOOPUV)) {
-    act = CustomData_get_active_layer(ldata, CD_MLOOPUV);
-    CustomData_set_layer_active(fdata, CD_MTFACE, act);
-
-    act = CustomData_get_render_layer(ldata, CD_MLOOPUV);
-    CustomData_set_layer_render(fdata, CD_MTFACE, act);
-
-    act = CustomData_get_clone_layer(ldata, CD_MLOOPUV);
-    CustomData_set_layer_clone(fdata, CD_MTFACE, act);
-
-    act = CustomData_get_stencil_layer(ldata, CD_MLOOPUV);
-    CustomData_set_layer_stencil(fdata, CD_MTFACE, act);
-  }
-
-  if (CustomData_has_layer(ldata, CD_PROP_BYTE_COLOR)) {
-    act = CustomData_get_active_layer(ldata, CD_PROP_BYTE_COLOR);
-    CustomData_set_layer_active(fdata, CD_MCOL, act);
-
-    act = CustomData_get_render_layer(ldata, CD_PROP_BYTE_COLOR);
-    CustomData_set_layer_render(fdata, CD_MCOL, act);
-
-    act = CustomData_get_clone_layer(ldata, CD_PROP_BYTE_COLOR);
-    CustomData_set_layer_clone(fdata, CD_MCOL, act);
-
-    act = CustomData_get_stencil_layer(ldata, CD_PROP_BYTE_COLOR);
-    CustomData_set_layer_stencil(fdata, CD_MCOL, act);
-  }
-}
 
 void CustomData_bmesh_init_pool(CustomData *data, const int totelem, const char htype)
 {
@@ -5436,5 +5405,3 @@ size_t CustomData_get_elem_size(CustomDataLayer *layer)
 {
   return LAYERTYPEINFO[layer->type].size;
 }
-
-BLI_CPP_TYPE_MAKE(MStringProperty, MStringProperty, CPPTypeFlags::None);

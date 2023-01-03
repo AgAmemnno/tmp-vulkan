@@ -43,7 +43,7 @@ static void gpencil_depth_plane(Object *ob, float r_plane[4])
   add_v3_fl(size, 1e-8f);
   rescale_m4(mat, size);
   /* BBox space to World. */
-  mul_m4_m4m4(mat, ob->obmat, mat);
+  mul_m4_m4m4(mat, ob->object_to_world, mat);
   /* BBox center in world space. */
   copy_v3_v3(center, mat[3]);
   /* View Vector. */
@@ -188,7 +188,7 @@ static void gpencil_layer_cache_populate(bGPDlayer *gpl,
   const bool is_screenspace = (gpd->flag & GP_DATA_STROKE_KEEPTHICKNESS) != 0;
   const bool is_stroke_order_3d = (gpd->draw_mode == GP_DRAWMODE_3D);
 
-  float object_scale = mat4_to_scale(iter->ob->obmat);
+  float object_scale = mat4_to_scale(iter->ob->object_to_world);
   /* Negate thickness sign to tag that strokes are in screen space.
    * Convert to world units (by default, 1 meter = 2000 pixels). */
   float thickness_scale = (is_screenspace) ? -1.0f : (gpd->pixfactor / 2000.0f);
@@ -235,7 +235,7 @@ static void gpencil_stroke_cache_populate(bGPDlayer * /*gpl*/,
   if (show_stroke) {
     int vfirst = gps->runtime.stroke_start * 3;
     bool is_cyclic = ((gps->flag & GP_STROKE_CYCLIC) != 0) && (gps->totpoints > 2);
-    int vcount = (gps->totpoints + (int)is_cyclic) * 2 * 3;
+    int vcount = (gps->totpoints + int(is_cyclic)) * 2 * 3;
     DRW_shgroup_call_range(iter->stroke_grp, iter->ob, geom, vfirst, vcount);
   }
 }

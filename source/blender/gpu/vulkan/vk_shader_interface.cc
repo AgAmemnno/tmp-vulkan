@@ -539,18 +539,23 @@ namespace spirv_cross {
     uint32_t attrN = 0;
     uint32_t stride = 0;
     auto ASSERT_DEVELOP = [&](uint32_t &stride, uint32_t &attrN) {
+
       for (const auto &resource : resources_.stage_inputs) {
+#ifdef _DEBUG
         uint32_t binding_ = get_decoration(resource.id, spv::DecorationBinding);
         BLI_assert(binding_ == 0);
+#endif
         const SPIRType spirv_type = get_type(resource.type_id);
         BLI_assert(is_vector(spirv_type));
         BLI_assert(spirv_type.basetype == SPIRType::Float);
+
         attrN++;
         if (stride == 0)
           stride = spirv_type.width;
         else
           BLI_assert(stride == spirv_type.width);
       };
+
     };
 
     ASSERT_DEVELOP(stride, attrN);
@@ -611,14 +616,18 @@ namespace spirv_cross {
 
     uint32_t N = 0;
     auto ASSERT_WIP = [&](uint32_t &N, SmallVector<Resource> &res) {
+
       for (const auto &resource : res) {
+#ifdef _DEBUG
         BLI_assert(get_decoration(resource.id, spv::DecorationLocation) == 0);
         const SPIRType spirv_type = get_type(resource.type_id);
         size_t num_value = spirv_type.member_types.size();
         BLI_assert(num_value == 0);
         BLI_assert(get_decoration(resource.id, spv::DecorationDescriptorSet) == 0);
+#endif
         N++;
       };
+
     };
 
 
@@ -671,12 +680,16 @@ namespace spirv_cross {
 
     uint32_t N = 0;
     auto ASSERT_WIP = [&](uint32_t &N, SmallVector<Resource> &res) {
+
       for (const auto &resource : res) {
+#ifdef _DEBUG
         BLI_assert(get_decoration(resource.id, spv::DecorationLocation) == 0);
         BLI_assert(get_decoration(resource.id, spv::DecorationDescriptorSet) == 0);
+#endif
         N++;
       };
       BLI_assert(N == 1);
+
     };
    VkDeviceSize whole_size= 0;
     int apdN = 0;

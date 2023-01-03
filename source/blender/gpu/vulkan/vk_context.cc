@@ -246,12 +246,19 @@ void VKContext::deactivate()
 {
 }
 
+
+
 void VKContext::begin_frame()
 {
+ 
   auto context = ((GHOST_ContextVK *)ghost_context_);
-  context->acquireCustom();
+  if (!is_initialized_) {
+      context->init_image_layout();
+      is_initialized_ = true;
+  }
 
- ///context->begin_frame(current_cmd_);
+  context->acquireCustom();
+ 
 }
 void VKContext::end_frame()
 {
@@ -284,6 +291,8 @@ void VKContext::end_submit()
 {
   auto context = ((GHOST_ContextVK *)ghost_context_);
   context->end_submit();
+
+  context->finalize_image_layout();
 };
 
 void VKContext::submit()

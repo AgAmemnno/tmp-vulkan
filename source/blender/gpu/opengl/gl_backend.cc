@@ -4,8 +4,7 @@
 /** \file
  * \ingroup gpu
  */
-#if 1
-#endif
+
 #include "BKE_global.h"
 
 #include "gpu_capabilities_private.hh"
@@ -511,6 +510,7 @@ void GLBackend::capabilities_init()
   GCaps.shader_draw_parameters_support = epoxy_has_gl_extension("GL_ARB_shader_draw_parameters");
   GCaps.compute_shader_support = epoxy_has_gl_extension("GL_ARB_compute_shader") &&
                                  epoxy_gl_version() >= 43;
+  GCaps.geometry_shader_support = true;
   GCaps.max_samplers = GCaps.max_textures;
 
   if (GCaps.compute_shader_support) {

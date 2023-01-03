@@ -258,14 +258,13 @@ public:
 /** \name Enums Conversion
  * \{ */
 
-
 template<typename T = GPUAttachmentType> VkImageLayout to_vk(const T type)
 {
-  switch (type) {
+    switch (type) {
     case GPU_FB_DEPTH_ATTACHMENT:
-      return VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+        return VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
     case GPU_FB_DEPTH_STENCIL_ATTACHMENT:
-      return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     case GPU_FB_COLOR_ATTACHMENT0:
     case GPU_FB_COLOR_ATTACHMENT1:
     case GPU_FB_COLOR_ATTACHMENT2:
@@ -274,181 +273,24 @@ template<typename T = GPUAttachmentType> VkImageLayout to_vk(const T type)
     case GPU_FB_COLOR_ATTACHMENT5:
     case GPU_FB_COLOR_ATTACHMENT6:
     case GPU_FB_COLOR_ATTACHMENT7:
-      return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     default:
-      BLI_assert(0);
-      return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-  }
+        BLI_assert(0);
+        return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    }
 
-  return VK_IMAGE_LAYOUT_UNDEFINED;
+    return VK_IMAGE_LAYOUT_UNDEFINED;
 }
 
 static inline VkImageAspectFlags to_vk(const eGPUFrameBufferBits bits)
 {
-  VkImageAspectFlags mask = 0x00;
-  mask |= (bits & GPU_DEPTH_BIT) ? VK_IMAGE_ASPECT_DEPTH_BIT : 0;
-  mask |= (bits & GPU_STENCIL_BIT) ? VK_IMAGE_ASPECT_STENCIL_BIT  : 0;
-  mask |= (bits & GPU_COLOR_BIT) ? VK_IMAGE_ASPECT_COLOR_BIT : 0;
-  return mask;
+    VkImageAspectFlags mask = 0x00;
+    mask |= (bits & GPU_DEPTH_BIT) ? VK_IMAGE_ASPECT_DEPTH_BIT : 0;
+    mask |= (bits & GPU_STENCIL_BIT) ? VK_IMAGE_ASPECT_STENCIL_BIT : 0;
+    mask |= (bits & GPU_COLOR_BIT) ? VK_IMAGE_ASPECT_COLOR_BIT : 0;
+    return mask;
 }
 
-static  uint32_t makeAccessMaskPipelineStageFlags(
-    uint32_t accessMask,
-    VkPipelineStageFlags supportedShaderBits = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
-                                               VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
-    // VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT |
-    // VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT |
-    // VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
-    // VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT)
-)
-{
-  static const uint32_t accessPipes[] = {
-    VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
-    VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT,
-    VK_ACCESS_INDEX_READ_BIT,
-    VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-    VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
-    VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-    VK_ACCESS_UNIFORM_READ_BIT,
-    supportedShaderBits,
-    VK_ACCESS_INPUT_ATTACHMENT_READ_BIT,
-    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-    VK_ACCESS_SHADER_READ_BIT,
-    supportedShaderBits,
-    VK_ACCESS_SHADER_WRITE_BIT,
-    supportedShaderBits,
-    VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
-    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-    VK_ACCESS_COLOR_ATTACHMENT_READ_NONCOHERENT_BIT_EXT,
-    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-    VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
-    VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
-    VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-    VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
-    VK_ACCESS_TRANSFER_READ_BIT,
-    VK_PIPELINE_STAGE_TRANSFER_BIT,
-    VK_ACCESS_TRANSFER_WRITE_BIT,
-    VK_PIPELINE_STAGE_TRANSFER_BIT,
-    VK_ACCESS_HOST_READ_BIT,
-    VK_PIPELINE_STAGE_HOST_BIT,
-    VK_ACCESS_HOST_WRITE_BIT,
-    VK_PIPELINE_STAGE_HOST_BIT,
-    VK_ACCESS_MEMORY_READ_BIT,
-    0,
-    VK_ACCESS_MEMORY_WRITE_BIT,
-    0,
-#if VK_NV_device_generated_commands
-    VK_ACCESS_COMMAND_PREPROCESS_READ_BIT_NV,
-    VK_PIPELINE_STAGE_COMMAND_PREPROCESS_BIT_NV,
-    VK_ACCESS_COMMAND_PREPROCESS_WRITE_BIT_NV,
-    VK_PIPELINE_STAGE_COMMAND_PREPROCESS_BIT_NV,
-#endif
-#if VK_NV_ray_tracing
-    VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV,
-    VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV | supportedShaderBits |
-        VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
-    VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV,
-    VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
-#endif
-  };
-  if (!accessMask) {
-    return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-  }
-
-  uint32_t pipes = 0;
-#define NV_ARRAY_SIZE(X) (sizeof((X)) / sizeof((X)[0]))
-
-  for (uint32_t i = 0; i < NV_ARRAY_SIZE(accessPipes); i += 2) {
-    if (accessPipes[i] & accessMask) {
-      pipes |= accessPipes[i + 1];
-    }
-  }
-#undef NV_ARRAY_SIZE
-  return pipes;
-}
-
-static VkImageMemoryBarrier makeImageMemoryBarrier(VkImage img,
-                                            VkAccessFlags srcAccess,
-                                            VkAccessFlags dstAccess,
-                                            VkImageLayout oldLayout,
-                                            VkImageLayout newLayout,
-                                            VkImageAspectFlags aspectMask)
-{
-  VkImageMemoryBarrier barrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
-  barrier.srcAccessMask = srcAccess;
-  barrier.dstAccessMask = dstAccess;
-  barrier.oldLayout = oldLayout;
-  barrier.newLayout = newLayout;
-  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.image = img;
-  barrier.subresourceRange = {0};
-  barrier.subresourceRange.aspectMask = aspectMask;
-  barrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
-  barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
-
-  return barrier;
-}
-template<typename T>
-void ImageTransition(
-    T &dst,
-    VkImageLayout dstLayout,  // How the image will be laid out in memory.
-    VkAccessFlags dstAccesses,
-    VkImageAspectFlags aspects = VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM,
-    VkAccessFlags src = VK_ACCESS_FLAG_BITS_MAX_ENUM,
-    VkImageLayout oldLayout =
-        VK_IMAGE_LAYOUT_MAX_ENUM)  // The ways that the app will be able to access the image.
-{
-  // Note that in larger applications, we could batch together pipeline
-  // barriers for better performance!
-
-  // Maps to barrier.subresourceRange.aspectMask
-  VkImageAspectFlags aspectMask = 0;
-  if (aspects == VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM) {
-
-    if (dstLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
-      aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-      if (dst.format == VK_FORMAT_D32_SFLOAT_S8_UINT ||
-          dst.format == VK_FORMAT_D24_UNORM_S8_UINT) {
-        aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-      }
-    }
-    else {
-      aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    }
-  }
-  else {
-    aspectMask = aspects;
-  }
-
-  VkAccessFlags srcAccess;
-  if (src == VK_ACCESS_FLAG_BITS_MAX_ENUM) {
-    srcAccess = dst.currentAccesses;
-  }
-  else {
-    srcAccess = src;
-  }
-
-  VkImageLayout srcLayout;
-  if (oldLayout == VK_IMAGE_LAYOUT_MAX_ENUM) {
-    srcLayout = dst.Info.imageLayout;
-  }
-  else {
-    srcLayout = oldLayout;
-  }
-  VkPipelineStageFlags srcPipe = makeAccessMaskPipelineStageFlags(dst.currentAccesses);
-  VkPipelineStageFlags dstPipe = makeAccessMaskPipelineStageFlags(dstAccesses);
-  VkImageMemoryBarrier barrier = makeImageMemoryBarrier(
-      dst.image, srcAccess, dstAccesses, srcLayout, dstLayout, aspectMask);
-
-  vkCmdPipelineBarrier(
-      cmd, srcPipe, dstPipe, VK_FALSE, 0, VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 1, &barrier);
-  // Update current layout, stages, and accesses
-  dst.Info.imageLayout = dstLayout;
-  dst.currentAccesses = dstAccesses;
-}
 
 /** \} */
 

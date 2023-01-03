@@ -1,18 +1,13 @@
 /* SPDX-License-Identifier: Apache-2.0 */
-#include "testing/testing.h"
-#include "gpu_testing.hh"
 #include "draw_testing.hh"
 
-#include "CLG_log.h"
-#include "BKE_global.h"
+#ifdef DRAW_GTEST_SUITE
+#include "gpu_testing.hh"
+#include "draw_manager_testing.h"
+#endif
 
 #include "GPU_init_exit.h"
-
-
 #include "draw_manager.hh"
-#include "draw_manager_testing.h"
-
-#include "GHOST_C-api.h"
 
 #include  "intern/GHOST_ContextVK.h"
 #include "intern/GHOST_Window.h"
@@ -64,12 +59,14 @@ void STUB_WM_window_set_dpi(GHOST_WindowHandle &ghostwin)
   U.widget_unit = (int)roundf(18.0f * U.dpi_fac) + (2 * pixelsize);
 }
 
+#ifdef DRAW_GTEST_SUITE
 /* Base class for draw test cases. It will setup and tear down the GPU part around each test. */
 void DrawVulkanTest::SetUp()
 {
   GPUVulkanTest::SetUp();
   DRW_draw_state_init_gtests(GPU_SHADER_CFG_DEFAULT);
 }
+#endif
 
 
 void GPUTest::SetUp()
@@ -78,11 +75,7 @@ void GPUTest::SetUp()
 
   CLG_init();
   ghost_system = GHOST_CreateSystem();
-  /// GHOST_GLSettings glSettings = {0};
-  /// ghost_context = GHOST_CreateOpenGLContext(ghost_system, glSettings);
-  /// GHOST_ActivateOpenGLContext(ghost_context);
-
-  GHOST_GLSettings glSettings = {0};
+  GHOST_GLSettings glSettings = {0,GHOST_kDrawingContextTypeVulkan };
 #ifdef WITH_VULKAN_BACKEND
 
 #  ifdef WITH_OPENGL_BACKEND
@@ -120,14 +113,14 @@ void GPUTest::SetUp()
   STUB_WM_window_set_dpi( ghost_window);
 
   BLI_assert(ghost_context);
-  context = GPU_context_create(ghost_window, ghost_context);
+  context = (GPUContext*)GPU_context_create(ghost_window, ghost_context);
   GHOST_ActivateOpenGLContext(ghost_context);
 
   GPU_init();
 
 
-  GPU_context_active_set(context);
-
+  GPU_context_active_set((GPUContext*)context);
+  
 
 }
 
@@ -144,3 +137,25 @@ void GPUTest::TearDown()
 }
 
 }  // namespace blender::gpu
+
+
+#ifndef DRAW_GTEST_SUITE
+
+#include "draw_capa_test.cc"
+#include "draw_icon_test.cc"
+
+#define DRAW_TEST_STAND_ALONE(NAME){\
+blender::draw::GPUTest* t = new blender::draw::GPUTest;\
+t->SetUp();\
+t->test_##NAME();\
+t->TearDown();\
+delete t;\
+}
+
+int main() {
+    DRAW_TEST_STAND_ALONE(capabilities)
+    DRAW_TEST_STAND_ALONE(icon)
+    return 0;
+};
+
+#endif

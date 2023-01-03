@@ -176,17 +176,20 @@ class VKStagingBufferManager {
   {
     VKBuffer &  staging = *staging_buffers_[current_staging_buffer_];
     VkDeviceSize dstsize = dst.get_buffer_size();
-    VkDeviceSize  srcsize =  staging.get_size();
-    BLI_assert(dstsize <= srcsize);
-
-
-    begin();
-    VkBufferCopy vbCopyRegion = {};
-    vbCopyRegion.srcOffset = 0;
-    vbCopyRegion.dstOffset = 0;
-    vbCopyRegion.size = dstsize;
-    vkCmdCopyBuffer(current_cmd_, staging.get_vk_buffer(), dst.get_vk_buffer(), 1, &vbCopyRegion);
-    end();
+ 
+   VkDeviceSize  srcsize =  staging.get_size();
+   if (dstsize <= srcsize) {
+       begin();
+       VkBufferCopy vbCopyRegion = {};
+       vbCopyRegion.srcOffset = 0;
+       vbCopyRegion.dstOffset = 0;
+       vbCopyRegion.size = dstsize;
+       vkCmdCopyBuffer(current_cmd_, staging.get_vk_buffer(), dst.get_vk_buffer(), 1, &vbCopyRegion);
+       end();
+   }
+   else {
+       BLI_assert(false);
+   }
 
   }
 

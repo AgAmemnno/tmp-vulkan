@@ -1,9 +1,9 @@
 
 msgid ""
 msgstr ""
-"Project-Id-Version: Blender 3.4.0 Alpha (b'a6b83617e9de')\n"
+"Project-Id-Version: Blender 3.5.0 Alpha (b'09ba00974f8f')\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-10-17 10:12:11\n"
+"POT-Creation-Date: 2020-01-01 00:00:00\n"
 "PO-Revision-Date: 2021-03-01 19:15+0000\n"
 "Last-Translator: lxlalexlxl <lxlalexlxl@ukr.net>\n"
 "Language-Team: Ukrainian (Ukraine) (http://www.transifex.com/lxlalexlxl/blender/language/uk_UA/)\n"
@@ -4006,10 +4006,6 @@ msgid "Show Expanded"
 msgstr "Показати розгорнутим"
 
 
-msgid "Show the expanded in the user interface"
-msgstr "Показати розгорнутим в інтерфейсі користувача"
-
-
 msgid "Show On Foreground"
 msgstr "Показати на передньому плані"
 
@@ -7655,8 +7651,8 @@ msgid "Auto Handle"
 msgstr "Автоважіль"
 
 
-msgid "Auto Clamped Handle"
-msgstr "Авто-затиск держака"
+msgid "Auto-Clamped Handle"
+msgstr "Авто-Затиснутий Держак"
 
 
 msgid "Vector Handle"
@@ -10164,10 +10160,6 @@ msgstr "QT RLE / QT-анімація"
 
 msgid "Theora"
 msgstr "Theora"
-
-
-msgid "WEBM / VP9"
-msgstr "WEBM / VP9"
 
 
 msgid "Output Quality"
@@ -14043,16 +14035,16 @@ msgid "Keyframe"
 msgstr "Ключкадр"
 
 
-msgid "Normal keyframe - e.g. for key poses"
-msgstr "Звичайний ключовий кадр - наприклад, для ключових поз"
+msgid "Normal keyframe, e.g. for key poses"
+msgstr "Звичайний ключкадр, наприклад для ключових поз"
 
 
 msgid "Breakdown"
 msgstr "Розбивка"
 
 
-msgid "A breakdown pose - e.g. for transitions between key poses"
-msgstr "Проміжна поза, наприклад, для переходів між позами"
+msgid "A breakdown pose, e.g. for transitions between key poses"
+msgstr "Поза розбивки, наприклад для переходів між ключовими позами"
 
 
 msgid "Moving Hold"
@@ -15339,10 +15331,6 @@ msgstr "Індекс проходу шару"
 
 msgid "Material used for filtering effect"
 msgstr "Матеріал, що використовується для ефекту фільтрування"
-
-
-msgid "Object Offset"
-msgstr "Зсув об'єктом"
 
 
 msgid "Use the location and rotation of another object to determine the distance and rotational change between arrayed items"
@@ -19060,10 +19048,6 @@ msgid "Distance to move the curve parallel to its normals"
 msgstr "Відстань для переміщення кривої паралельно до її нормалей"
 
 
-msgid "Path Length"
-msgstr "Довжина шляху"
-
-
 msgid "The number of frames that are needed to traverse the path, defining the maximum value for the 'Evaluation Time' setting"
 msgstr "Кількість кадрів, необхідна для подолання шляху, що визначає найбільше значення параметра 'Оцінка часу'"
 
@@ -20098,10 +20082,6 @@ msgstr "Увімкнути чи вимкнути текстурні штрихи
 
 msgid "Freehand annotation sketchbook"
 msgstr "Блокнот для нарисів та нотаток"
-
-
-msgid "Angle threshold to be treated as corners"
-msgstr "Поріг кута, що буде оброблятися як кутки"
 
 
 msgid "Curve conversion error threshold"
@@ -22886,10 +22866,6 @@ msgid "Current pose for armatures"
 msgstr "Поточна поза для арматур"
 
 
-msgid "Pose Library"
-msgstr "Бібліотека поз"
-
-
 msgid "Rigid Body Settings"
 msgstr "Параметри твердого тіла"
 
@@ -24299,22 +24275,6 @@ msgstr "Лінійно з відсіканням"
 
 msgid "Linear distance model with clamping"
 msgstr "Модель лінійної залежності від відстані з відсіканням"
-
-
-msgid "Exponent"
-msgstr "Експоненціально"
-
-
-msgid "Exponent distance model"
-msgstr "Модель експоненціальної залежності від відстані"
-
-
-msgid "Exponent Clamped"
-msgstr "Експонента з відсіканням"
-
-
-msgid "Exponent distance model with clamping"
-msgstr "Модель експоненціальної залежності від відстані з відсіканням"
 
 
 msgid "Doppler Factor"
@@ -26251,10 +26211,6 @@ msgid "Insert Before"
 msgstr "Вставити перед"
 
 
-msgid "Insert a new item into collection after the one referenced in subitem_reference_name or _index (NOT USED)"
-msgstr "Вставити новий елемент у колекцію перед зазначеним в subitem_reference_name або _index (НЕ ВИКОРИСТОВУЄТЬСЯ)"
-
-
 msgid "Subitem Local Index"
 msgstr "Локальний індекс піделемента"
 
@@ -26671,16 +26627,8 @@ msgid "Image Size"
 msgstr "Розмір зображення"
 
 
-msgid "True if this preview icon has been modified by py script,and is no more auto-generated by Blender"
-msgstr "Вірно, якщо дана іконка передогляду була модифікована py-скриптом і не існує більше інших, авто-генерованих Blender'ом"
-
-
 msgid "Custom Image"
 msgstr "Власне зображення"
-
-
-msgid "True if this preview image has been modified by py script,and is no more auto-generated by Blender"
-msgstr "Вірно, якщо дане зображення передогляду було модифікована py-скриптом і не існує більше інших, авто-генерованих Blender'ом"
 
 
 msgid "Parameters defining how an Image data-block is used by another data-block"
@@ -28016,10 +27964,6 @@ msgid "Properties to set when the operator is called"
 msgstr "Властивості, що встановлюються при виклику оператора"
 
 
-msgid "Property Value"
-msgstr "Значення властивості"
-
-
 msgid "The value this event translates to in a modal keymap"
 msgstr "Значення цієї події переводиться в модальну розкладку клавіш"
 
@@ -28256,14 +28200,6 @@ msgstr "Стан вибору правої ручки "
 
 msgid "Type of keyframe (for visual purposes only)"
 msgstr "Тип ключового кадру (лише для візуальних цілей)"
-
-
-msgid "Normal keyframe, e.g. for key poses"
-msgstr "Звичайний ключкадр, наприклад для ключових поз"
-
-
-msgid "A breakdown pose, e.g. for transitions between key poses"
-msgstr "Поза розбивки, наприклад для переходів між ключовими позами"
 
 
 msgid "An \"extreme\" pose, or some other purpose as needed"
@@ -28638,10 +28574,6 @@ msgid "Layer collection"
 msgstr "Колекція шарів"
 
 
-msgid "Child layer collections"
-msgstr "Колекції нащадкових шарів"
-
-
 msgid "Collection this layer collection is wrapping"
 msgstr "Колекція обгортає цю колекцію шарів"
 
@@ -28676,10 +28608,6 @@ msgstr "Об'єкти з колекції лише побічно беруть �
 
 msgid "Whether this collection is visible for the view layer, take into account the collection parent"
 msgstr "Чи ця колекція є видимою для цього шару огляду, враховувати приріднення колекції"
-
-
-msgid "Name of this view layer (same as its collection one)"
-msgstr "Назва цього шару огляду (така ж, як його колекції)"
 
 
 msgid "Layer Objects"
@@ -29995,8 +29923,8 @@ msgid "Material slot name"
 msgstr "Назва гнізда матеріалу"
 
 
-msgid "Edit"
-msgstr "Редагувати"
+msgid "Asset"
+msgstr "Актив"
 
 
 msgctxt "MovieClip"
@@ -30195,6 +30123,10 @@ msgstr "Контекстне Меню Каналів НЛА"
 
 msgid "NLA Context Menu"
 msgstr "Контекстне Меню НЛА"
+
+
+msgid "Edit"
+msgstr "Редагувати"
 
 
 msgid "Converter"
@@ -30530,10 +30462,6 @@ msgid "Make Single User"
 msgstr "Зробити однокористувацьким"
 
 
-msgid "Asset"
-msgstr "Актив"
-
-
 msgid "Object Context Menu"
 msgstr "Контекстне Меню Об'єктів"
 
@@ -30676,10 +30604,6 @@ msgstr "Індекс цього ребра"
 
 msgid "Loose"
 msgstr "Незв'язане"
-
-
-msgid "Loose edge"
-msgstr "Незв'язане ребро"
 
 
 msgid "Sharp edge for the Edge Split modifier"
@@ -31748,6 +31672,10 @@ msgstr "Відстань Злиття"
 
 msgid "Limit below which to merge vertices"
 msgstr "Межа, нижче якої злити вершини"
+
+
+msgid "Object Offset"
+msgstr "Зсув об'єктом"
 
 
 msgid "U Offset"
@@ -33970,10 +33898,6 @@ msgid "Established Ocean (Sharp Peaks)"
 msgstr "Устояний Океан (Гострі Піки)"
 
 
-msgid "Use for sharp peaks ('JONSWAP', Pierson-Moskowitz method) with peak sharpening"
-msgstr "Використовувати для гострих піків ('JONSWAP', метод Персона-Московітца) з гострішанням піків"
-
-
 msgid "Shallow Water"
 msgstr "Мілководдя"
 
@@ -34004,10 +33928,6 @@ msgstr "Створити маску піни як канал кольору ве
 
 msgid "Generate Normals"
 msgstr "Генерувати Нормалі"
-
-
-msgid "Output normals for bump mapping - disabling can speed up performance if its not needed"
-msgstr "Виводити нормалі для розкладання вигинів - вимикання, коли вивід нормалей не потрібний, може підвищити продуктивність"
 
 
 msgid "Generate Spray Map"
@@ -35458,10 +35378,6 @@ msgid "Generate corner angle weighted normals"
 msgstr "Генерувати виважені нормалі кута кутка"
 
 
-msgid "Face Area And Angle"
-msgstr "Площа і Кут Грані"
-
-
 msgid "Generated normals weighted by both face area and angle"
 msgstr "Генеровані нормалі виважуються як за площею, так і кутом грані"
 
@@ -35794,16 +35710,8 @@ msgid "Plane Tracks"
 msgstr "Стежки площин"
 
 
-msgid "Collection of plane tracks in this tracking data object"
-msgstr "Колекція стежок площин для цього об'єкта відстеження даних"
-
-
 msgid "Tracks"
 msgstr "Стежки"
-
-
-msgid "Collection of tracks in this tracking data object"
-msgstr "Колекція стежок для цього об'єкта відстеження даних"
 
 
 msgid "Movie tracking camera data"
@@ -36134,8 +36042,16 @@ msgid "Unique name of object"
 msgstr "Унікальна назва об'єкта"
 
 
+msgid "Collection of plane tracks in this tracking data object"
+msgstr "Колекція стежок площин для цього об'єкта відстеження даних"
+
+
 msgid "Scale of object solution in camera space"
 msgstr "Масштаб розв'язання об'єкта у просторі камери"
+
+
+msgid "Collection of tracks in this tracking data object"
+msgstr "Колекція стежок для цього об'єкта відстеження даних"
 
 
 msgid "Collection of tracking plane tracks"
@@ -36244,10 +36160,6 @@ msgstr "Колекція стежок площин відстеження рух
 
 msgid "Active Plane Track"
 msgstr "Активна стежка площини"
-
-
-msgid "Active plane track in this tracking data object"
-msgstr "Активна стежка площини у цьому об'єкті даних відстеження"
 
 
 msgid "Reconstructed Cameras"
@@ -36460,10 +36372,6 @@ msgstr "Обмежити швидкість відстеження для спр
 
 msgid "Fastest"
 msgstr "Найшвидше"
-
-
-msgid "Track as fast as it's possible"
-msgstr "Стежити так швидко, як це можливо"
 
 
 msgid "Double"
@@ -37150,24 +37058,12 @@ msgid "Width Hidden"
 msgstr "Ширина прихованого"
 
 
-msgid "Width of the node in hidden state"
-msgstr "Ширина вузла у прихованому стані"
-
-
 msgid "Custom Group"
 msgstr "Власна група"
 
 
 msgid "Base node type for custom registered node group types"
 msgstr "Базовий тип вузла для власних типів зареєстрованих груп вузлів"
-
-
-msgid "Interface"
-msgstr "Інтерфейс"
-
-
-msgid "Interface socket data"
-msgstr "Дані інтерфейсного роз'єму"
 
 
 msgid "Compositor Node"
@@ -37928,10 +37824,6 @@ msgstr "Центр Y"
 
 msgid "Spin"
 msgstr "Обкрут"
-
-
-msgid "Wrap"
-msgstr "Обгортка"
 
 
 msgid "Zoom"
@@ -39247,10 +39139,6 @@ msgid "Collection Info"
 msgstr "Інфо Колекції"
 
 
-msgid "The transformation of the geometry output"
-msgstr "Трансформація виводу геометрії"
-
-
 msgid "Original"
 msgstr "Оригінал"
 
@@ -40444,10 +40332,6 @@ msgid "Use wave texture in rings"
 msgstr "Використати колову текстуру хвилі"
 
 
-msgid "White Noise"
-msgstr "Білий Шум"
-
-
 msgid "UV Along Stroke"
 msgstr "UV уздовж штриха"
 
@@ -40574,6 +40458,10 @@ msgstr "Модуль"
 
 msgid "Entry-wise modulo using fmod(A,B)"
 msgstr "Модуль поелементно використовує fmod(A,B)"
+
+
+msgid "Wrap"
+msgstr "Обгортка"
 
 
 msgid "Entry-wise wrap(A,B)"
@@ -41823,6 +41711,10 @@ msgstr "Підхопити вибрані ключові кадри до пот�
 
 msgid "Selection to Nearest Frame"
 msgstr "Вибрання на Найближчий Кадр"
+
+
+msgid "Snap selected keyframes to the nearest (whole) frame (use to fix accidental subframe offsets)"
+msgstr "Підхопити вибрані ключові кадри до найближчого (цілого) кадру (використовуйте для усунення випадкових зміщень підкадрів)"
 
 
 msgid "Selection to Nearest Second"
@@ -44067,15 +43959,6 @@ msgstr "Вирівняти пакет за віссю Y"
 
 
 msgctxt "Operator"
-msgid "Set Principal to Center"
-msgstr "Встановити основу в центрі"
-
-
-msgid "Set optical center to center of footage"
-msgstr "Встановіть оптичний центр в центрі відео"
-
-
-msgctxt "Operator"
 msgid "Set Origin"
 msgstr "Задати опорну точку"
 
@@ -45572,10 +45455,6 @@ msgid "Merge Images"
 msgstr "Злити Зображення"
 
 
-msgid "Combine OpenEXR multilayer images rendered with different sample ranges into one image with reduced noise"
-msgstr "Комбінувати багатошарові зображення OpenEXR, рендерені з різними діапазонами вибірок, в одне зображення зі зменшеним шумом"
-
-
 msgid "File path for image to merge"
 msgstr "Шлях файлу для зображення, що буде зливатися"
 
@@ -46225,10 +46104,6 @@ msgid "Method used to reference paths"
 msgstr "Метод посилання на шляхи"
 
 
-msgid "Use Relative paths with subdirectories only"
-msgstr "Використати лише відносні шляхи з підкаталогами"
-
-
 msgid "Always write absolute paths"
 msgstr "Завжди записувати абсолютні шляхи"
 
@@ -46239,10 +46114,6 @@ msgstr "Завжди записувати відносні шляхи (де мо
 
 msgid "Match"
 msgstr "Узгодження"
-
-
-msgid "Match Absolute/Relative setting with input path"
-msgstr "Узгодити уставу Абсолютно/Відносно з увідним шляхом"
 
 
 msgid "Strip Path"
@@ -49941,10 +49812,6 @@ msgstr "Вибрання до Значення Курсора"
 
 msgid "Set values of selected keyframes to the cursor value (Y/Horizontal component)"
 msgstr "Встановити значення вибраних ключових кадрів за значенням курсора (Y/горизонтальна складова)"
-
-
-msgid "Snap selected keyframes to the nearest (whole) frame (use to fix accidental subframe offsets)"
-msgstr "Підхопити вибрані ключові кадри до найближчого (цілого) кадру (використовуйте для усунення випадкових зміщень підкадрів)"
 
 
 msgid "Flatten Handles"
@@ -55338,14 +55205,6 @@ msgid "The position of the mouse cursor at the start of the operation"
 msgstr "Позиція курсора миші на старті операції"
 
 
-msgid "Has Link Picked"
-msgstr "Має Пов'язання Підібране"
-
-
-msgid "The operation has placed a link. Only used for multi-input sockets, where the link is picked later"
-msgstr "Операція має поміщене пов'язання. Використовується лише для мульти-увідних роз'ємів, де це пов'язання підбирається пізніше"
-
-
 msgid "Outside Padding"
 msgstr "Заповнювання Зовні"
 
@@ -57245,14 +57104,6 @@ msgstr "Вилучити вибрану систему частинок"
 msgctxt "Operator"
 msgid "Clear Object Paths"
 msgstr "Зчистити шляхи об'єктів"
-
-
-msgid "Clear path caches for all objects, hold Shift key for selected objects only"
-msgstr "Зчистити кеші шляхів для всіх об'єктів, утримування при цьому Shift дасть зчищення тільки для вибраних об'єктів"
-
-
-msgid "Only clear paths from selected objects"
-msgstr "Зчистити шляхи тільки для вибраних об'єктів"
 
 
 msgctxt "Operator"
@@ -60305,44 +60156,8 @@ msgid "Interpolation factor between current brush weight, and keys' weights"
 msgstr "Коефіцієнт інтерполяції між поточною вагою пензля та вагою ключів"
 
 
-msgid "Index of the pose to apply (-2 for no change to pose, -1 for poselib active pose)"
-msgstr "Індекс застосовуваної пози (-2 - не змінювати позу; -1 - активна поза з бібліотеки)"
-
-
 msgid "Pose Name"
 msgstr "Назва пози"
-
-
-msgid "Frame to store pose on"
-msgstr "Кадр для зберігання пози"
-
-
-msgid "Name of newly added Pose"
-msgstr "Назва доданої пози"
-
-
-msgid "Direction to move the chosen pose towards"
-msgstr "Напрям для переміщення обраної пози"
-
-
-msgid "The pose to move"
-msgstr "Поза для переміщення"
-
-
-msgid "The pose to remove"
-msgstr "Поза для вилучення"
-
-
-msgid "New Pose Name"
-msgstr "Назва нової пози"
-
-
-msgid "New name for pose"
-msgstr "Нова назва пози"
-
-
-msgid "The pose to rename"
-msgstr "Поза для перейменування"
 
 
 msgctxt "Operator"
@@ -60646,14 +60461,6 @@ msgstr "Які точки кісток використовувати при р�
 msgctxt "Operator"
 msgid "Clear Bone Paths"
 msgstr "Зчистити шляхи кісток"
-
-
-msgid "Clear path caches for all bones, hold Shift key for selected bones only"
-msgstr "Зчистити кеші шляхів для всіх кісток, утримування при цьому Shift дасть зчищення тільки для вибраних кісток"
-
-
-msgid "Only clear paths from selected bones"
-msgstr "Зчистити шляхи тільки для вибраних кісток"
 
 
 msgctxt "Operator"
@@ -62469,6 +62276,10 @@ msgid "Edit user preferences and system settings"
 msgstr "Правити уподобання користувача та устави системи"
 
 
+msgid "Interface"
+msgstr "Інтерфейс"
+
+
 msgid "Themes"
 msgstr "Теми"
 
@@ -62505,10 +62316,6 @@ msgstr "Обхід по робпросторам"
 msgctxt "Operator"
 msgid "Execute a Python Preset"
 msgstr "Виконати передустановку Python"
-
-
-msgid "Execute a preset"
-msgstr "Виконати передустановку"
 
 
 msgid "Menu ID Name"
@@ -63103,6 +62910,10 @@ msgstr "Зменшити контраст маски малювання"
 
 msgid "Number of times that the filter is going to be applied"
 msgstr "Кількість разів, яку цей фільтр буде застосовано"
+
+
+msgid "Operator"
+msgstr "Оператор"
 
 
 msgctxt "Operator"
@@ -66380,10 +66191,6 @@ msgid "Pack Quality"
 msgstr "Якість упаковки"
 
 
-msgid "Pre-packing before the complex boxpack"
-msgstr "Перед-пакування перед складним коробковим пакуванням"
-
-
 msgid "Selected Faces"
 msgstr "Вибрані грані"
 
@@ -66439,10 +66246,6 @@ msgstr "Зменшити розтяг UV-карти шляхом пом'якше
 
 msgid "Blend factor between stretch minimized and original"
 msgstr "Коефіцієнт змішування між розгорткою з мінімізованим розтягом та початковою розгорткою"
-
-
-msgid "Virtual fill holes in mesh before unwrapping, to better avoid overlaps and preserve symmetry"
-msgstr "Тимчасово заповнити отвори в сіті перед розгортанням, щоб краще уникнути перекривання і зберегти симетрію"
 
 
 msgid "Number of iterations to run, 0 is unlimited when run interactively"
@@ -68986,10 +68789,6 @@ msgid "Operator Enum Pie"
 msgstr "Кругове меню операторів"
 
 
-msgid "Operator"
-msgstr "Оператор"
-
-
 msgid "Operator name (in python as string)"
 msgstr "Назва оператора (як рядок в Python)"
 
@@ -69005,15 +68804,6 @@ msgstr "Передустановка оператора"
 
 msgid "Add or remove an Operator Preset"
 msgstr "Додати або вилучити передустановку оператора"
-
-
-msgctxt "Operator"
-msgid "Disable UI Tag"
-msgstr "Вимкнути Значник Інтерфейсу Користувача"
-
-
-msgid "Enable workspace owner ID"
-msgstr "Увімкнути Ідентифікатор володільця робпростору"
 
 
 msgid "UI Tag"
@@ -70314,22 +70104,6 @@ msgid "Number of times to copy strokes across the surface"
 msgstr "Кількість копій штриха по всій поверхні"
 
 
-msgid "Show Face Sets"
-msgstr "Показ Наборів Граней"
-
-
-msgid "Show Face Sets as overlay on object"
-msgstr "Показати Набори Граней як накладку на об'єкті"
-
-
-msgid "Show Mask"
-msgstr "Показати маску"
-
-
-msgid "Show mask as overlay on object"
-msgstr "Показати маску поверх об'єктів"
-
-
 msgid "Source and destination for symmetrize operator"
 msgstr "Джерело та ціль для оператора симетризації"
 
@@ -70617,10 +70391,6 @@ msgstr "Розкладка Каскадної Тіні"
 
 msgid "Contact Shadows"
 msgstr "Тіні Контакту"
-
-
-msgid "Area Shape"
-msgstr "Форма ділянки"
 
 
 msgid "Composition Guides"
@@ -71598,6 +71368,10 @@ msgstr "Контекстне Меню Малювання Текстур"
 
 msgid "Weights Context Menu"
 msgstr "Контекстне Меню Вагомостей"
+
+
+msgid "Pose Library"
+msgstr "Бібліотека поз"
 
 
 msgid "3D-Print"
@@ -75394,10 +75168,6 @@ msgid "Distortion to use for the calculation"
 msgstr "Спотворення, що використовується для обчислень"
 
 
-msgid "Render the scene with a spherical camera, also known as Lat Long panorama"
-msgstr "Рендерити сцену зі сферичною камерою (також відомою як панорама широта/довгота)"
-
-
 msgid "Fisheye Equidistant"
 msgstr "Еквідистантне 'риб'яче око'"
 
@@ -75412,10 +75182,6 @@ msgstr "Еквітілесне 'риб'яче око'"
 
 msgid "Similar to most fisheye modern lens, takes sensor dimensions into consideration"
 msgstr "Подібний до більшості сучасних об'єктивів 'риб'яче око', враховує розміри сенсора"
-
-
-msgid "Uses the mirror ball mapping"
-msgstr "Використати дзеркальне кульове розкладання"
 
 
 msgid "Rounded Ribbons"
@@ -75508,10 +75274,6 @@ msgstr "Однорідний об'єм"
 
 msgid "When using volume rendering, assume volume has the same density everywhere (not using any textures), for faster rendering"
 msgstr "При рендерингу об'єму вважати, що об'єм скрізь має однакову щільність (не застосовує жодні текстури), для швидшого рендерингу"
-
-
-msgid "Use multiple importance sampling for this material, disabling may reduce overall noise for large objects that emit little light compared to other light sources"
-msgstr "Використати лише напрямлені промені при багаторазовому відборі за значимістю для цього матеріалу; відключення може знизити загальний шум для великих об'єктів, які випромінюють мало світла у порівнянні з іншими джерелами світла"
 
 
 msgid "Transparent Shadows"
@@ -76090,20 +75852,8 @@ msgid "Sampling Pattern"
 msgstr "Патерн Відбору"
 
 
-msgid "Progressive Multi-Jitter"
-msgstr "Прогресивно Багато-Коливно"
-
-
-msgid "Use Progressive Multi-Jitter random sampling pattern"
-msgstr "Вжити патерн відбору випадковостей на основі Прогресивного Багато-Коливного методу"
-
-
 msgid "Seed value for integrator to get different noise patterns"
 msgstr "Початкове значення для інтегратора, щоб отримати різні патерни шуму"
-
-
-msgid "Use Open Shading Language (CPU rendering only)"
-msgstr "Вжити Open Shading Language (лише для рендерингу з ЦП)"
 
 
 msgid "Viewport Texture Limit"
@@ -76384,10 +76134,6 @@ msgstr "Видимість об'єкта для тіньових промені�
 
 msgid "Object visibility for transmission rays"
 msgstr "Видимість об'єкта для пропускуваних променів"
-
-
-msgid "When using volume rendering, assume volume has the same density everywhere(not using any textures), for faster rendering"
-msgstr "Для швидшого рендерингу об'єму вважати, що його щільність скрізь однакова (жодні текстури не використовуються) "
 
 
 msgid "Maximum number of bounces the background light will contribute to the render"
@@ -78330,6 +78076,10 @@ msgid "All modifiers"
 msgstr "Всі модифікатори"
 
 
+msgid "Bounciness"
+msgstr "Відскокність"
+
+
 msgid "Tendency of object to bounce after colliding with another (0 = stays still, 1 = perfectly elastic)"
 msgstr "Схильність об'єкта відскакувати після зіткнень (0 - залишатись на місці, 1 - абсолютно пружний)"
 
@@ -78622,10 +78372,6 @@ msgid "Method of anti-aliasing when rendering 3d viewport"
 msgstr "Метод загладжування при рендерингу вікна 3D-огляду"
 
 
-msgid "Maximum intensity a bloom pixel can have (0 to disabled)"
-msgstr "Максимальна інтенсивність, яку свічення пікселя може мати (0 для вимкнення)"
-
-
 msgid "Color applied to the bloom effect"
 msgstr "Колір, застосований до ефекту свічення"
 
@@ -78762,10 +78508,6 @@ msgid "Clamp Glossy"
 msgstr "Затиск Глянцю"
 
 
-msgid "Clamp pixel intensity to reduce noise inside glossy reflections from reflection cubemaps (0 to disabled)"
-msgstr "Затискати інтенсивність пікселів для скорочення шуму всередині глянцевих відбивань від куброзкладок відбиття (0 для вимкнення)"
-
-
 msgid "Irradiance Display Size"
 msgstr "Розмір показу опроміненості"
 
@@ -78894,10 +78636,6 @@ msgid "Screen percentage used to fade the SSR"
 msgstr "Відсоток екрана, використовуваний для зникання відбиттів простору екрана"
 
 
-msgid "Clamp pixel intensity to remove noise (0 to disabled)"
-msgstr "Затиснути інтенсивність пікселів для вилучення шуму (0 вимкнено)"
-
-
 msgid "Max Roughness"
 msgstr "Макс шорсткість"
 
@@ -78924,10 +78662,6 @@ msgstr "Кількість вибірок для обчислення ефект
 
 msgid "Render Samples"
 msgstr "Вибірки рендера"
-
-
-msgid "Number of samples per pixels for rendering"
-msgstr "Кількість вибірок на піксель для рендерингу"
 
 
 msgid "Number of samples, unlimited if 0"
@@ -80153,10 +79887,6 @@ msgid "Visualize cached complete frames"
 msgstr "Візуалізувати кешовані завершені зображення"
 
 
-msgid "Pre-processed Images"
-msgstr "Перед-оброблені Зображення"
-
-
 msgid "Visualize cached pre-processed images"
 msgstr "Візуалізувати кешовані перед-оброблені зображення"
 
@@ -80183,14 +79913,6 @@ msgstr "Кешувати Фінальне"
 
 msgid "Cache final image for each frame"
 msgstr "Кешувати фінальне зображення для кожного кадру"
-
-
-msgid "Cache Pre-processed"
-msgstr "Кешувати Перед-оброблене"
-
-
-msgid "Cache pre-processed images, for faster tweaking of effects at the cost of memory usage"
-msgstr "Кешувати перед-оброблені зображення для швидшого підправлення ефектів ціною використання пам'яті"
 
 
 msgid "Overlay Lock"
@@ -80953,12 +80675,16 @@ msgid "Edges receive a lift force when passing through surrounding media"
 msgstr "Ребра отримують підіймальну силу при проходженні через навколишнє середовище"
 
 
-msgid "Ball Size"
-msgstr "Розмір кулі"
+msgid "Dampening"
+msgstr "Гасіння"
 
 
 msgid "Blending to inelastic collision"
 msgstr "Змішування при непружному зіткненні"
+
+
+msgid "Ball Size"
+msgstr "Розмір кулі"
 
 
 msgid "Absolute ball size or factor if not manually adjusted"
@@ -81327,6 +81053,10 @@ msgid "Editing context being displayed"
 msgstr "Контекст редагування, що демонструється"
 
 
+msgid "Path Length"
+msgstr "Довжина шляху"
+
+
 msgid "Length of displaying path, in frames"
 msgstr "Час показу шляху, в кадрах"
 
@@ -81381,6 +81111,22 @@ msgstr "Показати фільтри"
 
 msgid "Show filters for graph editor"
 msgstr "Показати фільтри для редактора графіків"
+
+
+msgid "Show Gizmo"
+msgstr "Показ Гізмо"
+
+
+msgid "Show gizmos of all types"
+msgstr "Показати гізмо всіх типів"
+
+
+msgid "Navigate Gizmo"
+msgstr "Гізмо Навігації"
+
+
+msgid "Viewport navigation gizmo"
+msgstr "Гізмо навігації оглядвікна"
 
 
 msgid "Show Frames"
@@ -81930,10 +81676,6 @@ msgid "Show handles of Bezier control points"
 msgstr "Показати ручки контрольних точок Безьє"
 
 
-msgid "AutoMerge Keyframes"
-msgstr "Автооб'єднання ключкадрів"
-
-
 msgid "Auto Normalization"
 msgstr "Авто Нормалізація"
 
@@ -82064,22 +81806,6 @@ msgstr "Вибрані кольори вздовж лінії"
 
 msgid "Scopes to visualize image statistics"
 msgstr "Області для показу статистики зображення"
-
-
-msgid "Show Gizmo"
-msgstr "Показ Гізмо"
-
-
-msgid "Show gizmos of all types"
-msgstr "Показати гізмо всіх типів"
-
-
-msgid "Navigate Gizmo"
-msgstr "Гізмо Навігації"
-
-
-msgid "Viewport navigation gizmo"
-msgstr "Гізмо навігації оглядвікна"
 
 
 msgid "Show Mask Editor"
@@ -84089,10 +83815,6 @@ msgstr "Вимкнута мітка"
 
 msgid "Align Handle"
 msgstr "Вирівняний Держак"
-
-
-msgid "Auto-Clamped Handle"
-msgstr "Авто-Затиснутий Держак"
 
 
 msgid "Align Handle Selected"
@@ -87236,10 +86958,6 @@ msgid "Show random object color"
 msgstr "Показати випадковий колір об'єкта"
 
 
-msgid "Show texture"
-msgstr "Показати текстуру"
-
-
 msgid "Curvature Ridge"
 msgstr "Виступ Кривини"
 
@@ -87478,10 +87196,6 @@ msgstr "Устави Eevee"
 
 msgid "View layer settings for Eevee"
 msgstr "Устави шару огляду для Eevee"
-
-
-msgid "Root of collections hierarchy of this view layer,its 'collection' pointer property is the same as the scene's master collection"
-msgstr "Корінь ієрархії колекцій цього шару огляду, його властивість вказівника 'колекції' є тим самим, як і задавальна колекція сцени"
 
 
 msgid "Material Override"
@@ -89236,16 +88950,8 @@ msgid "Invalid target %r (must be 'ARMATURE' or 'OBJECT')"
 msgstr "Хибна ціль %r (має бути 'ARMATURE' або 'OBJECT')"
 
 
-msgid "Cameras & Markers (.py)"
-msgstr "Камери та Маркери (.py)"
-
-
 msgid "Unable to parse XML, %s:%s for file %r"
 msgstr "Неможливо розібрати XML, %s:%s для файлу %r"
-
-
-msgid "Images as Planes"
-msgstr "Зображення як Площини"
 
 
 msgid "Import Options:"
@@ -89414,11 +89120,6 @@ msgstr "Результат"
 
 msgid "Select objects to scatter and a target object"
 msgstr "Вибрати об'єкти для розсіювання та цільовий об'єкт"
-
-
-msgctxt "Operator"
-msgid "Apply"
-msgstr "Застосувати"
 
 
 msgid "Demo Mode:"
@@ -90008,6 +89709,10 @@ msgid "Licensed under the GNU General Public License"
 msgstr "Ліцензовано під GNU General Public License"
 
 
+msgid "%s: %s"
+msgstr "%s: %s"
+
+
 msgid "Nothing to operate on: %s[ ].%s"
 msgstr "Немає над чим оперувати: %s[ ].%s"
 
@@ -90184,17 +89889,17 @@ msgid "Nothing to show yet..."
 msgstr "Нічого ще показувати..."
 
 
+msgctxt "Operator"
+msgid "Calculate..."
+msgstr "Розрахування..."
+
+
 msgid "+ Non-Grouped Keyframes"
 msgstr "+ Не-Згруповані Ключкадри"
 
 
 msgid "Frame Range Start"
 msgstr "Діапазон Кадрів Старт"
-
-
-msgctxt "Operator"
-msgid "Calculate..."
-msgstr "Розрахування..."
 
 
 msgctxt "Operator"
@@ -90300,10 +90005,6 @@ msgstr "Осі"
 msgctxt "Operator"
 msgid "Remove"
 msgstr "Вилучення"
-
-
-msgid "Error: Potentially corrupt library, run 'Sanitize' operator to fix"
-msgstr "Помилка: Потенційно зіпсована бібліотека, запустіть оператор 'Sanitize' для виправлення"
 
 
 msgid "Damping Max"
@@ -91504,10 +91205,6 @@ msgid "Temperature Maximum"
 msgstr "Максимум Температури"
 
 
-msgid "Flame Color"
-msgstr "Колір Полум'я"
-
-
 msgid "Particle Radius"
 msgstr "Радіус Частинки"
 
@@ -91566,6 +91263,10 @@ msgstr "Відбір Частинок Захопленого Повітря"
 
 msgid "Particle Life Maximum"
 msgstr "Максимум Життя Частинки"
+
+
+msgid "Exponent"
+msgstr "Експоненціально"
 
 
 msgid "Surface Tension"
@@ -91708,10 +91409,6 @@ msgid "Baking Guides - ESC to pause"
 msgstr "Запікання Напрямних - ESC для паузи"
 
 
-msgid "Bounciness"
-msgstr "Відскокність"
-
-
 msgid "Damping Translation"
 msgstr "Пересунення Загасання"
 
@@ -91752,16 +91449,8 @@ msgid "Y Lower"
 msgstr "Нижнє Y"
 
 
-msgid "Collision Edge"
-msgstr "Ребро Зіткнення"
-
-
 msgid "Calculation Type"
 msgstr "Тип Розрахунку"
-
-
-msgid "Dampening"
-msgstr "Гасіння"
 
 
 msgid "Step Size Min"
@@ -91928,10 +91617,6 @@ msgid "Unknown add-ons"
 msgstr "Невідомі додатки"
 
 
-msgid "%s: %s"
-msgstr "%s: %s"
-
-
 msgid "Display Thin"
 msgstr "Показ Тонко"
 
@@ -91998,11 +91683,6 @@ msgstr "Рішити Рух Об'єкта"
 
 msgid "Pixel Aspect"
 msgstr "Пропорція Боків Пікселя"
-
-
-msgctxt "Operator"
-msgid "Set Center"
-msgstr "Задати Центр"
 
 
 msgid "Build Original:"
@@ -92095,6 +91775,10 @@ msgstr "Задати Фон Оглядвікна"
 msgctxt "Operator"
 msgid "Set Floor"
 msgstr "Задати Підлогу"
+
+
+msgid "Viewport Gizmos"
+msgstr "Гізмо Оглядвікна"
 
 
 msgid "3D Markers"
@@ -92344,10 +92028,6 @@ msgstr "Режим Полегшування"
 msgctxt "Operator"
 msgid "Discontinuity (Euler) Filter"
 msgstr "Фільтр Переривчатості (Ейлер)"
-
-
-msgid "Extrapolation Mode"
-msgstr "Режим Екстраполяції"
 
 
 msgid "Grease Pencil Objects"
@@ -92634,10 +92314,6 @@ msgstr "За Відстанню"
 msgctxt "Operator"
 msgid "Selection"
 msgstr "Вибрання"
-
-
-msgid "Viewport Gizmos"
-msgstr "Гізмо Оглядвікна"
 
 
 msgid "Modified Edges"
@@ -92929,11 +92605,6 @@ msgid "Make and Replace Links"
 msgstr "Зробити та Замінити Пов'язання"
 
 
-msgctxt "Operator"
-msgid "Group"
-msgstr "Група"
-
-
 msgid "Inputs:"
 msgstr "Вводи"
 
@@ -93202,10 +92873,6 @@ msgstr "Позиція X"
 
 msgid "Convert to Float"
 msgstr "Конвертувати в Дійсночислове"
-
-
-msgid "Pre-Processed"
-msgstr "Перед-Оброблене"
 
 
 msgid "Storage"
@@ -94751,16 +94418,6 @@ msgstr "Блокувати Вибране"
 
 
 msgctxt "Operator"
-msgid "Unlock Selected"
-msgstr "Розблокувати Вибране"
-
-
-msgctxt "Operator"
-msgid "Unlock Unselected"
-msgstr "Розблокувати Невибране"
-
-
-msgctxt "Operator"
 msgid "Lock Only Selected"
 msgstr "Блокувати Лише Вибране"
 
@@ -94768,6 +94425,16 @@ msgstr "Блокувати Лише Вибране"
 msgctxt "Operator"
 msgid "Lock Only Unselected"
 msgstr "Блокувати Лише Невибране"
+
+
+msgctxt "Operator"
+msgid "Unlock Selected"
+msgstr "Розблокувати Вибране"
+
+
+msgctxt "Operator"
+msgid "Unlock Unselected"
+msgstr "Розблокувати Невибране"
 
 
 msgctxt "Operator"
@@ -94807,16 +94474,6 @@ msgstr "Виправити Деформи"
 
 msgid "Locks"
 msgstr "Блокування"
-
-
-msgctxt "Operator"
-msgid "Show Bounding Box"
-msgstr "Показ Габаритної Коробки"
-
-
-msgctxt "Operator"
-msgid "Hide Bounding Box"
-msgstr "Схов Габаритної Коробки"
 
 
 msgctxt "Operator"
@@ -96114,6 +95771,11 @@ msgstr "Швидке Редагування"
 
 
 msgctxt "Operator"
+msgid "Apply"
+msgstr "Застосувати"
+
+
+msgctxt "Operator"
 msgid "Apply Camera Image"
 msgstr "Застосувати Зображення Камери"
 
@@ -97310,68 +96972,8 @@ msgid "Cannot pose libdata"
 msgstr "Неможливо застосувати позу до приєднаної бібліотечної арматури"
 
 
-msgid "Add New"
-msgstr "Додати нове"
-
-
-msgid "Add New (Current Frame)"
-msgstr "Додати нову (поточний кадр)"
-
-
-msgid "Replace Existing..."
-msgstr "Замінити наявну..."
-
-
-msgid "PoseLib Previewing Pose: [Showing Original Pose]"
-msgstr "Передогляд поз PoseLib: [Показ Оригінальної Пози]"
-
-
-msgid "Use Tab to start previewing poses again"
-msgstr "Використовуйте Tab для запуску передогляду поз знову"
-
-
-msgid "PoseLib Previewing Pose: Filter - [%s] | Current Pose - \"%s\""
-msgstr "Передогляд поз PoseLib: Фільтр - [%s] | Поточна Поза - \"%s\""
-
-
-msgid "Use ScrollWheel or PageUp/Down to change pose"
-msgstr "Використовуйте ScrollWheel або PageUp/Down для зміни пози"
-
-
-msgid "PoseLib Previewing Pose: \"%s\""
-msgstr "Передогляд поз PoseLib: \"%s\""
-
-
-msgid "No action to validate"
-msgstr "Немає дії для підтвердження"
-
-
-msgid "Object does not have pose lib data"
-msgstr "Об'єкт не має даних бібліотеки поз"
-
-
-msgid "Invalid index for pose"
-msgstr "Неправильний індекс пози"
-
-
 msgid "Pose lib is only for armatures in pose mode"
 msgstr "Бібліотека поз лише для арматур у режимі пози"
-
-
-msgid "Object does not have a valid pose lib"
-msgstr "Об'єкт не має правильної бібліотеки поз"
-
-
-msgid "Pose lib had no active pose"
-msgstr "Бібліотека поз не має активної пози"
-
-
-msgid "Pose lib has no poses to preview/apply"
-msgstr "Бібліотека поз не містить поз для перегляду/застосування"
-
-
-msgid "Invalid pose specified %d"
-msgstr "Задано неправильну позу %d"
 
 
 msgid "No active Keying Set to use"
@@ -98218,40 +97820,8 @@ msgid "Hex"
 msgstr "Hex"
 
 
-msgid "R:"
-msgstr "R:"
-
-
-msgid "G:"
-msgstr "G:"
-
-
-msgid "B:"
-msgstr "B:"
-
-
-msgid "H:"
-msgstr "H:"
-
-
-msgid "S:"
-msgstr "S:"
-
-
-msgid "L:"
-msgstr "L:"
-
-
-msgid "V:"
-msgstr "V:"
-
-
-msgid "A: "
-msgstr "A: "
-
-
-msgid "Hex: "
-msgstr "Hex:"
+msgid "Value:"
+msgstr "Значення:"
 
 
 msgid "(Gamma Corrected)"
@@ -98934,10 +98504,6 @@ msgid "Intersection Type"
 msgstr "Тип Перетину"
 
 
-msgid "%s: Confirm, %s: Cancel, %s: Mode (%s), %s: Width (%s), %s: Segments (%d), %s: Profile (%.3f), %s: Clamp Overlap (%s), %s: Affect (%s), %s: Outer Miter (%s), %s: Inner Miter (%s), %s: Harden Normals (%s), %s: Mark Seam (%s), %s: Mark Sharp (%s), %s: Profile Type (%s), %s: Intersection (%s)"
-msgstr "%s: Підтвердження, %s: Касування, %s: Режим (%s), %s: Ширина (%s), %s: Сегменти (%d), %s: Профіль (%.3f), %s: Перекриття Затиску (%s), %s: Задіяння (%s), %s: Мітер Зовнішньо (%s), %s: Мітер Внутрішньо (%s), %s: Жорсткіші Нормалі (%s), %s: Позначити Шов (%s), %s: Позначити Гостроту (%s), %s: Тип Профілю (%s), %s: Перетин (%s)"
-
-
 msgid "LMB: Click and drag to draw cut line"
 msgstr "ЛКМ: натисніть і перетягуванням намалюйте лінію розрізу"
 
@@ -99124,10 +98690,6 @@ msgstr "Немає активної групи вершин"
 
 msgid "View not found, cannot sort by view axis"
 msgstr "Вигляд не знайдено, неможливо упорядкувати за осями вигляду"
-
-
-msgid "Does not support Individual Origin as pivot"
-msgstr "Не підтримує Індивідуальний Початок як опорточку"
 
 
 msgid "Can only copy one custom normal, vertex normal or face normal"
@@ -99756,10 +99318,6 @@ msgid "Multires modifier returned error, skipping apply"
 msgstr "Модифікатор Мультироздільність повідомив про помилку, застосування пропущено"
 
 
-msgid "Modifier returned error, skipping apply"
-msgstr "Модифікатор повідомив про помилку, застосування пропущено"
-
-
 msgid "Applied modifier only changed CV points, not tessellated/bevel vertices"
 msgstr "Застосований модифікатор змінив лише контрольні вершини, а не вершини від теселяції та фасок"
 
@@ -99946,10 +99504,6 @@ msgstr "Неможливо застосувати до багатокорист�
 
 msgid "Grease Pencil Object does not support this set origin option"
 msgstr "Об'єкт Нарисного Олівця не підтримує цю опцію задання початку"
-
-
-msgid "Font's can only have scale applied: \"%s\""
-msgstr "Шрифти можуть лише мати застосований масштаб: \"%s\""
 
 
 msgid "Area Lights can only have scale applied: \"%s\""
@@ -101091,10 +100645,6 @@ msgstr "Вираз"
 
 msgid "Add Input Variable"
 msgstr "Додати Змінну Уводу"
-
-
-msgid "Value:"
-msgstr "Значення:"
 
 
 msgid "Update Dependencies"
@@ -102776,10 +102326,6 @@ msgid "left"
 msgstr "зліва"
 
 
-msgid "Auto-offset set to %s - press %s to toggle direction  |  %s"
-msgstr "Авто-зсув задано на %s - натисніть %s для перемикання напряму  | %s"
-
-
 msgid "Use 'Time_Translate' transform mode instead of 'Translation' mode for translating keyframes in Dope Sheet Editor"
 msgstr "Використати режим трансформування 'Time_Translate' замість режиму 'Translation' для трансформування ключкадрів на Аркуші експозицій"
 
@@ -102971,14 +102517,6 @@ msgstr "Ця властивість призначена лише для вну�
 
 msgid "Can't edit this property from an override data-block"
 msgstr "Неможливо редагувати цю властивість із заміщеного блоку даних"
-
-
-msgid "Only boolean, int float and enum properties supported"
-msgstr "Лише булеві, цілочислові, дійсночислові та перелічні властивості підтримуються"
-
-
-msgid "Only boolean, int and float properties supported"
-msgstr "Підтримуються лише логічні, цілі та дійсні властивості"
 
 
 msgid "'%s' does not contain '%s' with prefix and suffix"
@@ -103484,10 +103022,6 @@ msgstr "Можливо лише призначити обчислені дані
 
 msgid "Only empty objects support collection instances"
 msgstr "Лише порожні об'єкти підтримують примірники колекцій"
-
-
-msgid "Cannot set instance-collection as object belongs in group being instanced, thus causing a cycle"
-msgstr "Неможливо задати колекцію-примірник як об'єкт, що входить у групу, що була примірникована, оскільки це спричиняє зациклення"
 
 
 msgid "VertexGroup.add(): cannot be called while object is in edit mode"

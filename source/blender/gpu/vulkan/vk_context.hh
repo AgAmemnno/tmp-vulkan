@@ -236,6 +236,7 @@ class VKContext : public Context {
   uint32_t current_frame_index_;
 
   bool is_inside_frame_ = false;
+  bool is_initialized_      = false;
 
   VkSampler sampler_state_cache_[GPU_SAMPLER_MAX];
   VkSampler default_sampler_state_;

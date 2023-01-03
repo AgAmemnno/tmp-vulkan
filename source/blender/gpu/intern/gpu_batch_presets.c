@@ -351,7 +351,6 @@ void gpu_batch_presets_init(void)
 
   g_presets_3d.batch.sphere_wire_med = batch_sphere_wire(8, 16);
   gpu_batch_presets_register(g_presets_3d.batch.sphere_wire_med);
- 
 }
 
 void gpu_batch_presets_register(GPUBatch *preset_batch)

@@ -43,6 +43,8 @@ if NOT "%1" == "" (
 		set TARGET=Release
 	) else if "%1" == "developer" (
 		set BUILD_CMAKE_ARGS=%BUILD_CMAKE_ARGS% -C"%BLENDER_DIR%\build_files\cmake\config\blender_developer.cmake"
+	) else if "%1" == "dev_vulkan" (
+		set BUILD_CMAKE_ARGS=%BUILD_CMAKE_ARGS% -C"%BLENDER_DIR%\build_files\cmake\config\blender_dev_vulkan.cmake"
 	) else if "%1" == "asan" (
 		set WITH_ASAN=1
 	) else if "%1" == "x86" ( 
@@ -80,9 +82,11 @@ if NOT "%1" == "" (
 	REM Non-Build Commands
 	) else if "%1" == "update" (
 		SET BUILD_UPDATE=1
+        SET BUILD_UPDATE_SVN=1
 		set BUILD_UPDATE_ARGS=
 	) else if "%1" == "code_update" (
 		SET BUILD_UPDATE=1
+        SET BUILD_UPDATE_SVN=0
 		set BUILD_UPDATE_ARGS="--no-libraries"
 	) else if "%1" == "ninja" (
 		SET BUILD_WITH_NINJA=1

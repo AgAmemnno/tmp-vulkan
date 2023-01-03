@@ -396,7 +396,6 @@ function(gtest_add_tests)
              ${ARGS_EXTRA_ARGS}
   )
   list(APPEND testList ${ARGS_TEST_PREFIX})
-
   if(ARGS_TEST_LIST)
     set(${ARGS_TEST_LIST} ${testList} PARENT_SCOPE)
   endif()

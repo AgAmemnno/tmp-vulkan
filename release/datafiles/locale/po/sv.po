@@ -1,9 +1,9 @@
 
 msgid ""
 msgstr ""
-"Project-Id-Version: Blender 3.4.0 Alpha (b'a6b83617e9de')\n"
+"Project-Id-Version: Blender 3.5.0 Alpha (b'09ba00974f8f')\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-10-17 10:12:11\n"
+"POT-Creation-Date: 2020-01-01 00:00:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Arvid Rudling <arvid.r@gmail.com>\n"
 "Language-Team: \n"
@@ -1081,10 +1081,6 @@ msgid "Lock Rotation"
 msgstr "Lås rotation"
 
 
-msgid "Pose Library"
-msgstr "Pose-bibliotek"
-
-
 msgid "Rotation in Eulers"
 msgstr "Rotation med Euler"
 
@@ -1127,10 +1123,6 @@ msgstr "Grovhet 1"
 
 msgid "Roughness 2"
 msgstr "Grovhet 2"
-
-
-msgid "Exponent"
-msgstr "Exponent"
 
 
 msgid "3D Cursor"
@@ -1207,10 +1199,6 @@ msgstr "Modifierad av användaren"
 
 msgid "Timer"
 msgstr "Tidtagning"
-
-
-msgid "Property Value"
-msgstr "Egenskapsvärde"
 
 
 msgid "Left Handle"
@@ -1425,10 +1413,6 @@ msgid "Basis"
 msgstr "Bas"
 
 
-msgid "Wrap"
-msgstr "Radbrytning"
-
-
 msgid "Zoom"
 msgstr "Zooma"
 
@@ -1463,6 +1447,10 @@ msgstr "Färgkälla"
 
 msgid "Air"
 msgstr "Luft"
+
+
+msgid "Wrap"
+msgstr "Radbrytning"
 
 
 msgid "Object Constraints"
@@ -1942,6 +1930,10 @@ msgid "ID name of the menu this was called from"
 msgstr "ID-namn på menyn som detta anropades från"
 
 
+msgid "Operator"
+msgstr "Operator"
+
+
 msgid "Alpha Under"
 msgstr "Alfa under"
 
@@ -2022,10 +2014,6 @@ msgstr "Öppna ett Blenderdokument"
 msgctxt "Operator"
 msgid "Operator Cheat Sheet"
 msgstr "Lathund för operatorer"
-
-
-msgid "Operator"
-msgstr "Operator"
 
 
 msgctxt "Operator"
@@ -2150,6 +2138,10 @@ msgstr "Uppspelning"
 
 msgid "3D Mouse Settings"
 msgstr "Inställningar för 3D-mus"
+
+
+msgid "Pose Library"
+msgstr "Pose-bibliotek"
 
 
 msgid "Particle in a particle system"
@@ -2384,6 +2376,10 @@ msgid "Relative Key"
 msgstr "Relativ nyckel"
 
 
+msgid "Dampening"
+msgstr "Dämpning"
+
+
 msgid "Bending"
 msgstr "Böjning"
 
@@ -2609,8 +2605,8 @@ msgid "Cache is disabled until the file is saved"
 msgstr "Cachen är inaktiverad tills filen sparas"
 
 
-msgid "Dampening"
-msgstr "Dämpning"
+msgid "Exponent"
+msgstr "Exponent"
 
 
 msgid "Auto-Step"
@@ -2631,11 +2627,6 @@ msgstr "Bild*"
 
 msgid "Aspect Ratio"
 msgstr "Storleksförhållande"
-
-
-msgctxt "Operator"
-msgid "Group"
-msgstr "Grupp"
 
 
 msgid "Offset:"

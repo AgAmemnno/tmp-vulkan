@@ -333,8 +333,10 @@ void VKImmediate::end()
     BLI_assert(render_pass != VK_NULL_HANDLE);
 
     VKShader *vkshader = reinterpret_cast<VKShader *>(shader);
-    bool ret = (vkshader->CreatePipeline(render_pass) != VK_NULL_HANDLE);
-    BLI_assert(ret);
+    if (vkshader->CreatePipeline(render_pass) == VK_NULL_HANDLE) {
+        assert(false);
+        return;
+    };
     record();
     context_->submit_nonblocking();
   }

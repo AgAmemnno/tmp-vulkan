@@ -1,9 +1,9 @@
 
 msgid ""
 msgstr ""
-"Project-Id-Version: Blender 3.4.0 Alpha (b'a6b83617e9de')\n"
+"Project-Id-Version: Blender 3.5.0 Alpha (b'09ba00974f8f')\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-10-17 10:12:11\n"
+"POT-Creation-Date: 2020-01-01 00:00:00\n"
 "PO-Revision-Date: 2021-12-05 20:05+0100\n"
 "Language: nl\n"
 "MIME-Version: 1.0\n"
@@ -2336,10 +2336,6 @@ msgid "Circle"
 msgstr "Cirkel"
 
 
-msgid "Pose Library"
-msgstr "Poses Bibliotheek"
-
-
 msgid "Rigid Body Settings"
 msgstr "Star Lichaam Instellingen"
 
@@ -2715,10 +2711,6 @@ msgid "Calculate Holes"
 msgstr "Bereken Gaten"
 
 
-msgid "Edit"
-msgstr "Bewerken"
-
-
 msgctxt "MovieClip"
 msgid "Clip"
 msgstr "Clip"
@@ -2751,6 +2743,10 @@ msgstr "Selecteer Aaneengesloten"
 msgctxt "Operator"
 msgid "Add"
 msgstr "Toevoegen"
+
+
+msgid "Edit"
+msgstr "Bewerken"
 
 
 msgid "Converter"
@@ -2872,10 +2868,6 @@ msgstr "Lokale Scherm"
 
 msgid "Loose"
 msgstr "Los"
-
-
-msgid "Loose edge"
-msgstr "Losse rand"
 
 
 msgid "Seam"
@@ -3015,10 +3007,6 @@ msgstr "Eigen Node"
 
 msgid "Show Texture"
 msgstr "Toon Textuur"
-
-
-msgid "Interface"
-msgstr "Interface"
 
 
 msgid "Alpha Over"
@@ -5747,6 +5735,10 @@ msgid "Open Preferences..."
 msgstr "Open Instellingen..."
 
 
+msgid "Interface"
+msgstr "Interface"
+
+
 msgid "File Paths"
 msgstr "Bestandspaden"
 
@@ -6609,6 +6601,10 @@ msgid "Auto Save"
 msgstr "Auto Opslaan"
 
 
+msgid "Pose Library"
+msgstr "Poses Bibliotheek"
+
+
 msgctxt "Operator"
 msgid "Measure"
 msgstr "Meten"
@@ -6823,6 +6819,10 @@ msgstr "Render Beeld"
 
 msgid "Collision Shape"
 msgstr "Botsingvorm"
+
+
+msgid "Bounciness"
+msgstr "Veerkrachtigheid"
 
 
 msgid "Max Roughness"
@@ -7480,11 +7480,6 @@ msgstr "Exporteren"
 
 
 msgctxt "Operator"
-msgid "Apply"
-msgstr "Toevoegen"
-
-
-msgctxt "Operator"
 msgid "Load"
 msgstr "Laden"
 
@@ -7542,13 +7537,13 @@ msgid "After"
 msgstr "Na"
 
 
-msgid "Frame Range Start"
-msgstr "Framebereik Start"
-
-
 msgctxt "Operator"
 msgid "Calculate..."
 msgstr "Berekenen..."
+
+
+msgid "Frame Range Start"
+msgstr "Framebereik Start"
 
 
 msgctxt "Operator"
@@ -7801,10 +7796,6 @@ msgid "Flame Smoke"
 msgstr "Vlam Rook"
 
 
-msgid "Flame Color"
-msgstr "Vlam Kleur"
-
-
 msgid "Bubbles"
 msgstr "Bubbels"
 
@@ -7820,10 +7811,6 @@ msgstr "Lege Ruimte"
 msgctxt "Operator"
 msgid "Resume"
 msgstr "Hervat"
-
-
-msgid "Bounciness"
-msgstr "Veerkrachtigheid"
 
 
 msgid "Auto-Step"
@@ -8685,16 +8672,6 @@ msgstr "Maak Schoon"
 
 
 msgctxt "Operator"
-msgid "Show Bounding Box"
-msgstr "Toon Passende Doos"
-
-
-msgctxt "Operator"
-msgid "Hide Bounding Box"
-msgstr "Verberg Passende Doos"
-
-
-msgctxt "Operator"
 msgid "Clear Mask"
 msgstr "Maak Masker Leeg"
 
@@ -8920,6 +8897,11 @@ msgid "Quick Edit"
 msgstr "Snel Bewerken"
 
 
+msgctxt "Operator"
+msgid "Apply"
+msgstr "Toevoegen"
+
+
 msgid "User Library"
 msgstr "Gebruikersbibliotheek"
 
@@ -8988,10 +8970,6 @@ msgstr "Coëfficiënt"
 
 msgid "Too many points selected: %d"
 msgstr "Teveel punten geselecteerd: %d"
-
-
-msgid "Replace Existing..."
-msgstr "Vervang Bestaande..."
 
 
 msgctxt "Curve"
@@ -9103,6 +9081,10 @@ msgstr "Reset Alles naar Standaardwaarden"
 msgctxt "Operator"
 msgid "Copy All to Selected"
 msgstr "Kopieer Alles naar Geselecteerd"
+
+
+msgid "Value:"
+msgstr "Waarde:"
 
 
 msgid "Value: %s"
@@ -9472,10 +9454,6 @@ msgstr "Video's"
 
 msgid "Movies"
 msgstr "Films"
-
-
-msgid "Value:"
-msgstr "Waarde:"
 
 
 msgid "Add Modifier"

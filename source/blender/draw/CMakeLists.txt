@@ -24,6 +24,8 @@ set(INC
   ../render
   ../render/intern
   ../compositor/realtime_compositor
+  ../compositor/realtime_compositor/algorithms
+  ../compositor/realtime_compositor/cached_resources
   ../windowmanager
 
   ../../../intern/atomic
@@ -128,7 +130,7 @@ set(SRC
   engines/eevee/eevee_renderpasses.c
   engines/eevee/eevee_sampling.c
   engines/eevee/eevee_screen_raytrace.c
-  engines/eevee/eevee_shaders.c
+  engines/eevee/eevee_shaders.cc
   engines/eevee/eevee_shaders_extra.cc
   engines/eevee/eevee_shadows.c
   engines/eevee/eevee_shadows_cascade.c
@@ -160,7 +162,7 @@ set(SRC
   engines/workbench/workbench_effect_dof.c
   engines/workbench/workbench_effect_outline.c
   engines/workbench/workbench_engine.c
-  engines/workbench/workbench_materials.c
+  engines/workbench/workbench_materials.cc
   engines/workbench/workbench_opaque.c
   engines/workbench/workbench_render.c
   engines/workbench/workbench_shader.cc
@@ -254,6 +256,7 @@ set(SRC
   engines/eevee/eevee_lightcache.h
   engines/eevee/eevee_lut.h
   engines/eevee/eevee_private.h
+  engines/eevee/engine_eevee_shared_defines.h
   engines/eevee_next/eevee_camera.hh
   engines/eevee_next/eevee_cryptomatte.hh
   engines/eevee_next/eevee_depth_of_field.hh
@@ -277,6 +280,7 @@ set(SRC
   engines/image/image_buffer_cache.hh
   engines/image/image_drawing_mode.hh
   engines/image/image_engine.h
+  engines/image/image_enums.hh
   engines/image/image_instance_data.hh
   engines/image/image_partial_updater.hh
   engines/image/image_private.hh
@@ -300,7 +304,6 @@ set(LIB
   bf_blenlib
   bf_realtime_compositor
   bf_windowmanager
-
 )
 
 set(GLSL_SRC
@@ -315,6 +318,7 @@ set(GLSL_SRC
   engines/eevee/shaders/lightprobe_filter_visibility_frag.glsl
   engines/eevee/shaders/lightprobe_geom.glsl
   engines/eevee/shaders/lightprobe_vert.glsl
+  engines/eevee/shaders/lightprobe_vert_no_geom.glsl
   engines/eevee/shaders/lightprobe_cube_display_frag.glsl
   engines/eevee/shaders/lightprobe_cube_display_vert.glsl
   engines/eevee/shaders/lightprobe_grid_display_frag.glsl
@@ -380,7 +384,6 @@ set(GLSL_SRC
   engines/eevee/shaders/raytrace_lib.glsl
   engines/eevee/shaders/renderpass_lib.glsl
   engines/eevee/shaders/renderpass_postprocess_frag.glsl
-  engines/eevee/shaders/cryptomatte_lib.glsl
   engines/eevee/shaders/cryptomatte_frag.glsl
   engines/eevee/shaders/cryptomatte_vert.glsl
   engines/eevee/shaders/ltc_lib.glsl
@@ -399,6 +402,8 @@ set(GLSL_SRC
   engines/eevee/shaders/volumetric_scatter_frag.glsl
   engines/eevee/shaders/volumetric_integration_frag.glsl
   engines/eevee/shaders/world_vert.glsl
+  engines/eevee/shaders/infos/engine_eevee_legacy_shared.h
+  engines/eevee/engine_eevee_shared_defines.h
 
   engines/eevee_next/shaders/eevee_attributes_lib.glsl
   engines/eevee_next/shaders/eevee_camera_lib.glsl
@@ -473,9 +478,11 @@ set(GLSL_SRC
   engines/workbench/shaders/workbench_prepass_pointcloud_vert.glsl
   engines/workbench/shaders/workbench_prepass_vert.glsl
   engines/workbench/shaders/workbench_shadow_caps_geom.glsl
+  engines/workbench/shaders/workbench_shadow_caps_vert_no_geom.glsl
   engines/workbench/shaders/workbench_shadow_debug_frag.glsl
   engines/workbench/shaders/workbench_shadow_geom.glsl
   engines/workbench/shaders/workbench_shadow_vert.glsl
+  engines/workbench/shaders/workbench_shadow_vert_no_geom.glsl
   engines/workbench/shaders/workbench_transparent_accum_frag.glsl
   engines/workbench/shaders/workbench_transparent_resolve_frag.glsl
   engines/workbench/shaders/workbench_volume_frag.glsl
@@ -528,6 +535,7 @@ set(GLSL_SRC
   intern/draw_command_shared.hh
   intern/draw_common_shader_shared.h
   intern/draw_defines.h
+  intern/draw_pointcloud_private.hh
   intern/draw_shader_shared.h
 
   engines/gpencil/shaders/gpencil_frag.glsl
@@ -549,6 +557,7 @@ set(GLSL_SRC
 
   engines/basic/shaders/basic_conservative_depth_geom.glsl
   engines/basic/shaders/basic_depth_vert.glsl
+  engines/basic/shaders/basic_depth_vert_conservative_no_geom.glsl
   engines/basic/shaders/basic_depth_curves_vert.glsl
   engines/basic/shaders/basic_depth_pointcloud_vert.glsl
   engines/basic/shaders/basic_depth_frag.glsl
@@ -601,6 +610,7 @@ set(GLSL_SRC
   engines/overlay/shaders/overlay_edit_uv_edges_frag.glsl
   engines/overlay/shaders/overlay_edit_uv_edges_geom.glsl
   engines/overlay/shaders/overlay_edit_uv_edges_vert.glsl
+  engines/overlay/shaders/overlay_edit_uv_edges_vert_no_geom.glsl
   engines/overlay/shaders/overlay_edit_uv_face_dots_vert.glsl
   engines/overlay/shaders/overlay_edit_uv_faces_vert.glsl
   engines/overlay/shaders/overlay_edit_uv_image_mask_frag.glsl
@@ -638,6 +648,7 @@ set(GLSL_SRC
   engines/overlay/shaders/overlay_outline_prepass_gpencil_vert.glsl
   engines/overlay/shaders/overlay_outline_prepass_pointcloud_vert.glsl
   engines/overlay/shaders/overlay_outline_prepass_vert.glsl
+  engines/overlay/shaders/overlay_outline_prepass_vert_no_geom.glsl
   engines/overlay/shaders/overlay_paint_face_vert.glsl
   engines/overlay/shaders/overlay_paint_point_vert.glsl
   engines/overlay/shaders/overlay_paint_texture_frag.glsl
@@ -731,9 +742,6 @@ if(WITH_GTESTS)
   if(WITH_OPENGL_DRAW_TESTS)
     add_definitions(-DWITH_OPENGL_DRAW_TESTS)
   endif()
-  if(WITH_VULKAN_DRAW_TESTS)
-  add_definitions(-DWITH_VULKAN_DRAW_TESTS)
-endif()
 endif()
 
 if(WITH_TBB)
@@ -758,31 +766,28 @@ blender_add_lib(bf_draw "${SRC}" "${INC}" "${INC_SYS}" "${LIB}")
 add_dependencies(bf_draw bf_dna)
 
 if(WITH_GTESTS)
-  
+  if(WITH_OPENGL_DRAW_TESTS)
+    set(TEST_SRC
+      tests/draw_pass_test.cc
+      tests/draw_testing.cc
+      tests/shaders_test.cc
+
+      tests/draw_testing.hh
+    )
+    set(TEST_INC
+      ../../../intern/ghost
+      ../gpu/tests
+    )
+    set(TEST_LIB
+    )
+    include(GTestTesting)
+    blender_add_test_lib(bf_draw_tests "${TEST_SRC}" "${INC};${TEST_INC}" "${INC_SYS}" "${LIB};${TEST_LIB}")
+  endif()
+
+
   if(WITH_VULKAN_DRAW_TESTS)
-    if(EXISTS ${LIBDIR}/vulkan)
-      set(Vulkan_FOUND On)
-      set(Vulkan_ROOT_DIR ${LIBDIR}/vulkan)
-      set(Vulkan_INCLUDE_DIR ${Vulkan_ROOT_DIR}/include)
-      set(Vulkan_INCLUDE_DIRS ${Vulkan_INCLUDE_DIR})
-      set(Vulkan_LIBRARY ${Vulkan_ROOT_DIR}/lib/vulkan-1.lib )
-      set(Vulkan_LIBRARIES ${Vulkan_LIBRARY})
-    else()
-      message(ERROR "vulkan was not found, disabling WITH_VULKAN_BACKEND")
-
-    endif()
-
-    if(EXISTS ${LIBDIR}/shaderc)
-        set(Shaderc_FOUND On)
-        set(Shaderc_ROOT_DIR ${LIBDIR}/shaderc)
-        set(Shaderc_INCLUDE_DIR ${LIBDIR}/shaderc/include)
-        set(Shaderc_INCLUDE_DIRS ${Shaderc_INCLUDE_DIR})
-        set(Shaderc_LIBRARY ${LIBDIR}/shaderc/Lib/shaderc_shared.lib)
-        set(Shaderc_LIBRARIES ${Shaderc_LIBRARY})
-    else()
-        message(ERROR "shaderc was not found, disabling WITH_VULKAN_BACKEND")
-    endif()
-
+    add_definitions(-DWITH_VULKAN_DRAW_TESTS)
+    add_definitions(-DWITH_VULKAN_BACKEND)
 
 
     set(TEST_SRC
@@ -797,8 +802,7 @@ if(WITH_GTESTS)
       ../../../intern/ghost
       ../gpu/tests
       ../editors/screen
-      ${Vulkan_INCLUDE_DIRS} 
-      ${Shaderc_INCLUDE_DIRS}
+      ${VULKAN_INCLUDE_DIRS} 
       ${Epoxy_INCLUDE_DIRS}
 
     )
@@ -809,8 +813,7 @@ if(WITH_GTESTS)
     bf_blenlib
     bf_intern_ghost
     bf_blenkernel
-    ${Vulkan_LIBRARIES}
-    ${Shaderc_LIBRARIES}
+    ${VULKAN_LIBRARIES}
       # added external module.
       extern_spirv_cross
       extern_spirv_cross_glsl
@@ -819,26 +822,25 @@ if(WITH_GTESTS)
 
 
     #set(TESTS_OUTPUT_DIR  ${CMAKE_INSTALL_PREFIX})
-    blender_add_test_executable(bf_draw "${TEST_SRC}" "${INC};${TEST_INC}" "${INC_SYS}" "${LIB};${TEST_LIB}")
-    message(STATUS ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>. VULKAN DRAW TEST ON >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+    #blender_add_test_executable(bf_draw "${TEST_SRC}" "${INC};${TEST_INC}" "${INC_SYS}" "${LIB};${TEST_LIB}")
+
+
+    #blender_add_test_executable("draw_capa" "./vktests/draw_capa_test.cc" "${INC};${TEST_INC}" "${INC_SYS}" "${LIB};${TEST_LIB}")
+    message(STATUS "============================ MANIFEST ${CMAKE_BINARY_DIR}/blender.exe.manifest ")
+    add_executable(bf_draw_alone "./vktests/draw_testing.cc" "${CMAKE_BINARY_DIR}/draw_testing.exe.manifest")# "${CMAKE_BINARY_DIR}/blender.crt.manifest")
+    add_dependencies(bf_draw_alone bf_draw)
+    add_dependencies(bf_draw_alone bf_intern_ghost)
+    setup_platform_linker_libs(bf_draw_alone)
+    setup_platform_linker_flags(bf_draw_alone)
+    blender_target_include_dirs(bf_draw_alone ${INC})
+    blender_target_include_dirs(bf_draw_alone ${TEST_INC})
+    blender_target_include_dirs_sys(bf_draw_alone ${INC_SYS})
+     
+     target_link_libraries(bf_draw_alone bf_draw)
+     target_link_libraries(bf_draw_alone ${LIB})
+     target_link_libraries(bf_draw_alone ${TEST_LIB})
+   
   endif()
 
-  if(WITH_OPENGL_DRAW_TESTS)
-    set(TEST_SRC
 
-      tests/draw_pass_test.cc
-      tests/draw_testing.cc
-      tests/shaders_test.cc
-      tests/draw_testing.hh
-    )
-    set(TEST_INC
-      ../../../intern/ghost
-      ../gpu/tests
-    )
-    set(TEST_LIB
-    )
-    include(GTestTesting)
-    blender_add_test_lib(bf_draw_tests "${TEST_SRC}" "${INC};${TEST_INC}" "${INC_SYS}" "${LIB};${TEST_LIB}")
   endif()
-endif()
-

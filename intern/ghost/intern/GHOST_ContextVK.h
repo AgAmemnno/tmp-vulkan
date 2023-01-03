@@ -329,6 +329,9 @@ class GHOST_ContextVK : public GHOST_Context {
    */
   ~GHOST_ContextVK();
 
+  GHOST_TSuccess  init_image_layout();
+  GHOST_TSuccess  finalize_image_layout();
+
    GHOST_TSuccess begin_frame(VkCommandBuffer &cmd,int i=-1)
     {
       if (i==-1)i = m_currentFrame;
@@ -376,7 +379,6 @@ class GHOST_ContextVK : public GHOST_Context {
       vkCmdSetScissor(m_command_buffers[i], 0, 1, &scissor);
       return GHOST_kSuccess;
     };
-
     GHOST_TSuccess end_frame(VkCommandBuffer &cmd)
     {
 
@@ -386,6 +388,38 @@ class GHOST_ContextVK : public GHOST_Context {
             return GHOST_kSuccess;
 
     };
+
+    GHOST_TSuccess begin_submit_simple(VkCommandBuffer& cmd) {
+        cmd = m_command_buffers[m_currentFrame];
+        VkCommandBufferBeginInfo cmdBufInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+        VK_CHECK(vkBeginCommandBuffer(cmd, &cmdBufInfo));
+        return GHOST_kSuccess;
+    };
+    GHOST_TSuccess end_submit_simple() {
+
+        auto cmd = m_command_buffers[m_currentFrame];
+        VK_CHECK(vkEndCommandBuffer(cmd));
+
+
+        VkSubmitInfo submit_info = {};
+        submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submit_info.waitSemaphoreCount = 0;
+        submit_info.pWaitSemaphores = nullptr;
+        submit_info.pWaitDstStageMask = nullptr;
+        submit_info.commandBufferCount = 1;
+        submit_info.pCommandBuffers = &cmd;
+        submit_info.signalSemaphoreCount = 0;
+        submit_info.pSignalSemaphores = nullptr;
+        VK_CHECK(vkQueueSubmit(m_graphic_queue, 1, &submit_info, VK_NULL_HANDLE));
+
+        VkResult result = VK_NOT_READY;
+        do {
+            result = vkWaitForFences(m_device, 1, &m_in_flight_fences[m_currentFrame], VK_TRUE, 10000);
+        } while (result == VK_TIMEOUT);
+        return GHOST_kSuccess;
+
+    };
+
     GHOST_TSuccess begin_submit(int N);
     GHOST_TSuccess end_submit();
 
@@ -451,7 +485,17 @@ int getFrame()
     return m_currentFrame;
   };
 
-  bool getCommandBuffer(VkCommandBuffer &cmd, int i);
+void getImage(VkImage& image)
+{
+    image  =  m_swapchain_images[m_currentFrame];
+    return;
+};
+
+VkFormat getImageFormat()
+{
+    return  m_image_format;
+};
+ // bool getCommandBuffer(VkCommandBuffer &cmd, int i);
   /**
    * Gets the Vulkan context related resource handles.
    * \return  A boolean success indicator.
@@ -543,6 +587,7 @@ int getFrame()
   VkSurfaceKHR m_surface;
   VkSwapchainKHR m_swapchain;
   std::vector<VkImage> m_swapchain_images;
+  VkFormat                  m_image_format;
   std::vector<VkImageView> m_swapchain_image_views;
   std::vector<VkFramebuffer> m_swapchain_framebuffers;
   std::vector<VkCommandBuffer> m_command_buffers;

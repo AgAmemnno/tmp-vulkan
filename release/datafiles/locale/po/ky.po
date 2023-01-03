@@ -1,10 +1,10 @@
 
 msgid ""
 msgstr ""
-"Project-Id-Version: Blender 3.4.0 Alpha (b'a6b83617e9de')\n"
+"Project-Id-Version: Blender 3.5.0 Alpha (b'09ba00974f8f')\n"
 "(b'0000000000000000000000000000000000000000')\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-10-17 10:12:11\n"
+"POT-Creation-Date: 2020-01-01 00:00:00\n"
 "PO-Revision-Date: 2013-11-05 13:47+0600\n"
 "Last-Translator: Chyngyz Dzhumaliev <kyrgyzl10n@gmail.com>\n"
 "Language-Team: Kirghiz <kyrgyzl10n@gmail.com>\n"
@@ -1397,10 +1397,6 @@ msgid "Mask Layers"
 msgstr "Маска каттары"
 
 
-msgid "Edit"
-msgstr "Оңдоо"
-
-
 msgctxt "MovieClip"
 msgid "Clip"
 msgstr "Видеофрагмент"
@@ -1437,6 +1433,10 @@ msgstr "Түздөө"
 msgctxt "Operator"
 msgid "Add"
 msgstr "Кошуу"
+
+
+msgid "Edit"
+msgstr "Оңдоо"
 
 
 msgid "Text"
@@ -1561,10 +1561,6 @@ msgstr "Ченөө бирдиктери"
 
 msgid "Meta"
 msgstr "Мета"
-
-
-msgid "Interface"
-msgstr "Интерфейс"
 
 
 msgid "YCbCr"
@@ -2418,12 +2414,20 @@ msgid "Save Screenshot"
 msgstr "Скриншотту сактоо"
 
 
+msgid "Interface"
+msgstr "Интерфейс"
+
+
 msgid "Themes"
 msgstr "Темалар"
 
 
 msgid "Editing"
 msgstr "Оңдоо"
+
+
+msgid "Operator"
+msgstr "Оператор"
 
 
 msgctxt "Operator"
@@ -2670,10 +2674,6 @@ msgstr "Blender файлын ачуу"
 
 msgid "Trusted Source"
 msgstr "Ишеничтүү булак"
-
-
-msgid "Operator"
-msgstr "Оператор"
 
 
 msgctxt "Operator"
@@ -3229,11 +3229,6 @@ msgstr "Көлөм"
 
 
 msgctxt "Operator"
-msgid "Apply"
-msgstr "Колдонуу"
-
-
-msgctxt "Operator"
 msgid "Reset Settings"
 msgstr "Ырастоолорду түшүрүү"
 
@@ -3263,6 +3258,10 @@ msgstr "3D-көрүнүш"
 msgctxt "Operator"
 msgid "Open..."
 msgstr "Ачуу..."
+
+
+msgid "%s: %s"
+msgstr "%s: %s"
 
 
 msgctxt "Operator"
@@ -3305,10 +3304,6 @@ msgstr "Кубат талаасы"
 
 msgid "Calculate"
 msgstr "Эсептөө"
-
-
-msgid "%s: %s"
-msgstr "%s: %s"
 
 
 msgctxt "Operator"
@@ -3617,6 +3612,11 @@ msgid "Quick Edit"
 msgstr "Тез оңдоо"
 
 
+msgctxt "Operator"
+msgid "Apply"
+msgstr "Колдонуу"
+
+
 msgctxt "Curve"
 msgid "Surface"
 msgstr "Бет"
@@ -3626,8 +3626,8 @@ msgid "Hex"
 msgstr "Hex"
 
 
-msgid "Hex: "
-msgstr "Hex: "
+msgid "Value:"
+msgstr "Мааниси:"
 
 
 msgid "Zoom in"
@@ -3864,10 +3864,6 @@ msgstr "Жокко чыгаруу"
 
 msgid "File name"
 msgstr "Файл аты"
-
-
-msgid "Value:"
-msgstr "Мааниси:"
 
 
 msgid "Add Modifier"

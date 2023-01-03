@@ -10,9 +10,14 @@
 #include "vk_memory.hh"
 
 #define VMA_IMPLEMENTATION
+#if NDEBUG
+#pragma warning( push )
+#pragma warning( disable : 4189 )
 #include <vk_mem_alloc.h>
-
-
+#pragma warning( pop )
+#else
+#include <vk_mem_alloc.h>
+#endif
 
 #define STRINGIZE(x) STRINGIZE2(x)
 #define STRINGIZE2(x) #x
@@ -187,9 +192,8 @@ VKStagingBufferManager::VKStagingBufferManager(VKContext &context) : context_(co
 };
 void VKStagingBufferManager::init()
 {
-  auto device = context_.device_get();
+ 
   if (!this->initialised_) {
-    BLI_assert(device);
     for (int sb = 0; sb < vk_max_staging_buffers_; sb++) {
       staging_buffers_[sb] = new VKBuffer(vk_staging_buffer_initial_size_,vk_staging_buffer_min_alignment,VMA_MEMORY_USAGE_CPU_ONLY);
     }

@@ -249,6 +249,150 @@ VkBool32 getSupportedDepthFormat(VkPhysicalDevice physicalDevice, VkFormat* dept
 
 
 
+static  uint32_t makeAccessMaskPipelineStageFlags(
+    uint32_t accessMask,
+    VkPipelineStageFlags supportedShaderBits = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
+    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+    // VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT |
+    // VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT |
+    // VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
+    // VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT)
+)
+{
+    static const uint32_t accessPipes[] = {
+      VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
+      VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT,
+      VK_ACCESS_INDEX_READ_BIT,
+      VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+      VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
+      VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+      VK_ACCESS_UNIFORM_READ_BIT,
+      supportedShaderBits,
+      VK_ACCESS_INPUT_ATTACHMENT_READ_BIT,
+      VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+      VK_ACCESS_SHADER_READ_BIT,
+      supportedShaderBits,
+      VK_ACCESS_SHADER_WRITE_BIT,
+      supportedShaderBits,
+      VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
+      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+      VK_ACCESS_COLOR_ATTACHMENT_READ_NONCOHERENT_BIT_EXT,
+      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+      VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
+      VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+      VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+      VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+      VK_ACCESS_TRANSFER_READ_BIT,
+      VK_PIPELINE_STAGE_TRANSFER_BIT,
+      VK_ACCESS_TRANSFER_WRITE_BIT,
+      VK_PIPELINE_STAGE_TRANSFER_BIT,
+      VK_ACCESS_HOST_READ_BIT,
+      VK_PIPELINE_STAGE_HOST_BIT,
+      VK_ACCESS_HOST_WRITE_BIT,
+      VK_PIPELINE_STAGE_HOST_BIT,
+      VK_ACCESS_MEMORY_READ_BIT,
+      0,
+      VK_ACCESS_MEMORY_WRITE_BIT,
+      0,
+  #if VK_NV_device_generated_commands
+      VK_ACCESS_COMMAND_PREPROCESS_READ_BIT_NV,
+      VK_PIPELINE_STAGE_COMMAND_PREPROCESS_BIT_NV,
+      VK_ACCESS_COMMAND_PREPROCESS_WRITE_BIT_NV,
+      VK_PIPELINE_STAGE_COMMAND_PREPROCESS_BIT_NV,
+  #endif
+  #if VK_NV_ray_tracing
+      VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV,
+      VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV | supportedShaderBits |
+          VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
+      VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV,
+      VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
+  #endif
+    };
+    if (!accessMask) {
+        return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    }
+
+    uint32_t pipes = 0;
+#define NV_ARRAY_SIZE(X) (sizeof((X)) / sizeof((X)[0]))
+
+    for (uint32_t i = 0; i < NV_ARRAY_SIZE(accessPipes); i += 2) {
+        if (accessPipes[i] & accessMask) {
+            pipes |= accessPipes[i + 1];
+        }
+    }
+#undef NV_ARRAY_SIZE
+    return pipes;
+}
+
+static VkImageMemoryBarrier makeImageMemoryBarrier(VkImage img,
+    VkAccessFlags srcAccess,
+    VkAccessFlags dstAccess,
+    VkImageLayout oldLayout,
+    VkImageLayout newLayout,
+    VkImageAspectFlags aspectMask)
+{
+    VkImageMemoryBarrier barrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+    barrier.srcAccessMask = srcAccess;
+    barrier.dstAccessMask = dstAccess;
+    barrier.oldLayout = oldLayout;
+    barrier.newLayout = newLayout;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image = img;
+    barrier.subresourceRange = { 0 };
+    barrier.subresourceRange.aspectMask = aspectMask;
+    barrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+    barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+
+    return barrier;
+}
+
+static void ImageTransition(
+    VkCommandBuffer cmd,
+    VkImage image,
+    VkFormat format,
+    VkImageLayout dstLayout,  // How the image will be laid out in memory.
+    VkAccessFlags dstAccesses,
+    VkImageAspectFlags aspects = VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM,
+    VkAccessFlags srcAccess = VK_ACCESS_FLAG_BITS_MAX_ENUM,
+    VkImageLayout srcLayout =
+    VK_IMAGE_LAYOUT_MAX_ENUM)  // The ways that the app will be able to access the image.
+{
+    // Note that in larger applications, we could batch together pipeline
+    // barriers for better performance!
+
+    // Maps to barrier.subresourceRange.aspectMask
+    VkImageAspectFlags aspectMask = 0;
+    if (aspects == VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM) {
+
+        if (dstLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+            aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+            if (format == VK_FORMAT_D32_SFLOAT_S8_UINT ||
+                format == VK_FORMAT_D24_UNORM_S8_UINT) {
+                aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+            }
+        }
+        else {
+            aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        }
+    }
+    else {
+        aspectMask = aspects;
+    }
+
+    VkPipelineStageFlags srcPipe = makeAccessMaskPipelineStageFlags(srcAccess);
+    VkPipelineStageFlags dstPipe = makeAccessMaskPipelineStageFlags(dstAccesses);
+    VkImageMemoryBarrier barrier = makeImageMemoryBarrier(
+        image, srcAccess, dstAccesses, srcLayout, dstLayout, aspectMask);
+
+    vkCmdPipelineBarrier(cmd, srcPipe, dstPipe, VK_FALSE, 0, VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 1, &barrier);
+    // Update current layout, stages, and accesses
+    //dst.Info.imageLayout = dstLayout;
+    //dst.currentAccesses  = dstAccesses;
+}
+
 
 #include <unordered_set>
 #  include <sstream>
@@ -611,7 +755,6 @@ static GHOST_TSuccess DestroyDebug(VULKAN_DEBUG_TYPE mode, VkInstance instance)
 
 
 
-/* Tripple buffering. */
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
 GHOST_ContextVK::GHOST_ContextVK(bool stereoVisual,
@@ -1499,8 +1642,8 @@ static GHOST_TSuccess create_render_pass(VkDevice device,
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;// VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;  //VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
     VkAttachmentReference colorAttachmentRef = {};
     colorAttachmentRef.attachment = 0;
@@ -1633,6 +1776,7 @@ GHOST_TSuccess GHOST_ContextVK::createSwapchain(void)
 
   /* TODO choose appropriate format. */
   VkSurfaceFormatKHR format = formats[0];
+  m_image_format                     = format.format;
 
   VkPresentModeKHR present_mode;
   if (!selectPresentMode(device, m_surface, &present_mode)) {
@@ -2131,5 +2275,35 @@ GHOST_TSuccess GHOST_ContextVK::releaseNativeHandles()
 
 
 
+GHOST_TSuccess  GHOST_ContextVK::init_image_layout() {
 
+    VkCommandBuffer cmd = VK_NULL_HANDLE;
+    begin_submit_simple(cmd);
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {    
+        ImageTransition(cmd, m_swapchain_images[i], getImageFormat(),
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            VK_ACCESS_COLOR_ATTACHMENT_READ_BIT| VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+            VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM,
+            VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+            VK_IMAGE_LAYOUT_UNDEFINED);
+    }
+    end_submit_simple();
+    return GHOST_kSuccess;
+};
+
+GHOST_TSuccess  GHOST_ContextVK::finalize_image_layout() {
+
+    VkCommandBuffer cmd = VK_NULL_HANDLE;
+    begin_submit_simple(cmd);
+
+    ImageTransition(cmd, m_swapchain_images[m_currentFrame], getImageFormat(),
+            VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+            VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+            VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM,
+            VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+    end_submit_simple();
+    return GHOST_kSuccess;
+};
 #pragma warning(pop)

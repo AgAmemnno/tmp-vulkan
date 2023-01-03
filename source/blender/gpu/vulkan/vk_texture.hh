@@ -138,6 +138,10 @@ void generate_mipmaps(const void *data);
 
   void update_sub(
       int mip, int offset[3], int extent[3], eGPUDataFormat type, const void *data) override;
+  void update_sub(int offset[3],
+      int extent[3],
+      eGPUDataFormat format,
+      GPUPixelBuffer* pixbuf) override {};
 
   void generate_mipmap(void) override{};
   void copy_to(Texture *dst) override{};

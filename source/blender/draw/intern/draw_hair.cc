@@ -216,12 +216,12 @@ void DRW_hair_duplimat_get(Object *object,
       if (collection != nullptr) {
         sub_v3_v3(dupli_mat[3], collection->instance_offset);
       }
-      mul_m4_m4m4(dupli_mat, dupli_parent->obmat, dupli_mat);
+      mul_m4_m4m4(dupli_mat, dupli_parent->object_to_world, dupli_mat);
     }
     else {
-      copy_m4_m4(dupli_mat, dupli_object->ob->obmat);
+      copy_m4_m4(dupli_mat, dupli_object->ob->object_to_world);
       invert_m4(dupli_mat);
-      mul_m4_m4m4(dupli_mat, object->obmat, dupli_mat);
+      mul_m4_m4m4(dupli_mat, object->object_to_world, dupli_mat);
     }
   }
   else {
@@ -334,8 +334,9 @@ void DRW_hair_update()
      * Do chunks of maximum 2048 * 2048 hair points. */
     int width = 2048;
     int height = min_ii(width, 1 + max_size / width);
-    GPUTexture *tex = DRW_texture_pool_query_2d(
-        width, height, GPU_RGBA32F, (DrawEngineType *)DRW_hair_update);
+    eGPUTextureUsage usage = GPU_TEXTURE_USAGE_SHADER_READ | GPU_TEXTURE_USAGE_ATTACHMENT;
+    GPUTexture *tex = DRW_texture_pool_query_2d_ex(
+        width, height, GPU_RGBA32F, usage, (DrawEngineType *)DRW_hair_update);
     g_tf_target_height = height;
     g_tf_target_width = width;
 
@@ -392,8 +393,10 @@ void DRW_hair_update()
         if (!GPU_framebuffer_check_valid(prev_fb, errorOut)) {
           int width = 64;
           int height = 64;
-          GPUTexture *tex = DRW_texture_pool_query_2d(
-              width, height, GPU_DEPTH_COMPONENT32F, (DrawEngineType *)DRW_hair_update);
+          eGPUTextureUsage usage = GPU_TEXTURE_USAGE_SHADER_READ | GPU_TEXTURE_USAGE_ATTACHMENT |
+                                   GPU_TEXTURE_USAGE_SHADER_WRITE;
+          GPUTexture *tex = DRW_texture_pool_query_2d_ex(
+              width, height, GPU_DEPTH_COMPONENT32F, usage, (DrawEngineType *)DRW_hair_update);
           g_tf_target_height = height;
           g_tf_target_width = width;
 

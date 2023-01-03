@@ -1,9 +1,9 @@
 
 msgid ""
 msgstr ""
-"Project-Id-Version: Blender 3.4.0 Alpha (b'a6b83617e9de')\n"
+"Project-Id-Version: Blender 3.5.0 Alpha (b'09ba00974f8f')\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-10-17 10:12:11\n"
+"POT-Creation-Date: 2020-01-01 00:00:00\n"
 "PO-Revision-Date: 2012-09-07 22:32+0100\n"
 "Last-Translator: Nikola Radovanovic <cobisimo@gmail.com>\n"
 "Language-Team: Nikola Radovanovic\n"
@@ -5061,10 +5061,6 @@ msgid "Pass"
 msgstr "Prolaz"
 
 
-msgid "Object Offset"
-msgstr "Rastojanje objekta"
-
-
 msgid "Relative Offset"
 msgstr "Relativno rastojanje"
 
@@ -5932,10 +5928,6 @@ msgstr "Popuni rupe"
 
 msgid "Half"
 msgstr "Upola"
-
-
-msgid "Path Length"
-msgstr "Dužina putanje"
 
 
 msgid "Splines"
@@ -7262,10 +7254,6 @@ msgid "Current pose for armatures"
 msgstr "Tekuća poza kostura"
 
 
-msgid "Pose Library"
-msgstr "Zbirka poza"
-
-
 msgid "Rigid Body Settings"
 msgstr "Podešavanja mekog tela"
 
@@ -7756,14 +7744,6 @@ msgstr "Obrnuto stegnuto"
 
 msgid "Linear Clamped"
 msgstr "Linearno stegnuto"
-
-
-msgid "Exponent"
-msgstr "Eksponent"
-
-
-msgid "Exponent Clamped"
-msgstr "Eksponencijalno stegnuto"
 
 
 msgid "Doppler Factor"
@@ -8856,10 +8836,6 @@ msgid "OS Key"
 msgstr "OS taster"
 
 
-msgid "Property Value"
-msgstr "Vrednost osobine"
-
-
 msgid "Type of event"
 msgstr "Vrsta događaja"
 
@@ -9293,10 +9269,6 @@ msgid "Material slot name"
 msgstr "Naziv slota materijala"
 
 
-msgid "Edit"
-msgstr "Uredi"
-
-
 msgctxt "MovieClip"
 msgid "Clip"
 msgstr "Isečak"
@@ -9369,6 +9341,10 @@ msgstr "Dodaj"
 
 msgid "Vertex Group Specials"
 msgstr "Specijalna grupa temena"
+
+
+msgid "Edit"
+msgstr "Uredi"
 
 
 msgid "Converter"
@@ -9905,6 +9881,10 @@ msgstr "Razdaljina spajanja"
 
 msgid "Limit below which to merge vertices"
 msgstr "Razdaljina između objekata u kojoj se vrši spajanje"
+
+
+msgid "Object Offset"
+msgstr "Rastojanje objekta"
 
 
 msgid "Relative Offset Displacement"
@@ -11158,10 +11138,6 @@ msgid "Custom Group"
 msgstr "Prilagođena grupa"
 
 
-msgid "Interface"
-msgstr "Interfejs"
-
-
 msgid "Compositor Node"
 msgstr "Čvor slaganja"
 
@@ -11384,10 +11360,6 @@ msgstr "Centar X"
 
 msgid "Center Y"
 msgstr "Centar Y"
-
-
-msgid "Wrap"
-msgstr "Prelom teksta"
 
 
 msgid "Zoom"
@@ -12112,6 +12084,10 @@ msgstr "UV koordinate za mapiranje"
 
 msgid "Modulo"
 msgstr "Modul"
+
+
+msgid "Wrap"
+msgstr "Prelom teksta"
 
 
 msgid "Z Axis"
@@ -14369,10 +14345,6 @@ msgstr "Režim putanje"
 
 msgid "Method used to reference paths"
 msgstr "Korišćen metod za referentne putanje"
-
-
-msgid "Use Relative paths with subdirectories only"
-msgstr "Koristi relativne putanja samo za poddirektorijume"
 
 
 msgid "Always write absolute paths"
@@ -18207,22 +18179,6 @@ msgid "Pose Name"
 msgstr "Naziv poze"
 
 
-msgid "Frame to store pose on"
-msgstr "Kadar nakome se čuva poza"
-
-
-msgid "Name of newly added Pose"
-msgstr "Naziv novoformirane poze"
-
-
-msgid "New Pose Name"
-msgstr "Novi naziv poze"
-
-
-msgid "New name for pose"
-msgstr "Novi naziv poze"
-
-
 msgctxt "Operator"
 msgid "Apply Pose as Rest Pose"
 msgstr "Poza koa početna"
@@ -18892,6 +18848,10 @@ msgid "Save Screenshot"
 msgstr "Sačuvaj snimak ekrana"
 
 
+msgid "Interface"
+msgstr "Interfejs"
+
+
 msgid "Themes"
 msgstr "Teme"
 
@@ -18937,6 +18897,10 @@ msgstr "Vajanje"
 
 msgid "Ignore Background Click"
 msgstr "Ignoriši klik na pozadinu"
+
+
+msgid "Operator"
+msgstr "Operator"
 
 
 msgid "Sharpen"
@@ -20659,10 +20623,6 @@ msgid "Set the active operator to its default values"
 msgstr "Postavi početne vrednosti aktivnog operatora"
 
 
-msgid "Operator"
-msgstr "Operator"
-
-
 msgctxt "Operator"
 msgid "Operator Preset"
 msgstr "Predefinisani operatori"
@@ -21243,6 +21203,10 @@ msgstr "Boje prelaza"
 
 msgid "Motion Tracking"
 msgstr "Praćenje pokreta"
+
+
+msgid "Pose Library"
+msgstr "Zbirka poza"
 
 
 msgctxt "Operator"
@@ -22394,10 +22358,6 @@ msgid "Number of samples to render for each pixel"
 msgstr "Broj uzoraka renderovanih za svaki piksel"
 
 
-msgid "Use Open Shading Language (CPU rendering only)"
-msgstr "Otvoreni jezik senčenja OSL"
-
-
 msgid "Tile Size"
 msgstr "Veličina pločice"
 
@@ -22440,10 +22400,6 @@ msgstr "Indirektni prenos"
 
 msgid "Transmission Color"
 msgstr "Boja prenosa"
-
-
-msgid "When using volume rendering, assume volume has the same density everywhere(not using any textures), for faster rendering"
-msgstr "Pri renderovanju zapremine, računaj da je gustina svuda ista (ne koristi teksture), radi bržeg renderovanja"
 
 
 msgid "Map Resolution"
@@ -22804,6 +22760,10 @@ msgstr "Osnova"
 
 msgid "All modifiers"
 msgstr "Svi modifikatori"
+
+
+msgid "Bounciness"
+msgstr "Odbijanje"
 
 
 msgid "Deforming"
@@ -23274,6 +23234,10 @@ msgid "Aerodynamics Type"
 msgstr "Vrsta aerodinamike"
 
 
+msgid "Dampening"
+msgstr "Odlaganje"
+
+
 msgid "Ball Size"
 msgstr "Veličina lopte"
 
@@ -23357,6 +23321,10 @@ msgstr "Lokacija 2D kursora u ovom pogledu"
 
 msgid "Alpha Channel"
 msgstr "Alfa kanal"
+
+
+msgid "Path Length"
+msgstr "Dužina putanje"
 
 
 msgid "Length of displaying path, in frames"
@@ -25070,10 +25038,6 @@ msgid "Assign"
 msgstr "Pridruži"
 
 
-msgid "Cameras & Markers (.py)"
-msgstr "Kamere i markeri (.py)"
-
-
 msgid "Position:"
 msgstr "Pozicija:"
 
@@ -25116,11 +25080,6 @@ msgstr "Odbijanja"
 msgctxt "Operator"
 msgid "Export"
 msgstr "Izvoz"
-
-
-msgctxt "Operator"
-msgid "Apply"
-msgstr "Primeni"
 
 
 msgid "    RNA Path: bpy.types."
@@ -25243,13 +25202,13 @@ msgid "After"
 msgstr "Posle"
 
 
-msgid "+ Non-Grouped Keyframes"
-msgstr "+ Negrupisani ključni kadrovi"
-
-
 msgctxt "Operator"
 msgid "Calculate..."
 msgstr "Izračunaj"
+
+
+msgid "+ Non-Grouped Keyframes"
+msgstr "+ Negrupisani ključni kadrovi"
 
 
 msgctxt "Operator"
@@ -25489,20 +25448,16 @@ msgid "Heat"
 msgstr "Toplota"
 
 
+msgid "Exponent"
+msgstr "Eksponent"
+
+
 msgid "Lower"
 msgstr "Mala slova"
 
 
-msgid "Bounciness"
-msgstr "Odbijanje"
-
-
 msgid "Upper"
 msgstr "Velika slova"
-
-
-msgid "Dampening"
-msgstr "Odlaganje"
 
 
 msgid "Auto-Step"
@@ -26360,16 +26315,6 @@ msgstr "Očisti"
 
 
 msgctxt "Operator"
-msgid "Show Bounding Box"
-msgstr "Prikaži graničnu kocku"
-
-
-msgctxt "Operator"
-msgid "Hide Bounding Box"
-msgstr "Sakrij graničnu kocku"
-
-
-msgctxt "Operator"
 msgid "Hide Masked"
 msgstr "Sakrij maskirano"
 
@@ -26560,6 +26505,11 @@ msgstr "Brza izmena"
 
 
 msgctxt "Operator"
+msgid "Apply"
+msgstr "Primeni"
+
+
+msgctxt "Operator"
 msgid "Apply Camera Image"
 msgstr "Primeni sliku kamere"
 
@@ -26714,38 +26664,6 @@ msgid "Cannot remove built in keying set"
 msgstr "Ne mogu da uklonim ugrađenu zbirku ključeva"
 
 
-msgid "Add New"
-msgstr "Dodaj novo"
-
-
-msgid "Add New (Current Frame)"
-msgstr "Dodaj novo (trenutni kadar)"
-
-
-msgid "Replace Existing..."
-msgstr "Zameni postojeće..."
-
-
-msgid "No action to validate"
-msgstr "Izaberite akciju za povezivanje"
-
-
-msgid "Object does not have pose lib data"
-msgstr "Ključevi objekta"
-
-
-msgid "Invalid index for pose"
-msgstr "Neispravan indeks poze"
-
-
-msgid "Object does not have a valid pose lib"
-msgstr "Ključevi objekta"
-
-
-msgid "Pose lib had no active pose"
-msgstr "Zbirka poza - dodaj pozu"
-
-
 msgid "No keyframes to slide between"
 msgstr "Ključni kadrovi"
 
@@ -26897,6 +26815,10 @@ msgstr "Uputstvo na internetu"
 msgctxt "Operator"
 msgid "Online Python Reference"
 msgstr "Python uputstvo na internetu"
+
+
+msgid "Value:"
+msgstr "Vrednost"
 
 
 msgid "(Gamma Corrected)"
@@ -27627,10 +27549,6 @@ msgstr "Svojstvo"
 
 msgid "Driver Value:"
 msgstr "Vrednost vozača:"
-
-
-msgid "Value:"
-msgstr "Vrednost"
 
 
 msgid "Update Dependencies"

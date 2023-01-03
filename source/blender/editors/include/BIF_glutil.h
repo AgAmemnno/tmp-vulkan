@@ -24,8 +24,10 @@ typedef struct IMMDrawPixelsTexState {
   struct GPUShader *shader;
   unsigned int pos;
   unsigned int texco;
-  /// Fix for GPU_SHADER_3D_IMAGE_COLOR
-  unsigned int pos_dim;
+  /// <summary>
+  /// Required to recognize 3D attributes in the immDrawPixelsTexSetupAttributes(glutil.c) function.
+  /// </summary>
+  unsigned int dim;
   bool do_shader_unbind;
 } IMMDrawPixelsTexState;
 

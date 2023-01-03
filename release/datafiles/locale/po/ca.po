@@ -1,9 +1,9 @@
 
 msgid ""
 msgstr ""
-"Project-Id-Version: Blender 3.4.0 Alpha (b'a6b83617e9de')\n"
+"Project-Id-Version: Blender 3.5.0 Alpha (b'09ba00974f8f')\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-10-17 10:12:11\n"
+"POT-Creation-Date: 2020-01-01 00:00:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Santiago Lizardo <santiago.lizardo@gmail.com>\n"
 "Language-Team: Blender Català (http://www.blender.cat)\n"
@@ -464,6 +464,10 @@ msgid "Add a new screen"
 msgstr "Afegir una nova pantalla"
 
 
+msgid "Operator"
+msgstr "Operador"
+
+
 msgid "Overlap"
 msgstr "Superposició"
 
@@ -529,10 +533,6 @@ msgstr "Executar un cop i sortir"
 
 msgid "Load UI"
 msgstr "Carregar la interfície d'usuari"
-
-
-msgid "Operator"
-msgstr "Operador"
 
 
 msgid "Context"

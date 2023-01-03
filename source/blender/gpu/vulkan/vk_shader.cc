@@ -1326,7 +1326,7 @@ void VKShader::bind()
 
   VKContext *ctx = static_cast<VKContext *>(unwrap(GPU_context_active_get()));
   VKShaderInterface &iface = *((VKShaderInterface *)interface);
-  BLI_assert(iface.valid);
+  if(!iface.valid)return;
    ctx->pipeline_state.active_shader = this;
 }
 

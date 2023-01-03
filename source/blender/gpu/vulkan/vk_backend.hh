@@ -41,7 +41,12 @@ class VKBackend : public GPUBackend {
   UniformBuf *uniformbuf_alloc(int size, const char *name) override;
   StorageBuf *storagebuf_alloc(int size, GPUUsageType usage, const char *name) override;
   VertBuf *vertbuf_alloc() override;
-
+  Fence* fence_alloc()override {
+	  return (Fence*)0;
+  };
+  PixelBuffer* pixelbuf_alloc(uint size)override {
+	  return (PixelBuffer*)0;
+  };
   /* Render Frame Coordination --
    * Used for performing per-frame actions globally */
   void render_begin() override;

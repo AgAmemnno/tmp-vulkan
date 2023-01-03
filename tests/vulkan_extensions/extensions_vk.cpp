@@ -22,7 +22,7 @@
 //#include "nvh/nvprint.hpp"
 
 /* NVVK_GENERATE_VERSION_INFO */
-// Generated using Vulkan 182
+// Generated using Vulkan 198
 /* NVVK_GENERATE_VERSION_INFO */
 
 /* clang-format off */
@@ -162,6 +162,9 @@ static PFN_vkCreateMetalSurfaceEXT pfn_vkCreateMetalSurfaceEXT= 0;
 static PFN_vkCmdDrawMultiEXT pfn_vkCmdDrawMultiEXT= 0;
 static PFN_vkCmdDrawMultiIndexedEXT pfn_vkCmdDrawMultiIndexedEXT= 0;
 #endif /* VK_EXT_multi_draw */
+#ifdef VK_EXT_pageable_device_local_memory
+static PFN_vkSetDeviceMemoryPriorityEXT pfn_vkSetDeviceMemoryPriorityEXT= 0;
+#endif /* VK_EXT_pageable_device_local_memory */
 #ifdef VK_EXT_private_data
 static PFN_vkCreatePrivateDataSlotEXT pfn_vkCreatePrivateDataSlotEXT= 0;
 static PFN_vkDestroyPrivateDataSlotEXT pfn_vkDestroyPrivateDataSlotEXT= 0;
@@ -192,6 +195,13 @@ static PFN_vkMergeValidationCachesEXT pfn_vkMergeValidationCachesEXT= 0;
 #ifdef VK_EXT_vertex_input_dynamic_state
 static PFN_vkCmdSetVertexInputEXT pfn_vkCmdSetVertexInputEXT= 0;
 #endif /* VK_EXT_vertex_input_dynamic_state */
+#ifdef VK_FUCHSIA_buffer_collection
+static PFN_vkCreateBufferCollectionFUCHSIA pfn_vkCreateBufferCollectionFUCHSIA= 0;
+static PFN_vkDestroyBufferCollectionFUCHSIA pfn_vkDestroyBufferCollectionFUCHSIA= 0;
+static PFN_vkGetBufferCollectionPropertiesFUCHSIA pfn_vkGetBufferCollectionPropertiesFUCHSIA= 0;
+static PFN_vkSetBufferCollectionBufferConstraintsFUCHSIA pfn_vkSetBufferCollectionBufferConstraintsFUCHSIA= 0;
+static PFN_vkSetBufferCollectionImageConstraintsFUCHSIA pfn_vkSetBufferCollectionImageConstraintsFUCHSIA= 0;
+#endif /* VK_FUCHSIA_buffer_collection */
 #ifdef VK_FUCHSIA_external_memory
 static PFN_vkGetMemoryZirconHandleFUCHSIA pfn_vkGetMemoryZirconHandleFUCHSIA= 0;
 static PFN_vkGetMemoryZirconHandlePropertiesFUCHSIA pfn_vkGetMemoryZirconHandlePropertiesFUCHSIA= 0;
@@ -210,9 +220,12 @@ static PFN_vkCreateStreamDescriptorSurfaceGGP pfn_vkCreateStreamDescriptorSurfac
 static PFN_vkGetPastPresentationTimingGOOGLE pfn_vkGetPastPresentationTimingGOOGLE= 0;
 static PFN_vkGetRefreshCycleDurationGOOGLE pfn_vkGetRefreshCycleDurationGOOGLE= 0;
 #endif /* VK_GOOGLE_display_timing */
+#ifdef VK_HUAWEI_invocation_mask
+static PFN_vkCmdBindInvocationMaskHUAWEI pfn_vkCmdBindInvocationMaskHUAWEI= 0;
+#endif /* VK_HUAWEI_invocation_mask */
 #ifdef VK_HUAWEI_subpass_shading
 static PFN_vkCmdSubpassShadingHUAWEI pfn_vkCmdSubpassShadingHUAWEI= 0;
-static PFN_vkGetSubpassShadingMaxWorkgroupSizeHUAWEI pfn_vkGetSubpassShadingMaxWorkgroupSizeHUAWEI= 0;
+static PFN_vkGetDeviceSubpassShadingMaxWorkgroupSizeHUAWEI pfn_vkGetDeviceSubpassShadingMaxWorkgroupSizeHUAWEI= 0;
 #endif /* VK_HUAWEI_subpass_shading */
 #ifdef VK_INTEL_performance_query
 static PFN_vkAcquirePerformanceConfigurationINTEL pfn_vkAcquirePerformanceConfigurationINTEL= 0;
@@ -293,6 +306,10 @@ static PFN_vkEnumeratePhysicalDeviceGroupsKHR pfn_vkEnumeratePhysicalDeviceGroup
 static PFN_vkCmdDrawIndexedIndirectCountKHR pfn_vkCmdDrawIndexedIndirectCountKHR= 0;
 static PFN_vkCmdDrawIndirectCountKHR pfn_vkCmdDrawIndirectCountKHR= 0;
 #endif /* VK_KHR_draw_indirect_count */
+#ifdef VK_KHR_dynamic_rendering
+static PFN_vkCmdBeginRenderingKHR pfn_vkCmdBeginRenderingKHR= 0;
+static PFN_vkCmdEndRenderingKHR pfn_vkCmdEndRenderingKHR= 0;
+#endif /* VK_KHR_dynamic_rendering */
 #ifdef VK_KHR_external_fence_capabilities
 static PFN_vkGetPhysicalDeviceExternalFencePropertiesKHR pfn_vkGetPhysicalDeviceExternalFencePropertiesKHR= 0;
 #endif /* VK_KHR_external_fence_capabilities */
@@ -350,6 +367,11 @@ static PFN_vkTrimCommandPoolKHR pfn_vkTrimCommandPoolKHR= 0;
 #ifdef VK_KHR_maintenance3
 static PFN_vkGetDescriptorSetLayoutSupportKHR pfn_vkGetDescriptorSetLayoutSupportKHR= 0;
 #endif /* VK_KHR_maintenance3 */
+#ifdef VK_KHR_maintenance4
+static PFN_vkGetDeviceBufferMemoryRequirementsKHR pfn_vkGetDeviceBufferMemoryRequirementsKHR= 0;
+static PFN_vkGetDeviceImageMemoryRequirementsKHR pfn_vkGetDeviceImageMemoryRequirementsKHR= 0;
+static PFN_vkGetDeviceImageSparseMemoryRequirementsKHR pfn_vkGetDeviceImageSparseMemoryRequirementsKHR= 0;
+#endif /* VK_KHR_maintenance4 */
 #ifdef VK_KHR_performance_query
 static PFN_vkAcquireProfilingLockKHR pfn_vkAcquireProfilingLockKHR= 0;
 static PFN_vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR pfn_vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR= 0;
@@ -361,6 +383,9 @@ static PFN_vkGetPipelineExecutableInternalRepresentationsKHR pfn_vkGetPipelineEx
 static PFN_vkGetPipelineExecutablePropertiesKHR pfn_vkGetPipelineExecutablePropertiesKHR= 0;
 static PFN_vkGetPipelineExecutableStatisticsKHR pfn_vkGetPipelineExecutableStatisticsKHR= 0;
 #endif /* VK_KHR_pipeline_executable_properties */
+#ifdef VK_KHR_present_wait
+static PFN_vkWaitForPresentKHR pfn_vkWaitForPresentKHR= 0;
+#endif /* VK_KHR_present_wait */
 #ifdef VK_KHR_push_descriptor
 static PFN_vkCmdPushDescriptorSetKHR pfn_vkCmdPushDescriptorSetKHR= 0;
 #endif /* VK_KHR_push_descriptor */
@@ -443,6 +468,9 @@ static PFN_vkGetGeneratedCommandsMemoryRequirementsNV pfn_vkGetGeneratedCommands
 #ifdef VK_NV_external_memory_capabilities
 static PFN_vkGetPhysicalDeviceExternalImageFormatPropertiesNV pfn_vkGetPhysicalDeviceExternalImageFormatPropertiesNV= 0;
 #endif /* VK_NV_external_memory_capabilities */
+#ifdef VK_NV_external_memory_rdma
+static PFN_vkGetMemoryRemoteAddressNV pfn_vkGetMemoryRemoteAddressNV= 0;
+#endif /* VK_NV_external_memory_rdma */
 #ifdef VK_NV_external_memory_win32
 static PFN_vkGetMemoryWin32HandleNV pfn_vkGetMemoryWin32HandleNV= 0;
 #endif /* VK_NV_external_memory_win32 */
@@ -1077,6 +1105,15 @@ VKAPI_ATTR void VKAPI_CALL vkCmdDrawMultiIndexedEXT(
   pfn_vkCmdDrawMultiIndexedEXT(commandBuffer, drawCount, pIndexInfo, instanceCount, firstInstance, stride, pVertexOffset); 
 }
 #endif /* VK_EXT_multi_draw */
+#ifdef VK_EXT_pageable_device_local_memory
+VKAPI_ATTR void VKAPI_CALL vkSetDeviceMemoryPriorityEXT(
+	VkDevice       device, 
+	VkDeviceMemory memory, 
+	float          priority) 
+{ 
+  pfn_vkSetDeviceMemoryPriorityEXT(device, memory, priority); 
+}
+#endif /* VK_EXT_pageable_device_local_memory */
 #ifdef VK_EXT_private_data
 VKAPI_ATTR VkResult VKAPI_CALL vkCreatePrivateDataSlotEXT(
 	VkDevice device, 
@@ -1238,6 +1275,44 @@ VKAPI_ATTR void VKAPI_CALL vkCmdSetVertexInputEXT(
   pfn_vkCmdSetVertexInputEXT(commandBuffer, vertexBindingDescriptionCount, pVertexBindingDescriptions, vertexAttributeDescriptionCount, pVertexAttributeDescriptions); 
 }
 #endif /* VK_EXT_vertex_input_dynamic_state */
+#ifdef VK_FUCHSIA_buffer_collection
+VKAPI_ATTR VkResult VKAPI_CALL vkCreateBufferCollectionFUCHSIA(
+	VkDevice device, 
+	const VkBufferCollectionCreateInfoFUCHSIA* pCreateInfo, 
+	const VkAllocationCallbacks* pAllocator, 
+	VkBufferCollectionFUCHSIA* pCollection) 
+{ 
+  return pfn_vkCreateBufferCollectionFUCHSIA(device, pCreateInfo, pAllocator, pCollection); 
+}
+VKAPI_ATTR void VKAPI_CALL vkDestroyBufferCollectionFUCHSIA(
+	VkDevice device, 
+	VkBufferCollectionFUCHSIA collection, 
+	const VkAllocationCallbacks* pAllocator) 
+{ 
+  pfn_vkDestroyBufferCollectionFUCHSIA(device, collection, pAllocator); 
+}
+VKAPI_ATTR VkResult VKAPI_CALL vkGetBufferCollectionPropertiesFUCHSIA(
+	VkDevice device, 
+	VkBufferCollectionFUCHSIA collection, 
+	VkBufferCollectionPropertiesFUCHSIA* pProperties) 
+{ 
+  return pfn_vkGetBufferCollectionPropertiesFUCHSIA(device, collection, pProperties); 
+}
+VKAPI_ATTR VkResult VKAPI_CALL vkSetBufferCollectionBufferConstraintsFUCHSIA(
+	VkDevice device, 
+	VkBufferCollectionFUCHSIA collection, 
+	const VkBufferConstraintsInfoFUCHSIA* pBufferConstraintsInfo) 
+{ 
+  return pfn_vkSetBufferCollectionBufferConstraintsFUCHSIA(device, collection, pBufferConstraintsInfo); 
+}
+VKAPI_ATTR VkResult VKAPI_CALL vkSetBufferCollectionImageConstraintsFUCHSIA(
+	VkDevice device, 
+	VkBufferCollectionFUCHSIA collection, 
+	const VkImageConstraintsInfoFUCHSIA* pImageConstraintsInfo) 
+{ 
+  return pfn_vkSetBufferCollectionImageConstraintsFUCHSIA(device, collection, pImageConstraintsInfo); 
+}
+#endif /* VK_FUCHSIA_buffer_collection */
 #ifdef VK_FUCHSIA_external_memory
 VKAPI_ATTR VkResult VKAPI_CALL vkGetMemoryZirconHandleFUCHSIA(
 	VkDevice device, 
@@ -1307,17 +1382,27 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetRefreshCycleDurationGOOGLE(
   return pfn_vkGetRefreshCycleDurationGOOGLE(device, swapchain, pDisplayTimingProperties); 
 }
 #endif /* VK_GOOGLE_display_timing */
+#ifdef VK_HUAWEI_invocation_mask
+VKAPI_ATTR void VKAPI_CALL vkCmdBindInvocationMaskHUAWEI(
+	VkCommandBuffer commandBuffer, 
+	VkImageView imageView, 
+	VkImageLayout imageLayout) 
+{ 
+  pfn_vkCmdBindInvocationMaskHUAWEI(commandBuffer, imageView, imageLayout); 
+}
+#endif /* VK_HUAWEI_invocation_mask */
 #ifdef VK_HUAWEI_subpass_shading
 VKAPI_ATTR void VKAPI_CALL vkCmdSubpassShadingHUAWEI(
 	VkCommandBuffer commandBuffer) 
 { 
   pfn_vkCmdSubpassShadingHUAWEI(commandBuffer); 
 }
-VKAPI_ATTR VkResult VKAPI_CALL vkGetSubpassShadingMaxWorkgroupSizeHUAWEI(
+VKAPI_ATTR VkResult VKAPI_CALL vkGetDeviceSubpassShadingMaxWorkgroupSizeHUAWEI(
+	VkDevice device, 
 	VkRenderPass renderpass, 
 	VkExtent2D* pMaxWorkgroupSize) 
 { 
-  return pfn_vkGetSubpassShadingMaxWorkgroupSizeHUAWEI(renderpass, pMaxWorkgroupSize); 
+  return pfn_vkGetDeviceSubpassShadingMaxWorkgroupSizeHUAWEI(device, renderpass, pMaxWorkgroupSize); 
 }
 #endif /* VK_HUAWEI_subpass_shading */
 #ifdef VK_INTEL_performance_query
@@ -1737,6 +1822,19 @@ VKAPI_ATTR void VKAPI_CALL vkCmdDrawIndirectCountKHR(
   pfn_vkCmdDrawIndirectCountKHR(commandBuffer, buffer, offset, countBuffer, countBufferOffset, maxDrawCount, stride); 
 }
 #endif /* VK_KHR_draw_indirect_count */
+#ifdef VK_KHR_dynamic_rendering
+VKAPI_ATTR void VKAPI_CALL vkCmdBeginRenderingKHR(
+	VkCommandBuffer                   commandBuffer, 
+	const VkRenderingInfoKHR*                           pRenderingInfo) 
+{ 
+  pfn_vkCmdBeginRenderingKHR(commandBuffer, pRenderingInfo); 
+}
+VKAPI_ATTR void VKAPI_CALL vkCmdEndRenderingKHR(
+	VkCommandBuffer                   commandBuffer) 
+{ 
+  pfn_vkCmdEndRenderingKHR(commandBuffer); 
+}
+#endif /* VK_KHR_dynamic_rendering */
 #ifdef VK_KHR_external_fence_capabilities
 VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceExternalFencePropertiesKHR(
 	VkPhysicalDevice physicalDevice, 
@@ -1965,6 +2063,30 @@ VKAPI_ATTR void VKAPI_CALL vkGetDescriptorSetLayoutSupportKHR(
   pfn_vkGetDescriptorSetLayoutSupportKHR(device, pCreateInfo, pSupport); 
 }
 #endif /* VK_KHR_maintenance3 */
+#ifdef VK_KHR_maintenance4
+VKAPI_ATTR void VKAPI_CALL vkGetDeviceBufferMemoryRequirementsKHR(
+	VkDevice device, 
+	const VkDeviceBufferMemoryRequirementsKHR* pInfo, 
+	VkMemoryRequirements2* pMemoryRequirements) 
+{ 
+  pfn_vkGetDeviceBufferMemoryRequirementsKHR(device, pInfo, pMemoryRequirements); 
+}
+VKAPI_ATTR void VKAPI_CALL vkGetDeviceImageMemoryRequirementsKHR(
+	VkDevice device, 
+	const VkDeviceImageMemoryRequirementsKHR* pInfo, 
+	VkMemoryRequirements2* pMemoryRequirements) 
+{ 
+  pfn_vkGetDeviceImageMemoryRequirementsKHR(device, pInfo, pMemoryRequirements); 
+}
+VKAPI_ATTR void VKAPI_CALL vkGetDeviceImageSparseMemoryRequirementsKHR(
+	VkDevice device, 
+	const VkDeviceImageMemoryRequirementsKHR* pInfo, 
+	uint32_t* pSparseMemoryRequirementCount, 
+	VkSparseImageMemoryRequirements2* pSparseMemoryRequirements) 
+{ 
+  pfn_vkGetDeviceImageSparseMemoryRequirementsKHR(device, pInfo, pSparseMemoryRequirementCount, pSparseMemoryRequirements); 
+}
+#endif /* VK_KHR_maintenance4 */
 #ifdef VK_KHR_performance_query
 VKAPI_ATTR VkResult VKAPI_CALL vkAcquireProfilingLockKHR(
 	VkDevice device, 
@@ -2020,6 +2142,16 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetPipelineExecutableStatisticsKHR(
   return pfn_vkGetPipelineExecutableStatisticsKHR(device, pExecutableInfo, pStatisticCount, pStatistics); 
 }
 #endif /* VK_KHR_pipeline_executable_properties */
+#ifdef VK_KHR_present_wait
+VKAPI_ATTR VkResult VKAPI_CALL vkWaitForPresentKHR(
+	VkDevice device, 
+	VkSwapchainKHR swapchain, 
+	uint64_t presentId, 
+	uint64_t timeout) 
+{ 
+  return pfn_vkWaitForPresentKHR(device, swapchain, presentId, timeout); 
+}
+#endif /* VK_KHR_present_wait */
 #ifdef VK_KHR_push_descriptor
 VKAPI_ATTR void VKAPI_CALL vkCmdPushDescriptorSetKHR(
 	VkCommandBuffer commandBuffer, 
@@ -2410,6 +2542,15 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceExternalImageFormatPropertiesN
   return pfn_vkGetPhysicalDeviceExternalImageFormatPropertiesNV(physicalDevice, format, type, tiling, usage, flags, externalHandleType, pExternalImageFormatProperties); 
 }
 #endif /* VK_NV_external_memory_capabilities */
+#ifdef VK_NV_external_memory_rdma
+VKAPI_ATTR VkResult VKAPI_CALL vkGetMemoryRemoteAddressNV(
+	VkDevice device, 
+	const VkMemoryGetRemoteAddressInfoNV* pMemoryGetRemoteAddressInfo, 
+	VkRemoteAddressNV* pAddress) 
+{ 
+  return pfn_vkGetMemoryRemoteAddressNV(device, pMemoryGetRemoteAddressInfo, pAddress); 
+}
+#endif /* VK_NV_external_memory_rdma */
 #ifdef VK_NV_external_memory_win32
 VKAPI_ATTR VkResult VKAPI_CALL vkGetMemoryWin32HandleNV(
 	VkDevice device, 
@@ -2766,6 +2907,9 @@ void load_VK_EXTENSIONS(VkInstance instance, PFN_vkGetInstanceProcAddr getInstan
   pfn_vkCmdDrawMultiEXT = (PFN_vkCmdDrawMultiEXT)getDeviceProcAddr(device, "vkCmdDrawMultiEXT");
   pfn_vkCmdDrawMultiIndexedEXT = (PFN_vkCmdDrawMultiIndexedEXT)getDeviceProcAddr(device, "vkCmdDrawMultiIndexedEXT");
 #endif /* VK_EXT_multi_draw */
+#ifdef VK_EXT_pageable_device_local_memory
+  pfn_vkSetDeviceMemoryPriorityEXT = (PFN_vkSetDeviceMemoryPriorityEXT)getDeviceProcAddr(device, "vkSetDeviceMemoryPriorityEXT");
+#endif /* VK_EXT_pageable_device_local_memory */
 #ifdef VK_EXT_private_data
   pfn_vkCreatePrivateDataSlotEXT = (PFN_vkCreatePrivateDataSlotEXT)getDeviceProcAddr(device, "vkCreatePrivateDataSlotEXT");
   pfn_vkDestroyPrivateDataSlotEXT = (PFN_vkDestroyPrivateDataSlotEXT)getDeviceProcAddr(device, "vkDestroyPrivateDataSlotEXT");
@@ -2796,6 +2940,13 @@ void load_VK_EXTENSIONS(VkInstance instance, PFN_vkGetInstanceProcAddr getInstan
 #ifdef VK_EXT_vertex_input_dynamic_state
   pfn_vkCmdSetVertexInputEXT = (PFN_vkCmdSetVertexInputEXT)getDeviceProcAddr(device, "vkCmdSetVertexInputEXT");
 #endif /* VK_EXT_vertex_input_dynamic_state */
+#ifdef VK_FUCHSIA_buffer_collection
+  pfn_vkCreateBufferCollectionFUCHSIA = (PFN_vkCreateBufferCollectionFUCHSIA)getDeviceProcAddr(device, "vkCreateBufferCollectionFUCHSIA");
+  pfn_vkDestroyBufferCollectionFUCHSIA = (PFN_vkDestroyBufferCollectionFUCHSIA)getDeviceProcAddr(device, "vkDestroyBufferCollectionFUCHSIA");
+  pfn_vkGetBufferCollectionPropertiesFUCHSIA = (PFN_vkGetBufferCollectionPropertiesFUCHSIA)getDeviceProcAddr(device, "vkGetBufferCollectionPropertiesFUCHSIA");
+  pfn_vkSetBufferCollectionBufferConstraintsFUCHSIA = (PFN_vkSetBufferCollectionBufferConstraintsFUCHSIA)getDeviceProcAddr(device, "vkSetBufferCollectionBufferConstraintsFUCHSIA");
+  pfn_vkSetBufferCollectionImageConstraintsFUCHSIA = (PFN_vkSetBufferCollectionImageConstraintsFUCHSIA)getDeviceProcAddr(device, "vkSetBufferCollectionImageConstraintsFUCHSIA");
+#endif /* VK_FUCHSIA_buffer_collection */
 #ifdef VK_FUCHSIA_external_memory
   pfn_vkGetMemoryZirconHandleFUCHSIA = (PFN_vkGetMemoryZirconHandleFUCHSIA)getDeviceProcAddr(device, "vkGetMemoryZirconHandleFUCHSIA");
   pfn_vkGetMemoryZirconHandlePropertiesFUCHSIA = (PFN_vkGetMemoryZirconHandlePropertiesFUCHSIA)getDeviceProcAddr(device, "vkGetMemoryZirconHandlePropertiesFUCHSIA");
@@ -2814,9 +2965,12 @@ void load_VK_EXTENSIONS(VkInstance instance, PFN_vkGetInstanceProcAddr getInstan
   pfn_vkGetPastPresentationTimingGOOGLE = (PFN_vkGetPastPresentationTimingGOOGLE)getDeviceProcAddr(device, "vkGetPastPresentationTimingGOOGLE");
   pfn_vkGetRefreshCycleDurationGOOGLE = (PFN_vkGetRefreshCycleDurationGOOGLE)getDeviceProcAddr(device, "vkGetRefreshCycleDurationGOOGLE");
 #endif /* VK_GOOGLE_display_timing */
+#ifdef VK_HUAWEI_invocation_mask
+  pfn_vkCmdBindInvocationMaskHUAWEI = (PFN_vkCmdBindInvocationMaskHUAWEI)getDeviceProcAddr(device, "vkCmdBindInvocationMaskHUAWEI");
+#endif /* VK_HUAWEI_invocation_mask */
 #ifdef VK_HUAWEI_subpass_shading
   pfn_vkCmdSubpassShadingHUAWEI = (PFN_vkCmdSubpassShadingHUAWEI)getDeviceProcAddr(device, "vkCmdSubpassShadingHUAWEI");
-  pfn_vkGetSubpassShadingMaxWorkgroupSizeHUAWEI = (PFN_vkGetSubpassShadingMaxWorkgroupSizeHUAWEI)getDeviceProcAddr(device, "vkGetSubpassShadingMaxWorkgroupSizeHUAWEI");
+  pfn_vkGetDeviceSubpassShadingMaxWorkgroupSizeHUAWEI = (PFN_vkGetDeviceSubpassShadingMaxWorkgroupSizeHUAWEI)getDeviceProcAddr(device, "vkGetDeviceSubpassShadingMaxWorkgroupSizeHUAWEI");
 #endif /* VK_HUAWEI_subpass_shading */
 #ifdef VK_INTEL_performance_query
   pfn_vkAcquirePerformanceConfigurationINTEL = (PFN_vkAcquirePerformanceConfigurationINTEL)getDeviceProcAddr(device, "vkAcquirePerformanceConfigurationINTEL");
@@ -2897,6 +3051,10 @@ void load_VK_EXTENSIONS(VkInstance instance, PFN_vkGetInstanceProcAddr getInstan
   pfn_vkCmdDrawIndexedIndirectCountKHR = (PFN_vkCmdDrawIndexedIndirectCountKHR)getDeviceProcAddr(device, "vkCmdDrawIndexedIndirectCountKHR");
   pfn_vkCmdDrawIndirectCountKHR = (PFN_vkCmdDrawIndirectCountKHR)getDeviceProcAddr(device, "vkCmdDrawIndirectCountKHR");
 #endif /* VK_KHR_draw_indirect_count */
+#ifdef VK_KHR_dynamic_rendering
+  pfn_vkCmdBeginRenderingKHR = (PFN_vkCmdBeginRenderingKHR)getDeviceProcAddr(device, "vkCmdBeginRenderingKHR");
+  pfn_vkCmdEndRenderingKHR = (PFN_vkCmdEndRenderingKHR)getDeviceProcAddr(device, "vkCmdEndRenderingKHR");
+#endif /* VK_KHR_dynamic_rendering */
 #ifdef VK_KHR_external_fence_capabilities
   pfn_vkGetPhysicalDeviceExternalFencePropertiesKHR = (PFN_vkGetPhysicalDeviceExternalFencePropertiesKHR)getInstanceProcAddr(instance, "vkGetPhysicalDeviceExternalFencePropertiesKHR");
 #endif /* VK_KHR_external_fence_capabilities */
@@ -2954,6 +3112,11 @@ void load_VK_EXTENSIONS(VkInstance instance, PFN_vkGetInstanceProcAddr getInstan
 #ifdef VK_KHR_maintenance3
   pfn_vkGetDescriptorSetLayoutSupportKHR = (PFN_vkGetDescriptorSetLayoutSupportKHR)getDeviceProcAddr(device, "vkGetDescriptorSetLayoutSupportKHR");
 #endif /* VK_KHR_maintenance3 */
+#ifdef VK_KHR_maintenance4
+  pfn_vkGetDeviceBufferMemoryRequirementsKHR = (PFN_vkGetDeviceBufferMemoryRequirementsKHR)getDeviceProcAddr(device, "vkGetDeviceBufferMemoryRequirementsKHR");
+  pfn_vkGetDeviceImageMemoryRequirementsKHR = (PFN_vkGetDeviceImageMemoryRequirementsKHR)getDeviceProcAddr(device, "vkGetDeviceImageMemoryRequirementsKHR");
+  pfn_vkGetDeviceImageSparseMemoryRequirementsKHR = (PFN_vkGetDeviceImageSparseMemoryRequirementsKHR)getDeviceProcAddr(device, "vkGetDeviceImageSparseMemoryRequirementsKHR");
+#endif /* VK_KHR_maintenance4 */
 #ifdef VK_KHR_performance_query
   pfn_vkAcquireProfilingLockKHR = (PFN_vkAcquireProfilingLockKHR)getDeviceProcAddr(device, "vkAcquireProfilingLockKHR");
   pfn_vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR = (PFN_vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR)getInstanceProcAddr(instance, "vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR");
@@ -2965,6 +3128,9 @@ void load_VK_EXTENSIONS(VkInstance instance, PFN_vkGetInstanceProcAddr getInstan
   pfn_vkGetPipelineExecutablePropertiesKHR = (PFN_vkGetPipelineExecutablePropertiesKHR)getDeviceProcAddr(device, "vkGetPipelineExecutablePropertiesKHR");
   pfn_vkGetPipelineExecutableStatisticsKHR = (PFN_vkGetPipelineExecutableStatisticsKHR)getDeviceProcAddr(device, "vkGetPipelineExecutableStatisticsKHR");
 #endif /* VK_KHR_pipeline_executable_properties */
+#ifdef VK_KHR_present_wait
+  pfn_vkWaitForPresentKHR = (PFN_vkWaitForPresentKHR)getDeviceProcAddr(device, "vkWaitForPresentKHR");
+#endif /* VK_KHR_present_wait */
 #ifdef VK_KHR_push_descriptor
   pfn_vkCmdPushDescriptorSetKHR = (PFN_vkCmdPushDescriptorSetKHR)getDeviceProcAddr(device, "vkCmdPushDescriptorSetKHR");
 #endif /* VK_KHR_push_descriptor */
@@ -3047,6 +3213,9 @@ void load_VK_EXTENSIONS(VkInstance instance, PFN_vkGetInstanceProcAddr getInstan
 #ifdef VK_NV_external_memory_capabilities
   pfn_vkGetPhysicalDeviceExternalImageFormatPropertiesNV = (PFN_vkGetPhysicalDeviceExternalImageFormatPropertiesNV)getInstanceProcAddr(instance, "vkGetPhysicalDeviceExternalImageFormatPropertiesNV");
 #endif /* VK_NV_external_memory_capabilities */
+#ifdef VK_NV_external_memory_rdma
+  pfn_vkGetMemoryRemoteAddressNV = (PFN_vkGetMemoryRemoteAddressNV)getDeviceProcAddr(device, "vkGetMemoryRemoteAddressNV");
+#endif /* VK_NV_external_memory_rdma */
 #ifdef VK_NV_external_memory_win32
   pfn_vkGetMemoryWin32HandleNV = (PFN_vkGetMemoryWin32HandleNV)getDeviceProcAddr(device, "vkGetMemoryWin32HandleNV");
 #endif /* VK_NV_external_memory_win32 */

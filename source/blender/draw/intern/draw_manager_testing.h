@@ -19,6 +19,8 @@ extern "C" {
 void DRW_draw_state_init_gtests(eGPUShaderConfig sh_cfg);
 #endif
 
+
+
 #ifdef __cplusplus
 }
 #endif

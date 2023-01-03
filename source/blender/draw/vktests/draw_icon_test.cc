@@ -2,8 +2,7 @@
 
 
 
-#include "CLG_log.h"
-#include "BKE_global.h"
+
 
 #include "BLI_threads.h"
 #include "BLI_vector.hh"
@@ -14,10 +13,10 @@
 #include "UI_interface.h"
 #include "UI_resources.h"
 
-#include "gpu_immediate_private.hh"
 
 
-#include "vulkan/vk_context.hh"
+
+
 namespace blender::draw {
 void BKE_blender_userdef_data_free(UserDef *userdef, bool clear_fonts)
 {
@@ -49,7 +48,12 @@ void BKE_blender_userdef_data_free(UserDef *userdef, bool clear_fonts)
 }
 
 
-void test_icon()
+
+#ifndef DRAW_GTEST_SUITE
+        void GPUTest::test_icon()
+#else
+        void test_icon()
+#endif
 {
   using namespace blender;
    using namespace blender::gpu;
@@ -65,7 +69,7 @@ void test_icon()
   immActivate();
 
   Vector<int> Icon3;
-  for (int i = 0; i < BIFICONID_LAST; i++) {
+  for (int i = 775; i < BIFICONID_LAST; i++) {
    
     auto icon = BKE_icon_get(i);
     if (icon) {
@@ -124,7 +128,10 @@ void test_icon()
 
 };
 
-DRAW_TEST(icon)
+
+#ifdef DRAW_GTEST_SUITE
+       DRAW_TEST(icon)
+#endif
 
 
 

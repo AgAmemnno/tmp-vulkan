@@ -1,9 +1,9 @@
 
 msgid ""
 msgstr ""
-"Project-Id-Version: Blender 3.4.0 Alpha (b'a6b83617e9de')\n"
+"Project-Id-Version: Blender 3.5.0 Alpha (b'09ba00974f8f')\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-10-17 10:12:11\n"
+"POT-Creation-Date: 2020-01-01 00:00:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Martin Reininger <martinreininger@gmx.net>\n"
 "Language-Team: German translation team\n"
@@ -4178,10 +4178,6 @@ msgid "Show Expanded"
 msgstr "Erweitertes anzeigen"
 
 
-msgid "Show the expanded in the user interface"
-msgstr "Anzeigen des erweiterten In-User-Interfaces"
-
-
 msgid "Show On Foreground"
 msgstr "Im Vordergrund anzeigen"
 
@@ -7199,8 +7195,8 @@ msgid "Auto Handle"
 msgstr "Automatisches greifen"
 
 
-msgid "Auto Clamped Handle"
-msgstr "Automatisch geklemmter Griff"
+msgid "Auto-Clamped Handle"
+msgstr "Automatische Griffklemmung"
 
 
 msgid "Vector Handle"
@@ -9029,10 +9025,6 @@ msgstr "QT rle / QT Animation"
 
 msgid "Theora"
 msgstr "Theora"
-
-
-msgid "WEBM / VP9"
-msgstr "WEBM / VP9"
 
 
 msgid "Output Quality"
@@ -11930,10 +11922,6 @@ msgid "Pass"
 msgstr "Durchgang"
 
 
-msgid "Object Offset"
-msgstr "Objektversatz"
-
-
 msgid "Pass index"
 msgstr "Index akzeptieren"
 
@@ -14019,10 +14007,6 @@ msgstr "Füllmodus"
 
 msgid "Half"
 msgstr "Halb"
-
-
-msgid "Path Length"
-msgstr "Pfadlänge"
 
 
 msgid "Render Resolution U"
@@ -16300,10 +16284,6 @@ msgid "Current pose for armatures"
 msgstr "Aktuelle Pose für Skelette"
 
 
-msgid "Pose Library"
-msgstr "Posen-Bibliothek"
-
-
 msgid "Rigid Body Settings"
 msgstr "Weiche-Körper-Einstellungen"
 
@@ -17117,22 +17097,6 @@ msgstr "Lineares Festklemmen"
 
 msgid "Linear distance model with clamping"
 msgstr "Lineares Abstandmodell mit festklemmen"
-
-
-msgid "Exponent"
-msgstr "Exponent"
-
-
-msgid "Exponent distance model"
-msgstr "Exponentes Abstandmodell"
-
-
-msgid "Exponent Clamped"
-msgstr "Exponentes Festklemmen"
-
-
-msgid "Exponent distance model with clamping"
-msgstr "Exponentes Abstandmodell mit festklemmen"
 
 
 msgid "Doppler Factor"
@@ -19876,10 +19840,6 @@ msgid "Operating system key pressed"
 msgstr "Gedrückte Betriebsystemtaste"
 
 
-msgid "Property Value"
-msgstr "Eigenschaftswert"
-
-
 msgctxt "WindowManager"
 msgid "Shift"
 msgstr "Umschalt"
@@ -20756,8 +20716,8 @@ msgid "Material slot name"
 msgstr "Materialsteckplatzname"
 
 
-msgid "Edit"
-msgstr "Bearbeiten"
+msgid "Asset"
+msgstr "Asset"
 
 
 msgctxt "MovieClip"
@@ -20908,6 +20868,10 @@ msgstr "Hinzufügen"
 
 msgid "NLA Context Menu"
 msgstr "NLA-Kontextmenü"
+
+
+msgid "Edit"
+msgstr "Bearbeiten"
 
 
 msgid "Converter"
@@ -21197,10 +21161,6 @@ msgstr "Lichtsonde"
 
 msgid "Make Single User"
 msgstr "Einfachen Benutzer erzeugen"
-
-
-msgid "Asset"
-msgstr "Asset"
 
 
 msgid "Object Context Menu"
@@ -21837,6 +21797,10 @@ msgstr "Duplizierte Objekte in eine Kurve einpassen"
 
 msgid "Merge Distance"
 msgstr "Entfernung"
+
+
+msgid "Object Offset"
+msgstr "Objektversatz"
 
 
 msgid "U Offset"
@@ -23715,10 +23679,6 @@ msgid "Plane Tracks"
 msgstr "Ebene Spuren"
 
 
-msgid "Collection of plane tracks in this tracking data object"
-msgstr "Erfassung von Ebenenspuren in diesem Tracking-Datenobjekt"
-
-
 msgid "Tracks"
 msgstr "Spuren"
 
@@ -23971,6 +23931,10 @@ msgid "Unique name of object"
 msgstr "Eindeutiger Objektname"
 
 
+msgid "Collection of plane tracks in this tracking data object"
+msgstr "Erfassung von Ebenenspuren in diesem Tracking-Datenobjekt"
+
+
 msgid "Active track in this tracking data object"
 msgstr "Aktive Spur in diesem Tracking-Datenobjekt"
 
@@ -24009,10 +23973,6 @@ msgstr "Eindeutiger Spurname"
 
 msgid "Auto Keyframe"
 msgstr "Auto-Schlüsselbilder"
-
-
-msgid "Active plane track in this tracking data object"
-msgstr "Aktive Ebenenspur in diesem Tracking-Datenobjekt"
 
 
 msgid "Reconstructed"
@@ -24197,10 +24157,6 @@ msgstr "Beschränken Sie die Geschwindigkeit der Nachverfolgung, um visuelles Fe
 
 msgid "Fastest"
 msgstr "Schnellstes"
-
-
-msgid "Track as fast as it's possible"
-msgstr "So schnell wie möglich verfolgen"
 
 
 msgid "Double"
@@ -24553,14 +24509,6 @@ msgstr "Verborgene anzeigen"
 
 msgid "Custom Group"
 msgstr "Benutzerdefinierte Gruppe"
-
-
-msgid "Interface"
-msgstr "Schnittstelle"
-
-
-msgid "Interface socket data"
-msgstr "Schnittstelle Anschlussdaten"
 
 
 msgid "Convert Premultiplied"
@@ -25189,10 +25137,6 @@ msgstr "Y Zentrieren"
 
 msgid "Spin"
 msgstr "Drehen"
-
-
-msgid "Wrap"
-msgstr "Umschließen"
 
 
 msgid "Zoom"
@@ -27118,6 +27062,10 @@ msgid "Modulo"
 msgstr "Modulo"
 
 
+msgid "Wrap"
+msgstr "Umschließen"
+
+
 msgid "Vector Rotate"
 msgstr "Vektor Rotieren"
 
@@ -27783,7 +27731,7 @@ msgid "Selection to Nearest Frame"
 msgstr "Auswahl zum nähesten Einzelbild"
 
 
-msgid "Snap selected keyframes to the nearest (whole) frame (use to fix accidental sub-frame offsets)"
+msgid "Snap selected keyframes to the nearest (whole) frame (use to fix accidental subframe offsets)"
 msgstr "Ausgewählte Keyframes am nächsten (ganzen) Frame ausrichten (zum Beheben versehentlicher Subframe-Offsets)"
 
 
@@ -29243,15 +29191,6 @@ msgstr "Achse festlegen"
 
 
 msgctxt "Operator"
-msgid "Set Principal to Center"
-msgstr "Drehpunkt"
-
-
-msgid "Set optical center to center of footage"
-msgstr "Optische Mitte auf die Mitte des Filmmaterials setzen"
-
-
-msgctxt "Operator"
 msgid "Set Origin"
 msgstr "Ursprung festlegen"
 
@@ -29880,11 +29819,6 @@ msgstr "Originallänge zurücksetzen"
 msgctxt "Operator"
 msgid "Convert Particle System to Curves"
 msgstr "Partikelsysteme zu Kurven konvertieren"
-
-
-msgctxt "Operator"
-msgid "Disable Selection"
-msgstr "Auswahl deaktivieren"
 
 
 msgctxt "Operator"
@@ -32692,10 +32626,6 @@ msgstr "Schlüssel glätten"
 
 msgid "Selection to Cursor Value"
 msgstr "Auswahl auf Cursorwert"
-
-
-msgid "Snap selected keyframes to the nearest (whole) frame (use to fix accidental subframe offsets)"
-msgstr "Ausgewählte Keyframes am nächsten (ganzen) Frame ausrichten (zum Beheben versehentlicher Subframe-Offsets)"
 
 
 msgctxt "Operator"
@@ -38129,11 +38059,6 @@ msgstr "Winkel der ausgewählten Knoten abflachen"
 
 
 msgctxt "Operator"
-msgid "Sanitize Legacy Pose Library Action"
-msgstr "Aktion \"Legacy-Pose-Bibliothek bereinigen\""
-
-
-msgctxt "Operator"
 msgid "Apply Pose Asset"
 msgstr "Pose Asset anwenden"
 
@@ -38143,29 +38068,8 @@ msgstr "Aktiviere neue Aktion"
 
 
 msgctxt "Operator"
-msgid "New Legacy Pose Library"
-msgstr "Neue Legacy-Pose-Bibliothek"
-
-
-msgctxt "Operator"
 msgid "Select Bones"
 msgstr "Knochenauswahl"
-
-
-msgid "The pose to move"
-msgstr "Die Pose zu bewegen"
-
-
-msgid "The pose to remove"
-msgstr "Die Pose zum löschen"
-
-
-msgid "New name for pose"
-msgstr "Neuer Name für Pose"
-
-
-msgid "The pose to rename"
-msgstr "Pose die umbenannt werden soll"
 
 
 msgid "Selected Only"
@@ -39352,6 +39256,10 @@ msgid "Open Preferences..."
 msgstr "Einstellungen öffnen..."
 
 
+msgid "Interface"
+msgstr "Schnittstelle"
+
+
 msgid "Themes"
 msgstr "Themen"
 
@@ -39375,10 +39283,6 @@ msgstr "Experimentell"
 msgctxt "Operator"
 msgid "Execute a Python Preset"
 msgstr "Führt eine Python-Voreinstellung aus"
-
-
-msgid "Execute a preset"
-msgstr "Voreinstellung ausführen"
 
 
 msgid "Menu ID Name"
@@ -39589,6 +39493,10 @@ msgstr "Contrast erhöhen"
 
 msgid "Decrease Contrast"
 msgstr "Kontrast verringern"
+
+
+msgid "Operator"
+msgstr "Operator"
 
 
 msgctxt "Operator"
@@ -42488,10 +42396,6 @@ msgid "Set the active operator to its default values"
 msgstr "Den Wert dieser Einstellung auf ihren Standardwert zurücksetzen"
 
 
-msgid "Operator"
-msgstr "Operator"
-
-
 msgctxt "Operator"
 msgid "Operator Preset"
 msgstr "Operator-Voreinstellung"
@@ -43212,10 +43116,6 @@ msgid "Disallow changes to the Z axis of vertices"
 msgstr "Änderungen an der Z-Achse von Knoten nicht erlauben"
 
 
-msgid "Show Mask"
-msgstr "Maske anzeigen"
-
-
 msgid "Source and destination for symmetrize operator"
 msgstr "Quelle und Ziel für den Symetrie-Operator"
 
@@ -43459,10 +43359,6 @@ msgstr "Benutzerdefinierter Abstand"
 
 msgid "Contact Shadows"
 msgstr "Kontaktschatten"
-
-
-msgid "Area Shape"
-msgstr "Bereichsform"
 
 
 msgid "Stereoscopy"
@@ -44207,6 +44103,10 @@ msgstr "Textur-Malen Kontextmenü"
 
 msgid "Weights Context Menu"
 msgstr "Gewichtung Kontextmenü"
+
+
+msgid "Pose Library"
+msgstr "Posen-Bibliothek"
 
 
 msgid "3D-Print"
@@ -46237,6 +46137,10 @@ msgid "Limit the texture size to save graphics memory"
 msgstr "Texturgröße begrenzen, um Grafikspeicher zu sparen"
 
 
+msgid "Metal"
+msgstr "Metall"
+
+
 msgid "Image Display Method"
 msgstr "Bild Anzeigemethode"
 
@@ -46805,10 +46709,6 @@ msgid "OptiX"
 msgstr "OptiX"
 
 
-msgid "Metal"
-msgstr "Metall"
-
-
 msgid "Cast Shadow"
 msgstr "Schatten werfen"
 
@@ -47103,10 +47003,6 @@ msgstr "Anzahl zu rendernder Abtastwerte für jedes Pixel"
 
 msgid "Seed value for integrator to get different noise patterns"
 msgstr "Startwert für den Integrator, um verschiedene Rauschmuster zu erzeugen"
-
-
-msgid "Use Open Shading Language (CPU rendering only)"
-msgstr "Verwendet die Open Shading Language (nur für CPU-Rendern)"
 
 
 msgid "Viewport Texture Limit"
@@ -48665,6 +48561,10 @@ msgid "All modifiers"
 msgstr "Alle Modifikatoren"
 
 
+msgid "Bounciness"
+msgstr "Begrenzung"
+
+
 msgid "Enable Deactivation"
 msgstr "Deaktivierung einschalten"
 
@@ -49829,6 +49729,10 @@ msgid "Aero"
 msgstr "Windschnittig"
 
 
+msgid "Dampening"
+msgstr "Dämpfung"
+
+
 msgid "Ball Size"
 msgstr "Ballgröße"
 
@@ -49962,6 +49866,10 @@ msgid "Alpha Channel"
 msgstr "Alphakanal"
 
 
+msgid "Path Length"
+msgstr "Pfadlänge"
+
+
 msgid "Length of displaying path, in frames"
 msgstr "Länge der Pfadanzeige, in Einzelbildern"
 
@@ -50012,6 +49920,10 @@ msgstr "Filter anzeigen"
 
 msgid "Show filters for graph editor"
 msgstr "Filter für Grafeneditor anzeigen"
+
+
+msgid "Navigate Gizmo"
+msgstr "Gizmo steuern"
 
 
 msgid "Show Frames"
@@ -50364,10 +50276,6 @@ msgid "Show handles of Bezier control points"
 msgstr "Griffe von Bezier-Kontrollpunkten anzeigen"
 
 
-msgid "AutoMerge Keyframes"
-msgstr "Autom. Schlüsselbilder verschmelzen"
-
-
 msgid "Auto Normalization"
 msgstr "Automatische Normalisierung"
 
@@ -50454,10 +50362,6 @@ msgstr "Drehpunkt um das aktive Objekt"
 
 msgid "Line Sample"
 msgstr "Linienbeispiel"
-
-
-msgid "Navigate Gizmo"
-msgstr "Gizmo steuern"
 
 
 msgid "Show Mask Editor"
@@ -51443,10 +51347,6 @@ msgstr "Farbe der nicht aktiven Marker"
 
 msgid "Align Handle"
 msgstr "Griffe ausrichten"
-
-
-msgid "Auto-Clamped Handle"
-msgstr "Automatische Griffklemmung"
 
 
 msgid "Align Handle Selected"
@@ -53170,10 +53070,6 @@ msgid "Show random object color"
 msgstr "Irgendeine Objektfarbe anzeigen"
 
 
-msgid "Show texture"
-msgstr "Textur anzeigen"
-
-
 msgid "Cycles Settings"
 msgstr "Ablaufeinstellungen"
 
@@ -54882,10 +54778,6 @@ msgid "Camera Culling"
 msgstr "Kamera herausnehmen"
 
 
-msgid " Max Samples"
-msgstr " Maximale Beispiele"
-
-
 msgid "Min Samples"
 msgstr "Minimale Beispiele"
 
@@ -55051,15 +54943,6 @@ msgstr "Ergebnis"
 msgctxt "Operator"
 msgid "Apply Pose"
 msgstr "Pose anwenden"
-
-
-msgctxt "Operator"
-msgid "Apply"
-msgstr "Anwenden"
-
-
-msgid "Activate & Edit"
-msgstr "Aktivere und Bearbeite"
 
 
 msgid "Demo Mode:"
@@ -55539,6 +55422,10 @@ msgid "Licensed under the GNU General Public License"
 msgstr "Lizensiert unter der GNU General Public License"
 
 
+msgid "%s: %s"
+msgstr "%s: %s"
+
+
 msgid "Nothing to operate on: %s[ ].%s"
 msgstr "Nichts zum arbeiten an: %s[ ].%s"
 
@@ -55712,6 +55599,11 @@ msgid "Type \"%s\" can not be found"
 msgstr "Typ \"%s\" konnte nicht gefunden werden"
 
 
+msgctxt "Operator"
+msgid "Update All Paths"
+msgstr "Alle Pfade aktualisieren"
+
+
 msgid "Frame Numbers"
 msgstr "Einzelbildnummern"
 
@@ -55728,27 +55620,22 @@ msgid "After"
 msgstr "Danach"
 
 
-msgid "Nothing to show yet..."
-msgstr "Aktuell gibt es nichts zu zeigen..."
-
-
-msgctxt "Operator"
-msgid "Update All Paths"
-msgstr "Alle Pfade aktualisieren"
-
-
-msgid "Frame Range Start"
-msgstr "Einzelbildbereich Start"
-
-
 msgctxt "Operator"
 msgid "Update Path"
 msgstr "Pfad aktualisieren"
 
 
+msgid "Nothing to show yet..."
+msgstr "Aktuell gibt es nichts zu zeigen..."
+
+
 msgctxt "Operator"
 msgid "Calculate..."
 msgstr "Berechne..."
+
+
+msgid "Frame Range Start"
+msgstr "Einzelbildbereich Start"
 
 
 msgid "Collection Mask"
@@ -56830,10 +56717,6 @@ msgid "Reaction Speed"
 msgstr "Reaktionsgeschwindigkeit"
 
 
-msgid "Flame Color"
-msgstr "Flammen Farbe"
-
-
 msgid "Particle Radius"
 msgstr "Partikelradius"
 
@@ -56860,6 +56743,10 @@ msgstr "Maschengenerator"
 
 msgid "Bubbles"
 msgstr "Blasen"
+
+
+msgid "Exponent"
+msgstr "Exponent"
 
 
 msgid "Velocity Source"
@@ -56938,10 +56825,6 @@ msgid "Baking Guides - ESC to pause"
 msgstr "Pausenregel - ESC für Pause"
 
 
-msgid "Bounciness"
-msgstr "Begrenzung"
-
-
 msgid "Velocity Linear"
 msgstr "Lineare Geschwindigkeit"
 
@@ -56972,14 +56855,6 @@ msgstr "Z reduzieren"
 
 msgid "Y Lower"
 msgstr "Y reduzieren"
-
-
-msgid "Collision Edge"
-msgstr "Kollisionskante"
-
-
-msgid "Dampening"
-msgstr "Dämpfung"
 
 
 msgid "Step Size Min"
@@ -57110,10 +56985,6 @@ msgid "Unknown add-ons"
 msgstr "Unbekannte Add-Ons"
 
 
-msgid "%s: %s"
-msgstr "%s: %s"
-
-
 msgid "Display Thin"
 msgstr "Dünnes anzeigen"
 
@@ -57176,11 +57047,6 @@ msgstr "Löse Objektbewegung"
 
 msgid "Pixel Aspect"
 msgstr "Pixelaspekt"
-
-
-msgctxt "Operator"
-msgid "Set Center"
-msgstr "Zum Zentrum"
 
 
 msgid "Build Original:"
@@ -57488,10 +57354,6 @@ msgstr "Interpolationsmodus"
 msgctxt "Operator"
 msgid "Easing Mode"
 msgstr "Lockerungsmodus"
-
-
-msgid "Extrapolation Mode"
-msgstr "Extrapolationsmodus"
 
 
 msgid "Grease Pencil Objects"
@@ -58047,11 +57909,6 @@ msgstr "Aktivieren Sie den gleichen Typ Nächster"
 msgctxt "Operator"
 msgid "Make and Replace Links"
 msgstr "Verknüpfungen ersetzen und erzeugen"
-
-
-msgctxt "Operator"
-msgid "Group"
-msgstr "Gruppe"
 
 
 msgid "Inputs:"
@@ -59694,16 +59551,6 @@ msgstr "Sperre Ausgewähltes"
 
 
 msgctxt "Operator"
-msgid "Unlock Selected"
-msgstr "Entsperre nur Ausgewähltes"
-
-
-msgctxt "Operator"
-msgid "Unlock Unselected"
-msgstr "Entsperre nur Unausgewähltes"
-
-
-msgctxt "Operator"
 msgid "Lock Only Selected"
 msgstr "Sperre nur Ausgewähltes"
 
@@ -59711,6 +59558,16 @@ msgstr "Sperre nur Ausgewähltes"
 msgctxt "Operator"
 msgid "Lock Only Unselected"
 msgstr "Sperre nur Unausgewähltes"
+
+
+msgctxt "Operator"
+msgid "Unlock Selected"
+msgstr "Entsperre nur Ausgewähltes"
+
+
+msgctxt "Operator"
+msgid "Unlock Unselected"
+msgstr "Entsperre nur Unausgewähltes"
 
 
 msgctxt "Operator"
@@ -59750,16 +59607,6 @@ msgstr "Verformung fixieren"
 
 msgid "Locks"
 msgstr "Sperren"
-
-
-msgctxt "Operator"
-msgid "Show Bounding Box"
-msgstr "Begrenzungsrahmen zeigen"
-
-
-msgctxt "Operator"
-msgid "Hide Bounding Box"
-msgstr "Begrenzungsrahmen ausblenden"
 
 
 msgctxt "Operator"
@@ -60788,6 +60635,11 @@ msgstr "Schnell bearbeiten"
 
 
 msgctxt "Operator"
+msgid "Apply"
+msgstr "Anwenden"
+
+
+msgctxt "Operator"
 msgid "Apply Camera Image"
 msgstr "Kamerabild anwenden"
 
@@ -61544,34 +61396,6 @@ msgid "Separated bones"
 msgstr "Getrennte Knochen"
 
 
-msgid "Add New"
-msgstr "Neues hinzufügen"
-
-
-msgid "Add New (Current Frame)"
-msgstr "Neues hinzufügen (Aktuelles Einzelbild)"
-
-
-msgid "Replace Existing..."
-msgstr "Erstetze Existierendes..."
-
-
-msgid "No action to validate"
-msgstr "Keine Aktion zu prüfen"
-
-
-msgid "Object does not have pose lib data"
-msgstr "Objekt hat keine Posenbibliotheksdaten"
-
-
-msgid "Invalid index for pose"
-msgstr "Ungültiger Index für Pose"
-
-
-msgid "Object does not have a valid pose lib"
-msgstr "Objekt hat keine gültige Posenbibliothek"
-
-
 msgid "[H] - Toggle bone visibility"
 msgstr "[H] - Knochensichtbarkeit umschalten"
 
@@ -61995,40 +61819,8 @@ msgid "Hex"
 msgstr "Hex"
 
 
-msgid "R:"
-msgstr "R:"
-
-
-msgid "G:"
-msgstr "G:"
-
-
-msgid "B:"
-msgstr "B:"
-
-
-msgid "H:"
-msgstr "H:"
-
-
-msgid "S:"
-msgstr "S:"
-
-
-msgid "L:"
-msgstr "L:"
-
-
-msgid "V:"
-msgstr "V:"
-
-
-msgid "A: "
-msgstr "A: "
-
-
-msgid "Hex: "
-msgstr "Hex: "
+msgid "Value:"
+msgstr "Wert:"
 
 
 msgid "(Gamma Corrected)"
@@ -63842,10 +63634,6 @@ msgid "Add Input Variable"
 msgstr "Eingabewert hinzufügen"
 
 
-msgid "Value:"
-msgstr "Wert:"
-
-
 msgid "Update Dependencies"
 msgstr "Abhängigkeiten aktualisieren"
 
@@ -64110,6 +63898,10 @@ msgid "NodeTree"
 msgstr "Knotenbaum"
 
 
+msgid " (String)"
+msgstr " (String)"
+
+
 msgid " (Integer)"
 msgstr " (Integer)"
 
@@ -64132,10 +63924,6 @@ msgstr "Falsch"
 
 msgid " (Boolean)"
 msgstr " (Boolean)"
-
-
-msgid " (String)"
-msgstr " (String)"
 
 
 msgid "Integer field"

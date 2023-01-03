@@ -1,9 +1,9 @@
 
 msgid ""
 msgstr ""
-"Project-Id-Version: Blender 3.4.0 Alpha (b'a6b83617e9de')\n"
+"Project-Id-Version: Blender 3.5.0 Alpha (b'09ba00974f8f')\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-10-17 10:12:11\n"
+"POT-Creation-Date: 2020-01-01 00:00:00\n"
 "PO-Revision-Date: 2015-03-03 16:21+0530\n"
 "Last-Translator: Roshan Lal Gumasta <roshan@anisecrets.com>\n"
 "Language-Team: Hindi <www.anisecrets.com>\n"
@@ -2006,10 +2006,6 @@ msgid "Half"
 msgstr "अर्ध"
 
 
-msgid "Path Length"
-msgstr "पथ लंबाई"
-
-
 msgid "Resolution U"
 msgstr "बिंदू विस्तार u"
 
@@ -2855,10 +2851,6 @@ msgid "Flip"
 msgstr "पलटें"
 
 
-msgid "Edit"
-msgstr "संपादन"
-
-
 msgctxt "MovieClip"
 msgid "Clip"
 msgstr "छांटन"
@@ -2895,6 +2887,10 @@ msgstr "संरेखित करें"
 msgctxt "Operator"
 msgid "Add"
 msgstr "जोड़ें"
+
+
+msgid "Edit"
+msgstr "संपादन"
 
 
 msgid "Converter"
@@ -3286,10 +3282,6 @@ msgid "Spin"
 msgstr "चक्रण"
 
 
-msgid "Wrap"
-msgstr "आच्छादन"
-
-
 msgid "Zoom"
 msgstr "निकट करें"
 
@@ -3392,6 +3384,10 @@ msgstr "प्रक्षेपण"
 
 msgid "Air"
 msgstr "वायु"
+
+
+msgid "Wrap"
+msgstr "आच्छादन"
 
 
 msgid "At"
@@ -4288,6 +4284,10 @@ msgid "Sculpt"
 msgstr "गढन"
 
 
+msgid "Operator"
+msgstr "संचालक"
+
+
 msgctxt "Operator"
 msgid "Sculpt Mode"
 msgstr "शिल्प रूप"
@@ -4583,10 +4583,6 @@ msgstr "एक ब्लेंडर संचिका खोलें"
 
 msgid "Trusted Source"
 msgstr "विश्वसनीय स्रोत"
-
-
-msgid "Operator"
-msgstr "संचालक"
 
 
 msgid "Context"
@@ -5133,6 +5129,10 @@ msgid "Spring Vertex Group"
 msgstr "लचक शिरोबिन्दु समूह"
 
 
+msgid "Path Length"
+msgstr "पथ लंबाई"
+
+
 msgctxt "MovieClip"
 msgid "View"
 msgstr "दृश्य"
@@ -5441,10 +5441,6 @@ msgid "Assign"
 msgstr "निर्दिष्ट"
 
 
-msgid "Cameras & Markers (.py)"
-msgstr "प्रतिबिंबकएवं चिन्हक (.py)"
-
-
 msgid "Position:"
 msgstr "स्थिति:"
 
@@ -5467,11 +5463,6 @@ msgstr "ठोस"
 msgctxt "Operator"
 msgid "Export"
 msgstr "निर्यात करें"
-
-
-msgctxt "Operator"
-msgid "Apply"
-msgstr "लागू करें"
 
 
 msgid "Save to PO File"
@@ -6229,6 +6220,11 @@ msgid "Quick Edit"
 msgstr "त्वरित संपादन"
 
 
+msgctxt "Operator"
+msgid "Apply"
+msgstr "लागू करें"
+
+
 msgid "No AnimData to set action on"
 msgstr "कार्य पर स्थापित करने के लिए कोई अनुप्राणन सामग्री नहीं"
 
@@ -6446,10 +6442,6 @@ msgid "Same bone selected..."
 msgstr "एक ही हड्डी का चयन किया..."
 
 
-msgid "Add New"
-msgstr "नया जोड़ें"
-
-
 msgctxt "Curve"
 msgid "Surface"
 msgstr "सतह"
@@ -6522,6 +6514,10 @@ msgstr "शॉर्टकट हटाएँ"
 
 msgid "Hex"
 msgstr "हेक्स"
+
+
+msgid "Value:"
+msgstr "मान:"
 
 
 msgid "Pos"
@@ -6892,10 +6888,6 @@ msgstr "रद्द करें"
 
 msgid "File name"
 msgstr "संचिका का नाम"
-
-
-msgid "Value:"
-msgstr "मान:"
 
 
 msgid "Add Modifier"

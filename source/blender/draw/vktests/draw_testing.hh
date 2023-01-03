@@ -1,9 +1,48 @@
 /* SPDX-License-Identifier: Apache-2.0 */
+#ifndef DRAW_TESTING_HEADER
+#define DRAW_TESTING_HEADER
+
+//#define DRAW_GTEST_SUITE
 
 
+#include "CLG_log.h"
+#include "BKE_global.h"
+#include "GHOST_C-api.h"
+#include  "vulkan/vk_context.hh"
+#include "gpu_capabilities_private.hh"
+#include "gpu_immediate_private.hh"
+
+
+#ifndef DRAW_GTEST_SUITE
+
+
+struct GPUContext;
+
+namespace blender::draw {
+    class GPUTest {
+
+    private:
+        GHOST_SystemHandle ghost_system;
+        GHOST_ContextHandle ghost_context;
+        GHOST_WindowHandle ghost_window;
+        GPUContext* context;
+        GHOST_TDrawingContextType draw_context_type = GHOST_kDrawingContextTypeVulkan;
+
+    public:
+        GPUTest()
+        {
+        }
+
+        void SetUp();
+        void TearDown();
+
+        void test_capabilities();
+        void test_icon();
+    };
+};
+#else
 #include "testing/testing.h"
 
-#include "GHOST_C-api.h"
 struct GPUContext;
 
 namespace blender::draw {
@@ -50,3 +89,6 @@ class DrawVulkanTest : public GPUVulkanTest {
   }
 
 }  // namespace blender::draw
+#endif
+
+#endif

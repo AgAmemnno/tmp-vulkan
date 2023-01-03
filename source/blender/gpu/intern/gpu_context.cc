@@ -14,7 +14,9 @@
 
 /* TODO: Create cmake option. */
 #if WITH_OPENGL
+#ifndef WITH_VULKAN_BACKEND
 #  define WITH_OPENGL_BACKEND 1
+#endif
 #endif
 
 #include "BLI_assert.h"
@@ -227,11 +229,14 @@ void GPU_render_step()
  * Until a global switch is added, Metal also needs to be enabled in GHOST_ContextCGL:
  * `m_useMetalForRendering = true`. */
 static eGPUBackendType g_backend_type = GPU_BACKEND_OPENGL;
+static std::optional<eGPUBackendType> g_backend_type_override = std::nullopt;
+static std::optional<bool> g_backend_type_supported = std::nullopt;
 static GPUBackend *g_backend = nullptr;
 
 void GPU_backend_type_selection_set(const eGPUBackendType backend)
 {
   g_backend_type = backend;
+  g_backend_type_supported = std::nullopt;
 }
 
 eGPUBackendType GPU_backend_type_selection_get()
@@ -239,7 +244,44 @@ eGPUBackendType GPU_backend_type_selection_get()
   return g_backend_type;
 }
 
-bool GPU_backend_supported(void)
+void GPU_backend_type_selection_set_override(const eGPUBackendType backend_type)
+{
+  g_backend_type_override = backend_type;
+}
+
+bool GPU_backend_type_selection_is_overridden(void)
+{
+  return g_backend_type_override.has_value();
+}
+
+bool GPU_backend_type_selection_detect(void)
+{
+  blender::Vector<eGPUBackendType> backends_to_check;
+  if (GPU_backend_type_selection_is_overridden()) {
+    backends_to_check.append(*g_backend_type_override);
+  }
+  else {
+    backends_to_check.append(GPU_BACKEND_OPENGL);
+  }
+
+  /* Add fallback to OpenGL when Metal backend is requested on a platform that doens't support
+   * metal. */
+  if (backends_to_check[0] == GPU_BACKEND_METAL) {
+    backends_to_check.append(GPU_BACKEND_OPENGL);
+  }
+
+  for (const eGPUBackendType backend_type : backends_to_check) {
+    GPU_backend_type_selection_set(backend_type);
+    if (GPU_backend_supported()) {
+      return true;
+    }
+  }
+
+  GPU_backend_type_selection_set(GPU_BACKEND_NONE);
+  return false;
+}
+
+static bool gpu_backend_supported()
 {
   switch (g_backend_type) {
     case GPU_BACKEND_OPENGL:
@@ -250,7 +292,7 @@ bool GPU_backend_supported(void)
 #endif
     case GPU_BACKEND_VULKAN:
 #ifdef WITH_VULKAN_BACKEND
-      return true;//VKBackend::vulkan_is_supported();
+      return true;
 #else
       return false;
 #endif
@@ -266,27 +308,35 @@ bool GPU_backend_supported(void)
   }
 }
 
+bool GPU_backend_supported()
+{
+  if (!g_backend_type_supported.has_value()) {
+    g_backend_type_supported = gpu_backend_supported();
+  }
+  return *g_backend_type_supported;
+}
+
 static void gpu_backend_create()
 {
   BLI_assert(g_backend == nullptr);
   BLI_assert(GPU_backend_supported());
 
   switch (g_backend_type) {
-
+#ifdef WITH_OPENGL_BACKEND
+    case GPU_BACKEND_OPENGL:
+      g_backend = new GLBackend;
+      break;
+#endif
 #ifdef WITH_VULKAN_BACKEND
     case GPU_BACKEND_VULKAN:
       g_backend = new VKBackend;
       break;
-#elif WITH_OPENGL_BACKEND
-    case GPU_BACKEND_OPENGL:
-      g_backend = new GLBackend;
-      break;
-#elif WITH_METAL_BACKEND
+#endif
+#ifdef WITH_METAL_BACKEND
     case GPU_BACKEND_METAL:
       g_backend = new MTLBackend;
       break;
 #endif
-
     default:
       BLI_assert(0);
       break;
@@ -315,14 +365,15 @@ eGPUBackendType GPU_backend_get_type()
   }
 #endif
 
-#ifdef WITH_VULKAN_BACKEND
-  else if (g_backend && dynamic_cast<VKBackend *>(g_backend) != nullptr) {
-    return GPU_BACKEND_VULKAN;
-  }
-#endif
 #ifdef WITH_METAL_BACKEND
   if (g_backend && dynamic_cast<MTLBackend *>(g_backend) != nullptr) {
     return GPU_BACKEND_METAL;
+  }
+#endif
+
+#ifdef WITH_VULKAN_BACKEND
+  if (g_backend && dynamic_cast<VKBackend *>(g_backend) != nullptr) {
+    return GPU_BACKEND_VULKAN;
   }
 #endif
 

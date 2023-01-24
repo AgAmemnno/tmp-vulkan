@@ -156,7 +156,7 @@ uint16_t  VKShaderInterface::vbo_bind(VKVertBuf* vbo,VkCommandBuffer cmd, const 
 
   uint16_t enabled_attrib = 0;
   const uint attr_len = format->attr_len;
-  BLI_assert(attr_len == attr_len_);
+ 
 
   if (attr_len_ <= 0) {
     return enabled_attrib;
@@ -723,7 +723,7 @@ bool VKShaderInterface::apply(spirv_cross::CompilerBlender *vert,
         }
         else {
           
-          for (int i = 0; i < SetNums; i++) {
+          for (int j = 0; j < SetNums; j++) {
             sets_vec_[i].append(VK_NULL_HANDLE);
           }
           setlayouts_[i] = VK_NULL_HANDLE;

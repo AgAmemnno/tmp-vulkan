@@ -1812,7 +1812,7 @@ static void icon_draw_texture(float x,
     GPU_shader_uniform_vector(shader, color_loc, 4, 1, color);
   }
 
-  const float tex_color[4] = {x1, y1, x2, y2};
+  const float tex_color[4] = { 0.,0.,1.,1. };/// {x1, y1, x2, y2};
   const float geom_color[4] = {x, y, x + w, y + h};
 
   GPU_shader_uniform_vector(shader, rect_tex_loc, 4, 1, tex_color);
@@ -2509,7 +2509,7 @@ void UI_icon_draw_preview(float x, float y, int icon_id, float aspect, float alp
                  icon_id,
                  aspect,
                  alpha,
-                 ICON_SIZE_PREVIEW,
+    ICON_SIZE_ICON,
                  size,
                  false,
                  nullptr,

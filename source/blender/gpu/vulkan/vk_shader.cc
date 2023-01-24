@@ -1211,6 +1211,9 @@ std::string VKShader::vertex_interface_declare(const shader::ShaderCreateInfo &i
     }else  if ("gpu_shader_2D_widget_base" == info.name_) {
       //post_main += "debugPrintfEXT(\"Here position   %v3f  \",parameters[widgetID * MAX_PARAM + 1].xyz);\n\n";
     }
+    else if("gpu_shader_icon" ==  info.name_) {
+      post_main += "debugPrintfEXT(\"Here texCoord_interp   %v2f  \",texCoord_interp.xy);\n\n"; 
+    }
 
     ss << main_function_wrapper(pre_main, post_main);
   }
@@ -1316,6 +1319,9 @@ std::string VKShader::fragment_interface_declare(const shader::ShaderCreateInfo 
     std::string post_main ="";  ///"debugPrintfEXT(\"Here Frag texco %v2f    color %v4f \",texCoord_interp,color);";
     if ("gpu_shader_2D_image_multi_rect_color" == info.name_) {
       post_main += "debugPrintfEXT(\"Here  texCoord %v2f finalColor  %v4f  \",texCoord_interp,finalColor);\n\n";
+    }
+    else if ("gpu_shader_icon" == info.name_) {
+      pre_main +=  "vec4 fragColor_ = texture(image, texCoord_interp); \n debugPrintfEXT(\"Here  sampling  %v4f  color uniform %v4f  \",fragColor_,color);\n\n";
     }
     
     ss << main_function_wrapper(pre_main, post_main);

@@ -286,6 +286,9 @@ namespace blender::gpu {
       return;
 
     auto context_ = VKContext::get();
+    
+    VKStateManager::set_prim_type(prim_type);
+
     auto fb_ = static_cast<VKFrameBuffer*>(context_->active_fb);
     VkCommandBuffer cmd = fb_->render_begin(VK_NULL_HANDLE, VK_COMMAND_BUFFER_LEVEL_PRIMARY, (VkClearValue*)nullptr, false);
 
@@ -305,6 +308,8 @@ namespace blender::gpu {
     auto image_index = context_->get_current_image_index();
 
     VKShader* vkshader = reinterpret_cast<VKShader*>(shader);
+    vkshader->CreatePipeline(fb_->get_render_pass());
+
     auto current_pipe_ = vkshader->get_pipeline();
     BLI_assert(current_pipe_ != VK_NULL_HANDLE);
 

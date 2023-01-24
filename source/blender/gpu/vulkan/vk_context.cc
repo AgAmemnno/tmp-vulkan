@@ -344,7 +344,7 @@ void VKContext::orphans_clear()
    /* Any context can free. */
    if (VKContext::get()) {
      if (buf) {
-       MEM_freeN(buf);
+       delete buf;
      }
    }
    else {
@@ -358,7 +358,7 @@ void VKContext::orphans_clear()
 
    if (this == VKContext::get()) {
      if (buf) {
-       MEM_freeN(buf);
+       delete buf;
      }
    }
    else {

@@ -126,7 +126,7 @@ void GPUTest::SetUp()
       NULL,
       "Blender gpu_test",
       0,
-      0,1024,1024,
+      0,1920,1024,
       //1920,
       //1080,
       //(GHOST_TWindowState)GHOST_kWindowStateMinimized,
@@ -206,10 +206,9 @@ int main(int argc,
     DRAW_TEST_STAND_ALONE_RAW(ListBaseIter)
     DRAW_TEST_STAND_ALONE_RAW(ParallelInvoke)
     DRAW_TEST_STAND_ALONE_RAW(Task)
-
     DRAW_TEST_STAND_ALONE(capabilities)
-   
-    
+ 
+
     DRAW_TEST_STAND_ALONE(icon)
     
     return 0;

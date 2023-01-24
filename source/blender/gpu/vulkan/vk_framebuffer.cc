@@ -417,7 +417,15 @@ void VKFrameBuffer::blit_to(eGPUFrameBufferBits planes,
 
   VKFrameBuffer* src = this;
   VKFrameBuffer* dst = static_cast<VKFrameBuffer*>(dst_);
-  
+  if (dst->wait_sema.size() != 1) {
+    return;
+  }
+
+  BLI_assert(dst->wait_sema[0] == src->get_signal());
+ 
+
+
+
   /* Frame-buffers must be up to date. This simplify this function. */
   if (src->dirty_attachments_) {
     src->bind(true);
@@ -587,7 +595,8 @@ void VKFrameBuffer::blit_to(eGPUFrameBufferBits planes,
 #endif
   /* Ensure previous buffer is restored. */
   context_->active_fb = dst;
-
+  offscreen_render_times_ = 0;
+  
 };
 
 
@@ -770,7 +779,7 @@ void VKFrameBuffer::render_end() {
   flight_ticket_ = -1;
   cmd_refs = 0;
   is_dirty_render_ = true;
-
+  wait_sema.clear();
 };
 
 void  VKFrameBuffer::create_swapchain_frame_buffer(int i) {

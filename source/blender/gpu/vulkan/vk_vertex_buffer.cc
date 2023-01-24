@@ -42,7 +42,7 @@ void VKVertBuf::release_data()
   if (is_wrapper_) {
     return;
   }
-
+ 
   if (vbo_id_ != 0) {  
     size_t  vbo_size_ = vbo_id_->get_buffer_size();
     size_t  vbo_size_gpu = vbo_id_->get_size();

@@ -15,7 +15,8 @@
 #include "wm_draw.h"
 
 #include "vulkan/vk_framebuffer.hh"
-
+#include "IMB_imbuf.h"
+#include "IMB_imbuf_types.h"
 
 
 namespace blender::gpu {
@@ -61,12 +62,15 @@ void Blender_Init_Stub() {
     UI_theme_init_default();
     UI_style_init_default();
     UI_init();
+    //UI_icons_init();
     immActivate();
-
+    
+    UI_icons_reload_internal_textures();
 }
 
 void Blender_Exit_Stub() {
     immDeactivate();
+    UI_icons_free();
     UI_exit();
     BLF_exit();
     BKE_blender_userdef_data_free(&U, true);
@@ -78,7 +82,39 @@ void Blender_Exit_Stub() {
 }
 
 namespace blender::draw {
+  struct IconImage {
+    int w;
+    int h;
+    uint* rect;
+    const uchar* datatoc_rect;
+    int datatoc_size;
+  };
 
+  struct DrawInfo {
+    int type;
+    union {
+
+      struct {
+        ImBuf* image_cache;
+        bool inverted;
+      } geom;
+      struct {
+        IconImage* image;
+      } buffer;
+      struct {
+        int x, y, w, h;
+        int theme_color;
+      } texture;
+      struct {
+        /* Can be packed into a single int. */
+        short event_type;
+        short event_value;
+        int icon;
+        /* Allow lookups. */
+        struct DrawInfo* next;
+      } input;
+    } data;
+  };
   static void wm_draw_offscreen_texture_parameters(GPUOffScreen* offscreen)
   {
     /* Setup offscreen color texture for drawing. */
@@ -111,6 +147,78 @@ namespace blender::draw {
     //region->draw_buffer->bound_view = view;
 }
 
+  static void icon_verify_datatoc(IconImage* iimg)
+  {
+    /* if it has own rect, things are all OK */
+    if (iimg->rect) {
+      return;
+    }
+
+    if (iimg->datatoc_rect) {
+      ImBuf* bbuf = IMB_ibImageFromMemory(
+        iimg->datatoc_rect, iimg->datatoc_size, IB_rect, nullptr, "<matcap icon>");
+      /* w and h were set on initialize */
+      if (bbuf->x != iimg->h && bbuf->y != iimg->w) {
+        IMB_scaleImBuf(bbuf, iimg->w, iimg->h);
+      }
+
+      iimg->rect = bbuf->rect;
+      bbuf->rect = nullptr;
+      IMB_freeImBuf(bbuf);
+    }
+
+  }
+  static void _icon_draw_texture(float x,
+    float y,
+    float w,
+    float h,
+    float alpha,
+    const float rgb[3],
+    GPUTexture* texture)
+  {
+
+    const IconTextOverlay* text_overlay = nullptr;
+
+    /* We need to flush widget base first to ensure correct ordering. */
+    UI_widgetbase_draw_cache_flush();
+
+    GPU_blend(GPU_BLEND_ALPHA_PREMULT);
+    
+    GPUShader* shader = GPU_shader_get_builtin_shader(GPU_SHADER_ICON);
+    GPU_shader_bind(shader);
+
+    const int img_binding = GPU_shader_get_texture_binding(shader, "image");
+    const int color_loc = GPU_shader_get_builtin_uniform(shader, GPU_UNIFORM_COLOR);
+    const int rect_tex_loc = GPU_shader_get_uniform(shader, "rect_icon");
+    const int rect_geom_loc = GPU_shader_get_uniform(shader, "rect_geom");
+
+    if (rgb) {
+      const float color[4] = { rgb[0], rgb[1], rgb[2], alpha };
+      GPU_shader_uniform_vector(shader, color_loc, 4, 1, color);
+    }
+    else {
+      const float color[4] = { alpha, alpha, alpha, alpha };
+      GPU_shader_uniform_vector(shader, color_loc, 4, 1, color);
+    }
+
+    const float tex_color[4] = { 0.,0.,1.,1. };/// {x1, y1, x2, y2};
+    const float geom_color[4] = { x, y, x + w, y + h };
+
+    GPU_shader_uniform_vector(shader, rect_tex_loc, 4, 1, tex_color);
+    GPU_shader_uniform_vector(shader, rect_geom_loc, 4, 1, geom_color);
+    GPU_shader_uniform_1f(shader, "text_width", 0.f);
+
+    GPU_texture_bind_ex(texture, GPU_SAMPLER_ICON, img_binding, false);
+
+    GPUBatch* quad = GPU_batch_preset_quad();
+    GPU_batch_set_shader(quad, shader);
+    GPU_batch_draw(quad);
+
+    GPU_texture_unbind(texture);
+
+    GPU_blend(GPU_BLEND_ALPHA);
+  }
+
 
 #ifndef DRAW_GTEST_SUITE
         void GPUTest::test_icon()
@@ -122,94 +230,103 @@ namespace blender::draw {
    using namespace blender::gpu;
 
    Blender_Init_Stub();
-   UI_icons_reload_internal_textures();
-
-/*For Immediate draw.*/
-#if 1
-  Vector<int> Icon3;
-  for (int i = 775; i < BIFICONID_LAST; i++) {
-   
-    auto icon = BKE_icon_get(i);
-    if (icon) {
-      if (icon->drawinfo) {
-        auto type = ((int *)icon->drawinfo)[0];
-        if (type == 3) {
-          Icon3.append(i);
-          if (Icon3.size() == 1)
-             break;
-        }
-      }
-    }
-  }
-#endif
-
 
 
   ARegion region;
-  region.winx = 512;// 1415;
+  region.winx = 1024;// 1415;
   region.winy = 512;// 32;
   auto vkcontext = VKContext::get();
- GPUOffScreen* offscreen = GPU_offscreen_create(
-   region.winx, region.winy, false, GPU_RGBA8, NULL);
- GPU_offscreen_bind(offscreen, false);
- VKFrameBuffer* ofs_fb = static_cast<VKFrameBuffer*> (vkcontext->active_fb);
+  VKFrameBuffer* swfb = static_cast<VKFrameBuffer*> (vkcontext->active_fb);
+
+  GPUOffScreen* offscreen = GPU_offscreen_create(
+    region.winx, region.winy, false, GPU_RGBA8, NULL);
+  GPU_offscreen_bind(offscreen, false);
+  VKFrameBuffer* ofs_fb = static_cast<VKFrameBuffer*> (vkcontext->active_fb);
 
   wm_draw_offscreen_texture_parameters(offscreen);
   wm_draw_region_bind(&region, 0);
-  GPU_clear_color(0.5,0.1,0.1, 1.f);
+  GPU_clear_color(0.5, 0.1, 0.1, 1.f);
   GPU_blend(GPU_BLEND_ALPHA_PREMULT);
+  uchar color[4] = { 200, 200, 200, 200 };
+  float X[4] = { 12.5, 0., -1., 0. };
+  float Y[4] = { 5.5, -1., 0., 0. };
+  float SX[4] = { 0, 256, 0, 256 };
+  float SY[4] = { 0, 0, 256,256 };
+  int cnt = 0;
+  float aspect = 0.8;
+  const int draw_size = 16;
+  GPU_viewport(0, 0, region.winx, region.winy);
+  const uchar mono_color[4] = { 217,217 ,217, 255 };
+  const bool mono_border = false;
+  const IconTextOverlay* text_overlay = nullptr;
+  float desaturate = 0.f;
+  bool BATCH = true;
+  /* A test to render while toggling the queue. */
+  for (int iconId = 780/*16*/; iconId < BIFICONID_LAST; iconId++) {
 
+    //UI_icon_draw_cache_begin();
+    
+    Icon* icon = BKE_icon_get(iconId);
 
-  UI_icon_draw_cache_begin();
+    /*Offscreen draw.*/
+    if (icon && icon->drawinfo && ((int*)icon->drawinfo)[0] == 3)
+    {
+      GPU_offscreen_bind(offscreen, false);
+      GPU_clear_color(0.5, 0.1, 0.1, 1.f);
+      GPU_scissor(0,0, region.winx, region.winy);
 
+      /*VKImmediate draw*/
+      {
+        const int size = 1;
+        UI_icon_draw_preview(-1., -1., iconId, 1.0f, 1.f, size);
+       }
+      /*VKBatch draw*/
+      {
+        GPUTexture* tex = nullptr;
+        DrawInfo* di = static_cast<DrawInfo*>(icon->drawinfo);
+        /* scale width and height according to aspect */
+        icon_verify_datatoc(di->data.buffer.image);
+        int w = (int)(di->data.buffer.image->w);
+        int h = (int)(di->data.buffer.image->h);
 
+        tex = GPU_texture_create_2d("batchtest.tex", w, h, 2, GPU_RGBA8, NULL);
+        GPU_texture_update(tex, GPU_DATA_UBYTE, di->data.buffer.image->rect);
+        const float rgb[3] = { 1.,1.,1. };
+        _icon_draw_texture(0, 0, 1., 1., 1., rgb, tex);
 
-#if 1
-  //vkcontext->begin_frame();
-  //vkcontext->begin_submit(Icon3.size());
+        GPU_texture_unbind(tex);
+        GPU_texture_free(tex);
+        /* }
+          else {
+            if (G.debug & G_DEBUG) {
+              printf("%s: Internal error, no icon for icon ID: %d\n", __func__, iconId);
+            }
+            return;
+          }
+          */
 
-  if (true)
-  {
-    const float aspect = U.inv_dpi_fac;
-    uchar color[4] = {200, 200, 200, 200};
-    float X[4] = {-1., 0., -1., 0.};
-    float Y[4] = {-1., -1., 0., 0.};
-    float SX[4] = {0, 256, 0, 256};
-    float SY[4] = {0, 0, 256,256};
-    int cnt = 0;
-    GPU_viewport(0, 0, 512, 512);
-
-    for (auto &iconId : Icon3) {
-
-      const int size = 1;
-      /// UI_icon_draw_ex(0, 0, iconId, aspect, 1.f, 0.0f, color, false, nullptr);
-      GPU_scissor(SX[cnt], SY[cnt], 256, 256);
-      UI_icon_draw_preview(X[cnt], Y[cnt], iconId, 1.0f, 1.f, size);
+      }
       cnt++;
- 
+      swfb->append_wait_semaphore(ofs_fb->get_signal());
     }
+
+    GPU_framebuffer_restore();
+
+    /*Blit to swapchain.*/
+    {
+
+      
+      swfb->render_begin(VK_NULL_HANDLE, VK_COMMAND_BUFFER_LEVEL_PRIMARY, nullptr, true);
+      ofs_fb->blit_to(GPU_COLOR_BIT, 0, swfb, 0, 0, 0);
+      swfb->render_end();
+    };
+
   }
 
-  GPU_framebuffer_restore();
 
- {
-    VKFrameBuffer* swfb = static_cast<VKFrameBuffer*> (vkcontext->active_fb);
-    swfb->append_wait_semaphore(ofs_fb->get_signal());
-    swfb->render_begin(VK_NULL_HANDLE, VK_COMMAND_BUFFER_LEVEL_PRIMARY, nullptr, true);
-    ofs_fb->blit_to(GPU_COLOR_BIT, 0, swfb, 0, 0, 0);
-    swfb->render_end();
- };
-
-  //vkcontext->end_submit();
-  //vkcontext->end_frame();
-#endif
-
-
-  UI_icon_draw_cache_end();
-
-
+  //UI_icon_draw_cache_end();
   GPU_offscreen_free(offscreen);
-  UI_icons_free();
+
   Blender_Exit_Stub();
 
 

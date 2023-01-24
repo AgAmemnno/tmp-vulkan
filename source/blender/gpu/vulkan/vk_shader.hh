@@ -154,12 +154,68 @@ class VKShader : public Shader {
 
 
   void append_write_descriptor(VKTexture *tex,eGPUSamplerState samp_state,uint binding);
+  void append_write_descriptor(VkDescriptorSet set, void* data, VkDeviceSize size, uint binding);
+  template<typename T >
+  void  append_write_descriptor(uint setid, uint binding, VkDescriptorType type,T& info)
+  {
+
+    int swapID = context_->get_current_image_index();
+    auto vkinterface = (VKShaderInterface*)(interface);
+    auto Set = vkinterface->sets_vec_[setid][swapID];
+
+
+    VkWriteDescriptorSet writeDescriptorSet{};
+    write_descs_.append(writeDescriptorSet);
+    auto& desc = write_descs_.last();
+    desc.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    desc.descriptorType = type;
+    
+
+    switch (type)
+    {
+    case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+    case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+    case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+      desc.pBufferInfo = &info;
+      break;
+    /*TODO :: TEXEL_BUFFER*/
+    case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+    case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+      BLI_assert(false);
+      break;
+
+    case VK_DESCRIPTOR_TYPE_SAMPLER:
+    case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+    case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+    case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+    case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT:
+    case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
+    case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV:
+    case VK_DESCRIPTOR_TYPE_MUTABLE_VALVE:
+    case VK_DESCRIPTOR_TYPE_MAX_ENUM:
+    default:
+      BLI_assert(false);
+      break;
+    };
+
+
+
+    desc.dstSet = Set;
+    desc.dstBinding = binding;
+    desc.descriptorCount = 1;
+    desc.pNext = NULL;
+
+
+
+    // vkUpdateDescriptorSets(VK_DEVICE, write_descs_.size(), write_descs_.data(), 0, NULL);
+  };
   bool update_descriptor_set();
 
 
   void uniform_float(int location, int comp_len, int array_size, const float *data) override;
   void uniform_int(int location, int comp_len, int array_size, const int *data) override;
-
 
   int program_handle_get() const override
   {
@@ -169,11 +225,13 @@ class VKShader : public Shader {
 
   void set_interface(VKShaderInterface *interface);
   VkPipeline CreatePipeline(VkRenderPass renderpass);
-
+  
 
   VkCommandBuffer current_cmd_ = VK_NULL_HANDLE;
   VkPipelineLayout current_layout_ = VK_NULL_HANDLE;
   Vector<VkWriteDescriptorSet> write_descs_;
+  Vector<VkWriteDescriptorSetInlineUniformBlockEXT>  write_iub_;
+  uint16_t                                                                           attr_mask_unbound_;
 
  private:
   bool is_valid_ = false;
@@ -196,3 +254,4 @@ class VKLogParser : public GPULogParser {
 
 }  // namespace gpu
 }  // namespace blender
+

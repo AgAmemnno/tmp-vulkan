@@ -1630,6 +1630,7 @@ static void icon_draw_cache_texture_flush_ex(GPUTexture *texture,
 
   GPUBatch *quad = GPU_batch_preset_quad();
   GPU_batch_set_shader(quad, shader);
+
   GPU_batch_draw_instanced(quad, texture_draw_calls->calls);
 
   GPU_texture_unbind(texture);

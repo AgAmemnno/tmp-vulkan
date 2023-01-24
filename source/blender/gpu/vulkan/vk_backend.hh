@@ -20,9 +20,17 @@ class VKBackend : public GPUBackend {
 
  private:
    VKSharedOrphanLists shared_orphan_list_;
+   VkCommandBuffer               backend_prim_cmd_;
+   VKContext*                            context_ = nullptr;
+   VKContext*                           ofs_context_ = nullptr;
  public:
-  ~VKBackend();
 
+   VKBackend();
+  ~VKBackend();
+  VKSharedOrphanLists& shared_orphan_list_get()
+  {
+    return shared_orphan_list_;
+  };
   void delete_resources() override;
 
   void samplers_update() override;
@@ -52,7 +60,10 @@ class VKBackend : public GPUBackend {
   void render_begin() override;
   void render_end() override;
   void render_step() override;
-
+  VKContext* get_context_main() {
+    BLI_assert(context_);
+    return context_;
+  }
 
 
 

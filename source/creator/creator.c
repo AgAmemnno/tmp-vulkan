@@ -296,6 +296,8 @@ int main(int argc,
 
   /* Ensure we free data on early-exit. */
   struct CreatorAtExitData app_init_data = {NULL};
+
+
   BKE_blender_atexit_register(callback_main_atexit, &app_init_data);
 
   /* Un-buffered `stdout` makes `stdout` and `stderr` better synchronized, and helps
@@ -523,6 +525,11 @@ int main(int argc,
   }
   BLI_args_parse(ba, ARG_PASS_SETTINGS_FORCE, NULL, NULL);
 #endif
+
+
+
+
+
 
   WM_init(C, argc, (const char **)argv);
 

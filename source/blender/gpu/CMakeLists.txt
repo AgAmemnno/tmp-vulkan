@@ -207,6 +207,8 @@ set(VULKAN_SRC
   vulkan/vk_texture.cc
   vulkan/vk_immediate.cc
   vulkan/vk_shader_interface.cc
+  vulkan/vk_uniform_buffer.cc
+  vulkan/vk_vertex_array.cc
 
   vulkan/vk_memory.hh
   vulkan/vk_shaders.hh
@@ -224,6 +226,8 @@ set(VULKAN_SRC
   vulkan/vk_framebuffer.hh
   vulkan/vk_index_buffer.hh
   vulkan/vk_vertex_buffer.hh
+  vulkan/vk_uniform_buffer.hh
+  vulkan/vk_vertex_array.hh
   vulkan/vk_query.hh
   vulkan/vk_debug.hh
   vulkan/vk_state.hh

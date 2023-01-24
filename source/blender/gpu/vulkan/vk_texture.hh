@@ -66,7 +66,7 @@ class VKTexture : public Texture {
     return w_;
   }
 
-    int getd()
+   int getd()
   {
     return d_;
   }
@@ -92,11 +92,11 @@ void generate_mipmaps(const void *data);
  protected:
 
   /* Core parameters and sub-resources. */
- 
-  unsigned int target_ = -1;
+  VkImageType target_type_ = VK_IMAGE_TYPE_MAX_ENUM;
+  VkImageViewType target_view_type_ = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
   /** opengl identifier for texture. */
   //GLuint
-    unsigned int tex_id_ = 0;
+   unsigned int tex_id_ = 0;
 
   /** True if this texture is bound to at least one texture unit. */
   /* TODO(fclem): How do we ensure thread safety here? */
@@ -107,13 +107,15 @@ void generate_mipmaps(const void *data);
   bool has_pixels_ = false;
   bool needs_update_descriptor_ = false;
 
-  VkDescriptorImageInfo info_;
+ 
 
 
   /* Vulkan context who created the object. */
   VKContext *context_ = nullptr;
   /* Vulkan object handle. */
   VkImage vk_image_ = VK_NULL_HANDLE;
+  VkImageView vk_image_view_ = VK_NULL_HANDLE;
+
   VkImageLayout vk_image_layout_;
   /* GPU Memory allocated by this object. */
   VmaAllocation vk_allocation_ = VK_NULL_HANDLE;
@@ -128,10 +130,14 @@ void generate_mipmaps(const void *data);
                                     VK_COMPONENT_SWIZZLE_IDENTITY,
                                     VK_COMPONENT_SWIZZLE_IDENTITY};
 
-  VkDescriptorImageInfo vk_info_;
+  
 
+private:
+  bool proxy_check(VkImageCreateInfo& info);
  public:
-  eGPUTextureUsage gpu_image_usage_flags_;
+   VkImageCreateInfo info = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+   VkDescriptorImageInfo desc_info_;
+   eGPUTextureUsage gpu_image_usage_flags_;
   ///VKTexture(const char *name);
   VKTexture(const char *name, VKContext *context);
   ~VKTexture();
@@ -143,6 +149,16 @@ void generate_mipmaps(const void *data);
       eGPUDataFormat format,
       GPUPixelBuffer* pixbuf) override {};
 
+   void set_image_layout(VkImageLayout layout) {
+    vk_image_layout_ = layout;
+  };
+
+  VkImageLayout get_image_layout() {
+    return vk_image_layout_;
+  };
+  VkImage get_image() {
+    return vk_image_;
+  };
   void generate_mipmap(void) override{};
   void copy_to(Texture *dst) override{};
   void clear(eGPUDataFormat format, const void *data) override{};
@@ -179,20 +195,22 @@ void generate_mipmaps(const void *data);
   /* Vulkan specific functions. */
   VkImageView vk_image_view_get(int mip);
   VkImageView vk_image_view_get(int mip, int layer);
- VkDescriptorImageInfo* get_image_info(eGPUSamplerState id = (eGPUSamplerState)257)
+  VkDescriptorImageInfo* get_image_info(eGPUSamplerState id = (eGPUSamplerState)257)
   {
-    BLI_assert((int)id <= 257);
+    /*BLI_assert((int)id <= 257);*/
   
-    info_.imageLayout = vk_image_layout_;
-    info_.imageView = vk_image_view_get(mip_min_);
+    desc_info_.imageLayout = vk_image_layout_;
+    desc_info_.imageView = vk_image_view_get(mip_min_);
     if (id == 257) {
-      info_.sampler = NULL;
+      desc_info_.sampler = NULL;
     }
-    else
-      info_.sampler  = getsampler(id);
+    else {
+      desc_info_.sampler = getsampler(id);
+    }
 
-     return &info_;
+     return &desc_info_;
   };
+
   VkFormat vk_format_get(void) const
   {
     return this->vk_format_;
@@ -206,6 +224,7 @@ void generate_mipmaps(const void *data);
       mip_min_ = 0;
 
   };
+  VkImageView  create_image_view(int mip, int layer, int mipcount, int levelcount);
 
  protected:
   bool init_internal(void) override;
@@ -217,9 +236,8 @@ void generate_mipmaps(const void *data);
     return false;
   };
    void stencil_texture_mode_set(bool use_stencil) override{};
-  VkImageView create_image_view(int mip, int layer);
 
-
+ 
   MEM_CXX_CLASS_ALLOC_FUNCS("VKTexture")
 };
 
@@ -255,6 +273,8 @@ inline VkImageViewType to_vk_image_view_type(eGPUTextureType type)
       return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
     case GPU_TEXTURE_CUBE_ARRAY:
       return VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
+    /*TODO::TexelBuffer Implementation*/
+    case GPU_TEXTURE_BUFFER:
     default:
       BLI_assert(!"Wrong enum!");
       return VK_IMAGE_VIEW_TYPE_MAX_ENUM;
@@ -397,23 +417,56 @@ inline VkFormat to_vk(eGPUTextureFormat format)
 }
 
 
-struct VKAttachment {
-  bool used;
-  VKTexture *texture;
-  union {
-    float color[4];
-    float depth;
-    uint stencil;
-  } clear_value;
+class VKAttachment {
 
-  eGPULoadOp load_action;
-  eGPUStoreOp store_action;
-  uint mip;
-  uint slice;
-  uint depth_plane;
+  public:
+    VKAttachment(VKFrameBuffer* fb);
+    ~VKAttachment();
+  /* naive implementation. Can subpath be used effectively? */
+    void append(GPUAttachment& attach, VkImageLayout layout);
+  uint32_t get_nums();
 
-  /* If Array Length is larger than zero, use multilayered rendering. */
-  uint render_target_array_length;
+  void  create_framebuffer();
+  void clear();
+
+
+  void append_from_swapchain(int swapchain_idx);
+  
+  VkRenderPass                                   renderpass_;
+  Vector<VkFramebuffer>                                framebuffer_;
+  VkExtent3D                                                extent_;
+  void set_ctx(VKContext* ctx) {
+    context_ = ctx;
+  };
+  VKContext* get_ctx() {
+    BLI_assert(context_);
+    return context_;
+  }
+  int    fbo_id_ = -1;
+  Vector < VKTexture* >                                  vtex_;
+
+
+  VkAttachmentLoadOp get_LoadOp() {
+
+    BLI_assert(vdesc_.size() == 1);
+    return vdesc_[0].loadOp;
+  };
+  private:
+    
+    bool used_ = false;
+  
+    Vector < VkImageView>                    vview_;
+    Vector<VkAttachmentDescription>   vdesc_;
+    Vector<VkAttachmentReference>     vref_color_;
+    Vector < VkAttachmentReference>   vref_depth_stencil_;
+    uint32_t                                           num_;
+    VKContext* context_ = nullptr;
+
+    
+    int                              mip_;
+    VKFrameBuffer* fb_ = nullptr;
+
+
 };
 
 }  // namespace gpu

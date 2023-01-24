@@ -1110,6 +1110,7 @@ static int arg_handle_debug_gpu_set(int UNUSED(argc),
   const char *gpu_filter = "gpu.*";
   CLG_type_filter_include(gpu_filter, strlen(gpu_filter));
   G.debug |= G_DEBUG_GPU;
+  G.debug_value |= -7777;
   return 0;
 }
 

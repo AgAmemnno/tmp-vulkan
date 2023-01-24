@@ -38,11 +38,14 @@
 
 namespace blender::gpu {
 
-void *GetMappedData(VmaAllocation &allo);
+ const uint32_t VK_BUFFER_DEFAULT_ALIGNMENT = 256;
+
+ void *GetMappedData(VmaAllocation &allo);
     /* Forward Declarations. */
-class VKContext;
-class VKCommandBufferManager;
-class VKUniformBuf;
+class  VKContext;
+class  VKCommandBufferManager;
+class  VKUniformBuf;
+class  VKStagingBufferManager;
 
 struct VKResourceOptions {
   uint64_t                       id;
@@ -86,10 +89,10 @@ class VKBuffer {
 
  private:
 
-  VkBuffer vk_buffer_;
+  VkBuffer vk_buffer_ = VK_NULL_HANDLE;
   VmaAllocation allocation = nullptr;
   VKResourceOptions options_;
-
+  bool  can_mapped_ = true;
 
  public:
 
@@ -99,9 +102,13 @@ class VKBuffer {
   ~VKBuffer();
 
   void Create(uint64_t size, uint alignment , VKResourceOptions& options);
-  void Resize(VkDeviceSize size, uint alignment);
-  void Copy(void *data, VkDeviceSize size);
+  void Resize(VkDeviceSize size, uint alignment = 0);
+  void Copy(void *data, VkDeviceSize size, VkDeviceSize ofs = 0);
+
+
+
   void Flush();
+  void Fill(uint32_t val);
 
   VkBuffer get_vk_buffer() const;
   void *get_host_ptr() const;
@@ -172,27 +179,45 @@ class VKStagingBufferManager {
 
 
   VKBuffer* Create(uint64_t alloc_size, uint alignment);
-  void Copy(VKBuffer &dst)
+  void Copy(VKBuffer& dst, VkBufferCopy vbCopyRegion)
   {
     VKBuffer &  staging = *staging_buffers_[current_staging_buffer_];
+
+    VkDeviceSize  srcsize = staging.get_buffer_size();
+    BLI_assert(srcsize >= (vbCopyRegion.srcOffset + vbCopyRegion.size));
     VkDeviceSize dstsize = dst.get_buffer_size();
- 
-   VkDeviceSize  srcsize =  staging.get_size();
-   if (dstsize <= srcsize) {
+    BLI_assert(dstsize >= (vbCopyRegion.dstOffset + vbCopyRegion.size));
+  
        begin();
-       VkBufferCopy vbCopyRegion = {};
-       vbCopyRegion.srcOffset = 0;
-       vbCopyRegion.dstOffset = 0;
-       vbCopyRegion.size = dstsize;
        vkCmdCopyBuffer(current_cmd_, staging.get_vk_buffer(), dst.get_vk_buffer(), 1, &vbCopyRegion);
        end();
-   }
-   else {
-       BLI_assert(false);
-   }
+
 
   }
+  void CopyBufferSubData(VKBuffer* read, VKBuffer* write, VkBufferCopy& vbCopyRegion)
+  {
+    VkBuffer read_buf    = read->get_vk_buffer();
+    VkBuffer write_buf   = write->get_vk_buffer();
+    BLI_assert(read_buf != VK_NULL_HANDLE);
+    BLI_assert(write_buf != VK_NULL_HANDLE);
+    VkDeviceSize  dstsize = write->get_buffer_size();
+    VkDeviceSize  srcsize = read->get_buffer_size();
 
+    if ((vbCopyRegion.size <= dstsize) && (vbCopyRegion.size <= srcsize)) {
+      if (vbCopyRegion.size > 0) {
+        begin();
+        vkCmdCopyBuffer(current_cmd_, read->get_vk_buffer(), write->get_vk_buffer(), 1, &vbCopyRegion);
+        end();
+      }
+      else {
+        BLI_assert(false);
+      }
+    }
+    else {
+      BLI_assert(false);
+    };
+
+  }
 };
 
 }

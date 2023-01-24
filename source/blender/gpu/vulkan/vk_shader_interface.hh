@@ -51,6 +51,9 @@ class CompilerBlender;
 namespace blender::gpu {
 
 class VKVaoCache;
+class VKVertBuf;
+
+
 struct ShaderModule {
   ShaderModule() : module(0)
   {
@@ -63,14 +66,18 @@ struct ShaderModule {
 };
 struct VKDescriptorInputs {
 
+  bool is_block = false;
+
   VkPipelineVertexInputStateCreateInfo vkPVISci = {
       VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO, NULL};
   blender::Vector<VkVertexInputBindingDescription> bindings;
   blender::Vector<VkVertexInputAttributeDescription> attributes;
   blender::Vector<std::string> attr_names;
 
-  void initialise(uint32_t stride, uint32_t attr_nums);
+  void append(uint32_t stride, uint32_t binding, bool vert);
+  void initialise(uint32_t attr_vertex_nums, uint32_t attr_instance_nums,  bool block);
   void finalise();
+
 };
 struct _max_name_len {
   uint32_t attr, ubo, ssbo, image, push;
@@ -113,8 +120,9 @@ struct PushRanges {
   }
 };
 class VKShaderInterface : public ShaderInterface {
-#define VK_LAYOUT_BINDING_LIMIT 128
+#define VK_LAYOUT_BINDING_LIMIT 32
 #define VK_LAYOUT_IMAGE_TYPE_NUNMS 3
+#define VK_LAYOUT_SET_MAX  2
   const uint32_t swapchain_image_nums = 2;
 
  public:
@@ -122,13 +130,18 @@ class VKShaderInterface : public ShaderInterface {
   ~VKShaderInterface();
   bool valid = false;
   blender::Vector<VkDescriptorPoolSize> poolsize_;
+  int max_inline_ubo_;
   VkDescriptorPool pool_ = VK_NULL_HANDLE;
-  blender::Vector<VkDescriptorSetLayout> setlayouts_;
-  blender::Vector<VkDescriptorSetLayoutBinding> setlayoutbindings_;
-  blender::Vector<blender::Vector<VkDescriptorSet>> sets_vec_;
+  VkDescriptorSetLayout  setlayouts_[VK_LAYOUT_SET_MAX];
+  
+  blender::Vector <VkDescriptorSetLayoutBinding>        setlayoutbindings_[VK_LAYOUT_SET_MAX];
+  blender::Vector<VkDescriptorSet>                                sets_vec_[VK_LAYOUT_SET_MAX];
+
   VkPipelineLayout pipelinelayout_ = VK_NULL_HANDLE;
   blender::Vector<VKDescriptorInputs> desc_inputs_;
   VkPushConstantRange                         push_range_;
+  Vector<VKVaoCache*>                                    refs_;
+
   int push_loc_[2];
   bool is_valid_push_location(int i)
   {
@@ -154,7 +167,7 @@ class VKShaderInterface : public ShaderInterface {
   ///  Generate SetLayout from SPV OPCode.
   /// TODO ::: Specialize PoolSize.
   /// </summary>
-  GHOST_TSuccess createSetLayout(VkDescriptorSetLayout &setlayout);
+  GHOST_TSuccess createSetLayout(uint i);
 
   /// <summary>
   /// Classifying the pool size by VkDescriptorType results in a simple sense, Are there other good classifications?
@@ -174,10 +187,11 @@ class VKShaderInterface : public ShaderInterface {
   /// new binding or not.
   /// </returns>
   bool append_image(uint32_t binding, spirv_cross::SPIRType::BaseType btype);
+  bool append_ubo(uint32_t set, uint32_t binding, uint32_t block_size);
   void append_binding(uint32_t binding,
                       const char *name,
                       VkDescriptorType dtype,
-                      VkShaderStageFlagBits stage);
+                      VkShaderStageFlagBits stage,uint32_t count =1, uint setNum = 0);
   bool apply(spirv_cross::CompilerBlender *vert,
              spirv_cross::CompilerBlender *frag,
              spirv_cross::CompilerBlender *geom =nullptr);
@@ -189,7 +203,6 @@ class VKShaderInterface : public ShaderInterface {
   bool finalize(VkPipelineLayout* playout = nullptr);
 
   GHOST_TSuccess createPipelineLayout(VkPipelineLayout &layout,
-                                      blender::Vector<VkDescriptorSetLayout> &pSetLayouts,
                                       blender::Vector<VkPushConstantRange> pushConstantRange);
   bool alloc_inputs(Vector<_max_name_len> max_names, Vector<_len> lens);
   const ShaderInput *append_input(int index,
@@ -199,16 +212,25 @@ class VKShaderInterface : public ShaderInterface {
                                   int binding,
                                   bool attr = false,
                                   bool tex = false,
-                                  bool ima = false);
-  int sortUniformLocation();
+                                  bool ima = false,
+                                  bool ubo = false);
+  int   sortUniformLocation();
+  void ref_remove(VKVaoCache* ref);
+  void ref_add(VKVaoCache* ref);
+
+  uint16_t vbo_bind(VKVertBuf* vbo,VkCommandBuffer cmd,const GPUVertFormat* format,
+    uint v_first,
+    uint v_len,
+    const bool use_instancing);
 
 
  private:
   VkShaderStageFlagBits current_stage_;
   int pool_image_index_[3];
-  spirv_cross::SPIRType::BaseType
-      cache_set[VK_LAYOUT_BINDING_LIMIT];  /// Assume that the set number is only 0.
-  
+  /* Assume that the set number is only 0. */
+  spirv_cross::SPIRType::BaseType cache_set[VK_LAYOUT_BINDING_LIMIT];  
+   /* Set No.1 is an alternative to uniform*/ 
+  spirv_cross::SPIRType::BaseType  cache_set1[VK_LAYOUT_BINDING_LIMIT]; 
 };
 }
 
@@ -231,18 +253,15 @@ class CompilerBlender : public CompilerGLSL {
 
   virtual ~CompilerBlender(){};
 
+
   int parse_inputs(blender::gpu::ShaderInput *inputs,int ofs = 0);
   int parse_images(blender::gpu::ShaderInput *inputs,int ofs = 0);
-  /// <summary>
-  /// TODO:: SSBO UBO
-  /// </summary>
+  int parse_ubo(blender::gpu::ShaderInput* inputs, int ofs);
+
   int parse_pushconst(blender::gpu::ShaderInput *inputs,int ofs= 0);
   blender::gpu::_max_name_len max_name_len_ = {0, 0, 0, 0, 0};
   blender::gpu::_len len_ = {0, 0, 0, 0, 0};
-  /// <summary>
-  /// TODO:: ssbo , inputattachment,ubo
-  /// </summary>
-  ///
+
  private:
   blender::gpu::VKShaderInterface &iface_;
   ShaderResources resources_;

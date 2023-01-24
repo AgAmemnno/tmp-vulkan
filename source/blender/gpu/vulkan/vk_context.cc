@@ -29,9 +29,16 @@
 
 namespace blender::gpu {
 /* Global memory manager. */
+  uint32_t    VKContext::max_cubemap_size = 0;
+  uint32_t    VKContext::max_ubo_size = 0;
+  uint32_t   VKContext::max_ubo_binds = 0;
+  uint32_t   VKContext::max_ssbo_size = 0;
+  uint32_t   VKContext::max_ssbo_binds = 0;
+  uint32_t   VKContext::max_push_constants_size = 0;
+  uint32_t   VKContext::max_inline_ubo_size = 0;
+  bool          VKContext::vertex_attrib_binding_support = false;
 
-
-    VKContext::VKContext(void *ghost_window,
+VKContext::VKContext(void *ghost_window,
                      void *ghost_context,
                      VKSharedOrphanLists &shared_orphan_list)
     : shared_orphan_list_(shared_orphan_list)
@@ -51,6 +58,14 @@ VKContext::~VKContext()
     delete a; \
     a = nullptr; \
   }
+
+
+
+  for (VKFrameBuffer* fb_ : frame_buffers_) {
+    DELE(fb_);
+  }
+
+
   DELE(state_manager);
   DELE(imm);
   DELE(this->back_left);
@@ -65,6 +80,22 @@ VKContext::~VKContext()
   vmaDestroyAllocator(mem_allocator_);
 };
 
+void VKContext::create_swapchain_fb() {
+  if (this->front_left) {
+    auto fb = static_cast<VKFrameBuffer*> (this->front_left);
+      fb->create_swapchain_frame_buffer(0);
+
+
+}
+  if (this->back_left) {
+    auto fb = static_cast<VKFrameBuffer*> (this->back_left);
+    fb->create_swapchain_frame_buffer(1);
+
+      }
+
+
+};
+
 void VKContext::init(void *ghost_window, void *ghost_context)
 {
   if (G.debug) {  //& G_DEBUG_GPU
@@ -76,8 +107,13 @@ void VKContext::init(void *ghost_window, void *ghost_context)
     ghost_context = (ghostWin ? ghostWin->getContext() : NULL);
   }
   BLI_assert(ghost_context);
-
+  this->ghost_context_ = static_cast<GHOST_ContextVK*>(ghost_context);
   GHOST_ContextVK *gcontext = (GHOST_ContextVK *)ghost_context;
+
+
+
+
+  gcontext->initializeDrawingContext();
 
   gcontext->getVulkanHandles(
       //  GHOST_GetVulkanHandles((GHOST_ContextHandle)ghost_context,
@@ -95,18 +131,46 @@ void VKContext::init(void *ghost_window, void *ghost_context)
   info.instance = instance_;
   vmaCreateAllocator(&info, &mem_allocator_);
 
-  if (ghost_window) {
+  VKBackend::capabilities_init(this);
+  VKBackend::platform_init(this);
 
+
+  state_manager = new VKStateManager(this);
+  imm = new VKImmediate(this);
+
+
+  is_swapchain_ = false;
+  if (ghost_window) {
+    is_swapchain_ = true;
     GHOST_RectangleHandle bounds = GHOST_GetClientBounds((GHOST_WindowHandle)ghost_window);
    // int w = GHOST_GetWidthRectangle(bounds);
    // int h = GHOST_GetHeightRectangle(bounds);
     GHOST_DisposeRectangle(bounds);
 
+
+
+
+
     /* Create FrameBuffer handles. */
-    VKFrameBuffer *vk_front_left = new VKFrameBuffer(this, "front_left");
-    VKFrameBuffer *vk_back_left = new VKFrameBuffer(this, "back_left");
-    this->front_left = vk_front_left;
-    this->back_left = vk_back_left;
+    int i = 0;
+    for (auto name : { "front_left","back_left" }) {
+      VKFrameBuffer* vk_fb = new VKFrameBuffer(name, this);
+      vk_fb->create_swapchain_frame_buffer(i++);
+      if (i == 1) {
+        this->front_left = vk_fb;
+      }
+      else {
+        this->back_left = vk_fb;
+      }
+    }
+
+    auto func = [&]() {
+      this->create_swapchain_fb();
+    };
+    auto f = std::function<void(void)>(func);
+
+
+    gcontext->set_fb_cb(f);
 
     /*
        GLuint default_fbo = GHOST_GetDefaultOpenGLFramebuffer((GHOST_WindowHandle)ghost_window);
@@ -133,13 +197,9 @@ void VKContext::init(void *ghost_window, void *ghost_context)
   }
   else {
     /* For off-screen contexts. Default frame-buffer is null. */
-    ///back_left = new VKFrameBuffer("back_left", this, GL_NONE, 0, 0, 0);
-    this->back_left = new VKFrameBuffer(this, "back_left");
+    /* back_left = new VKFrameBuffer("back_left", this, GL_NONE, 0, 0, 0); */
+    this->back_left = new VKFrameBuffer( "back_left",this);
   }
-
-
-  this->ghost_context_ = static_cast<GHOST_ContextVK *>(ghost_context);
-
 
 
   /* Initialize Render-pass and Frame-buffer State. */
@@ -149,11 +209,7 @@ void VKContext::init(void *ghost_window, void *ghost_context)
   /* Initialize IMM and pipeline state */
   // this->pipeline_state.initialised = false;
 
-  VKBackend::platform_init(this);
-  VKBackend::capabilities_init(this);
 
-  state_manager = new VKStateManager(this);
-  imm = new VKImmediate(this);
   
   /*
    this->queue = (id<MTLCommandQueue>)this->ghost_context_->metalCommandQueue();
@@ -172,9 +228,60 @@ void VKContext::init(void *ghost_window, void *ghost_context)
 
 
   this->active_fb = this->back_left;
+  static_cast<VKStateManager*>(state_manager)->active_fb = static_cast<VKFrameBuffer*>( active_fb);
 
-    static_cast<VKStateManager *>(state_manager)->active_fb = static_cast<VKFrameBuffer *>(
-      active_fb);
+
+  if (is_swapchain_) {
+    auto func_sb= [&]() {
+    
+    if (is_inside_frame_) {
+      static_cast<VKFrameBuffer*>(this->active_fb)->render_end();
+      GHOST_ContextVK* gcontext = (GHOST_ContextVK*)this->ghost_context_;
+      gcontext->finalize_image_layout();
+      end_frame();
+    }
+
+    printf("Call;back  ->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>..     \n");
+    };
+    auto f_sb = std::function<void(void)>(func_sb);
+    gcontext->set_fb_sb_cb(f_sb);
+
+    auto func_sb2 = [&]() {
+   
+      GHOST_ContextVK* gcontext = (GHOST_ContextVK*)this->ghost_context_;
+      float r = (float)gcontext->getCurrentImage();
+      auto fb = static_cast<VKFrameBuffer*>(this->active_fb);
+      float color[4] = { r,1.,0.,1. };
+    
+      VkClearValue clearValues[2];
+      for (int i = 0; i < 4; i++)clearValues[0].color.float32[i] = color[i];
+      clearValues[1].depthStencil.depth = 1.f;
+      clearValues[1].depthStencil.stencil = 0;
+      fb->render_begin(VK_NULL_HANDLE, VK_COMMAND_BUFFER_LEVEL_PRIMARY, (VkClearValue*)clearValues);
+    
+      //
+      //gcontext->clear_color(cmd, (VkClearColorValue*)& clearValues[0].color.float32[0]);
+
+  
+      fb->render_end();
+
+      printf("Call;back  ->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>..     \n");
+
+    };
+
+    auto f_sb2 = std::function<void(void)>(func_sb2);
+    gcontext->set_fb_sb2_cb(f_sb2);
+
+    clear_draw_test(gcontext);
+  }
+
+  
+
+
+};
+void  VKContext::clear_color(VkCommandBuffer cmd, const VkClearColorValue* clearValues) {
+  auto gcontext_ = static_cast<GHOST_ContextVK*>(ghost_context_);
+  gcontext_->clear_color(cmd, clearValues);
 
 };
 
@@ -219,24 +326,48 @@ void VKContext::orphans_clear()
 
 
 
-void VKContext::orphans_add(Vector<GLuint> &orphan_list, std::mutex &list_mutex, GLuint id)
-{
-  list_mutex.lock();
-  orphan_list.append(id);
-  list_mutex.unlock();
-}
 
- void VKContext::fbo_free(GLuint fbo_id)
+
+ void VKContext::fbo_free(VkFramebuffer fbo_id)
 {
   if (this == VKContext::get()) {
-    ///TODO Delete frambuffer
+    BLI_assert(false);
     ///glDeleteFramebuffers(1, &fbo_id);
   }
   else {
     orphans_add(orphaned_framebuffers_, lists_mutex_, fbo_id);
   }
 }
+ void VKContext::buf_free(VKBuffer* buf) {
 
+   BLI_assert(buf);
+   /* Any context can free. */
+   if (VKContext::get()) {
+     if (buf) {
+       MEM_freeN(buf);
+     }
+   }
+   else {
+     VKSharedOrphanLists& orphan_list = static_cast<VKBackend*>(VKBackend::get())->shared_orphan_list_get();
+     orphans_add(orphan_list.buffers, orphan_list.lists_mutex, buf);
+   }
+
+ };
+
+ void VKContext::vao_free(VKVAOty buf) {
+
+   if (this == VKContext::get()) {
+     if (buf) {
+       MEM_freeN(buf);
+     }
+   }
+   else {
+
+     orphans_add(orphaned_vertarrays_, lists_mutex_, buf);
+   
+   }
+
+ };
 
 void VKContext::activate()
 {
@@ -247,25 +378,86 @@ void VKContext::deactivate()
 }
 
 
+void  VKContext::getImageView(VkImageView& view, int i) {
+  
+  auto context = ((GHOST_ContextVK*)ghost_context_);
+  context->getImageView(view, i);
+
+};
+
+int  VKContext::getImageViewNums() {
+  auto context = ((GHOST_ContextVK*)ghost_context_);
+  return context->getImageCount();
+
+};
+
+void  VKContext::getRenderExtent(VkExtent2D& _render_extent) {
+  auto context = ((GHOST_ContextVK*)ghost_context_);
+  context->getRenderExtent(_render_extent);
+};
+
+void VKContext::bottom_transition() {
+  auto context = ((GHOST_ContextVK*)ghost_context_);
+  context->finalize_image_layout();
+};
+
+void VKContext::fail_transition() {
+  auto context = ((GHOST_ContextVK*)ghost_context_);
+  context->fail_image_layout();
+};
 
 void VKContext::begin_frame()
 {
- 
-  auto context = ((GHOST_ContextVK *)ghost_context_);
-  if (!is_initialized_) {
-      context->init_image_layout();
-      is_initialized_ = true;
+  if (is_inside_frame_)return;
+
+  auto context = ((GHOST_ContextVK*)ghost_context_);
+
+  if (is_swapchain_ ) {
+    context->acquireCustom();
   }
 
-  context->acquireCustom();
- 
-}
+
+  is_inside_frame_ = true;
+
+
+};
+
+uint32_t VKContext::get_current_frame_index() {
+  auto context = ((GHOST_ContextVK*)ghost_context_);
+  return (uint32_t)context->getFrame();
+};
+void VKContext::get_frame_buffer(VKFrameBuffer*& fb_) {
+
+  auto context = ((GHOST_ContextVK*)ghost_context_);
+  int i = context->getFrame();
+  fb_ = frame_buffers_[i];
+
+};
+
+void VKContext::get_command_buffer(VkCommandBuffer& cmd) {
+
+  auto context = ((GHOST_ContextVK*)ghost_context_);
+  context->getCrrentCommandBuffer(cmd);
+
+};
+
 void VKContext::end_frame()
 {
   auto context = ((GHOST_ContextVK *)ghost_context_);
+  if (is_swapchain_) {
 
-  if (context->presentCustom() == GHOST_kFailure) {
+    static_cast<VKFrameBuffer*>(this->active_fb)->render_end();
+    context->finalize_onetime_submit();
+    if (context->presentCustom() == GHOST_kFailure) {
+      /*  recreate swapbuffer  */
+
+    };
   }
+
+  is_inside_frame_ = false;
+
+
+  
 }
 void VKContext::begin_render_pass(VkCommandBuffer &cmd, int i)
 {
@@ -279,13 +471,47 @@ void VKContext::end_render_pass(VkCommandBuffer &cmd, int i)
 {
   auto context = ((GHOST_ContextVK *)ghost_context_);
   i = (i == -1) ? context->getFrame() : i;
-  context->end_frame(cmd);
+  context->end_frame();
   cmd_valid_[i] = true;
 };
 void VKContext::begin_submit(int N)
 {
   auto context = ((GHOST_ContextVK *)ghost_context_);
   context->begin_submit(N);
+};
+int VKContext::begin_onetime_submit(VkCommandBuffer cmd) {
+  auto context = ((GHOST_ContextVK*)ghost_context_);
+  if (is_onetime_commit_ == false) {
+    context->initialize_onetime_submit();
+    is_onetime_commit_ = true;
+  }
+
+  return context->begin_onetime_submit(cmd);
+
+};
+void VKContext::begin_submit_simple(VkCommandBuffer& cmd) {
+  auto context = ((GHOST_ContextVK*)ghost_context_);
+  context->begin_submit_simple(cmd);
+};
+void VKContext::end_submit_simple() {
+   auto context = ((GHOST_ContextVK*)ghost_context_);
+   context->end_submit_simple();
+};
+
+void  VKContext::end_onetime_submit(int i ) {
+  auto context = ((GHOST_ContextVK*)ghost_context_);
+  context->end_onetime_submit(i);
+  is_onetime_commit_ = false;
+ 
+}
+int    VKContext::begin_offscreen_submit(VkCommandBuffer cmd) {
+  auto context = ((GHOST_ContextVK*)ghost_context_);
+  context->begin_offscreen_submit(cmd);
+  return -1;
+};
+void  VKContext::end_offscreen_submit(VkCommandBuffer& cmd, VkSemaphore wait, VkSemaphore signal){
+  auto context = ((GHOST_ContextVK*)ghost_context_);
+  context->end_offscreen_submit(cmd,wait,signal);
 };
 void VKContext::end_submit()
 {
@@ -307,16 +533,70 @@ void VKContext::submit_nonblocking()
   context->submit_nonblocking();
 };
 
+uint32_t VKContext::get_current_image_index() {
+  auto context = ((GHOST_ContextVK*)ghost_context_);
+  return context->getCurrentImage();
+};
 
   VkPhysicalDevice VKContext::get_physical_device(){
       auto ctx = (GHOST_ContextVK *)(ghost_context_);
     return ctx->getPhysicalDevice();
   };
 
+  VkCommandBuffer  VKContext::request_command_buffer(bool second) {
+    
+    auto ghost = static_cast<GHOST_ContextVK*>(ghost_context_);
+    VkCommandBuffer cmd = VK_NULL_HANDLE;;
+    ghost->requestCommandBuffer(cmd,second);
+    return cmd;
 
+  };
 
+  VkImage VKContext::get_current_image() {
 
+    auto context = ((GHOST_ContextVK*)ghost_context_);
+    VkImage image = VK_NULL_HANDLE;
+    context->getImage(image);
+    return image;
+  };
 
+  VkImageLayout VKContext::get_current_image_layout() {
+
+    auto context = ((GHOST_ContextVK*)ghost_context_);
+
+    return context->get_layout();
+
+  };
+
+  void VKContext::set_current_image_layout(VkImageLayout layout) {
+
+    auto context = ((GHOST_ContextVK*)ghost_context_);
+    context->set_layout(layout);
+  };
+
+  bool VKContext::begin_blit_submit(VkCommandBuffer& cmd) {
+    auto context = ((GHOST_ContextVK*)ghost_context_);
+    return (bool)context->begin_blit_submit(cmd);
+  };
+
+  bool VKContext::end_blit_submit(VkCommandBuffer& cmd, std::vector<VkSemaphore> batch_signal) {
+    auto context = ((GHOST_ContextVK*)ghost_context_);
+    return (bool)context->end_blit_submit(cmd, batch_signal);
+  };
+  bool VKContext::is_support_format(VkFormat format, VkFormatFeatureFlagBits flag, bool linear) {
+    /* Check if the device supports blitting to linear images */
+    /* reference => https://github.com/SaschaWillems/Vulkan/blob/79d0c5e436623436b6297a8c81fb3ee8ff78d804/examples/screenshot/screenshot.cpp#L194 */
+    VkFormatProperties formatProps = {};
+    auto context = ((GHOST_ContextVK*)ghost_context_);
+   
+    vkGetPhysicalDeviceFormatProperties(context->getPhysicalDevice(), format, &formatProps);
+    if (linear) {
+      return (formatProps.linearTilingFeatures & flag);
+    }
+
+    return (formatProps.optimalTilingFeatures & flag);
+
+  }
 void VKContext::flush()
 {
 }
@@ -573,5 +853,18 @@ VkSampler VKContext::generate_sampler_from_state(VKSamplerState sampler_state)
     return sampler_state_cache_[(uint)sampler_state];
   }
 
+
+
+VkFormat  VKContext::getImageFormat() 
+{
+  GHOST_ContextVK* gcontext = (GHOST_ContextVK*)ghost_context_;
+  return  gcontext->getImageFormat();
+}
+
+VkFormat VKContext::getDepthFormat()
+{
+  GHOST_ContextVK* gcontext = (GHOST_ContextVK*)ghost_context_;
+  return  gcontext->getDepthFormat();
+};
 
 }  // namespace blender::gpu

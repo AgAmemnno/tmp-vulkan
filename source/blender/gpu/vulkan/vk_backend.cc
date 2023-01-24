@@ -9,6 +9,7 @@
 #include "vk_batch.hh"
 #include "vk_drawlist.hh"
 #include "vk_framebuffer.hh"
+#include "vk_uniform_buffer.hh"
 #include "vk_index_buffer.hh"
 #include "vk_vertex_buffer.hh"
 #include "vk_query.hh"
@@ -21,6 +22,7 @@
 
 namespace blender::gpu {
 
+
   namespace vulkan {
 
 static VkPhysicalDeviceProperties properties;
@@ -30,7 +32,9 @@ VkPhysicalDeviceProperties& getProperties() {
 };
 
 };
- 
+  VKBackend::VKBackend() {
+    context_ = nullptr;
+  };
 
 VKBackend::~VKBackend()
 {
@@ -57,9 +61,18 @@ void VKBackend::compute_dispatch_indirect(StorageBuf * /*indirect_buf*/)
 {
 }
 
-Context *VKBackend::context_alloc(void *ghost_window, void *ghost_context)
+Context* VKBackend::context_alloc(void* ghost_window, void* ghost_context)
 {
-  return new VKContext(ghost_window, ghost_context, shared_orphan_list_);
+  if (ghost_window) {
+    BLI_assert(context_ == nullptr);
+    context_ = new VKContext(ghost_window, ghost_context, shared_orphan_list_);
+    return context_;
+  }
+  else {
+    BLI_assert(ofs_context_ == nullptr);
+    ofs_context_ = new VKContext(ghost_window, ghost_context, shared_orphan_list_);
+  }
+  return ofs_context_;
 }
 
 Batch *VKBackend::batch_alloc()
@@ -74,12 +87,13 @@ DrawList *VKBackend::drawlist_alloc(int /*list_length*/)
 
 FrameBuffer *VKBackend::framebuffer_alloc(const char *name)
 {
-  return new VKFrameBuffer(name);
+  BLI_assert(context_);
+  return new VKFrameBuffer(name,context_);
 }
 
 IndexBuf *VKBackend::indexbuf_alloc()
 {
-  return new VKIndexBuffer();
+  return new VKIndexBuf();
 }
 
 QueryPool *VKBackend::querypool_alloc()
@@ -94,12 +108,12 @@ Shader *VKBackend::shader_alloc(const char * name)
 
 Texture *VKBackend::texture_alloc(const char * name)
 {
-  return new VKTexture(name,VKContext::get());
+  return new VKTexture(name,context_);
 }
 
-UniformBuf *VKBackend::uniformbuf_alloc(int /*size*/, const char * /*name*/)
+UniformBuf *VKBackend::uniformbuf_alloc(int  size, const char * name)
 {
-  return nullptr;
+  return new VKUniformBuf(size,name);
 }
 
 StorageBuf *VKBackend::storagebuf_alloc(int /*size*/,
@@ -113,12 +127,35 @@ VertBuf *VKBackend::vertbuf_alloc()
 {
   return new VKVertBuf();
 }
+
+
 void VKBackend::render_begin()
 {
-}
+  printf("<<<<<<<<<<<<<<<<   vulkan backend render begin     ");
+
+  if (context_) {
+    context_->begin_frame();
+    VKFrameBuffer* fb_ = static_cast<VKFrameBuffer*>(context_->active_fb);
+    context_->get_command_buffer(backend_prim_cmd_);
+    fb_->render_begin(backend_prim_cmd_, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+   
+  }
+  else {
+    BLI_assert_msg(false, "Context lost.");
+  }
+
+};
 
 void VKBackend::render_end()
 {
+  printf("   vulkan backend render end     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+  auto fb = static_cast<VKFrameBuffer*>(context_->active_fb);
+
+  if (context_ && fb->is_render_begin() ){    
+    fb->render_end();
+    context_->end_frame();
+  }
+
 }
 
 void VKBackend::render_step()
@@ -132,8 +169,9 @@ void VKBackend::render_step()
 
 void VKBackend::platform_init(VKContext *ctx)
 {
-
-   BLI_assert(!GPG.initialized);
+   
+  if (GPG.initialized) return;
+   //BLI_assert(!GPG.initialized);
 
   GHOST_ContextVK *ctxVk = (GHOST_ContextVK *)ctx->ghost_context_;
    VkInstance instance;
@@ -267,10 +305,19 @@ void VKBackend::platform_init(VKContext *ctx)
 
 
 }
+template<typename T>
+static void get_properties2(VkPhysicalDevice physical_device,T& strct) {
 
+  VkPhysicalDeviceInlineUniformBlockPropertiesEXT prop_inline_ubo = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_PROPERTIES_EXT };
+  VkPhysicalDeviceProperties2 properties2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
+  properties2.pNext = &strct;
+
+  vkGetPhysicalDeviceProperties2(physical_device, &properties2);
+
+};
 void VKBackend::capabilities_init(VKContext *ctx)
 {
-  
+  if (GPG.initialized) return;
    GHOST_ContextVK *ctxVk = (GHOST_ContextVK *)( ctx->ghost_context_);
    VkInstance instance;
    VkPhysicalDevice physical_device;
@@ -280,6 +327,20 @@ void VKBackend::capabilities_init(VKContext *ctx)
    VkPhysicalDeviceProperties &properties = vulkan::properties;
   vkGetPhysicalDeviceProperties(physical_device, &properties);
    VkPhysicalDeviceLimits limits = properties.limits;
+   VkPhysicalDeviceInlineUniformBlockPropertiesEXT prop_inline_ubo = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_PROPERTIES_EXT };
+   get_properties2( physical_device, prop_inline_ubo);
+   
+   /* https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_EXT_vertex_attribute_divisor.html */
+   VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT prop_va_divisor = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_PROPERTIES_EXT };
+   get_properties2(physical_device, prop_va_divisor);
+   if (prop_va_divisor.maxVertexAttribDivisor > 0) {
+     VKContext::vertex_attrib_binding_support = true;
+   }
+
+
+   VKContext::max_inline_ubo_size           = prop_inline_ubo.maxInlineUniformBlockSize;
+   VKContext::max_push_constants_size  = limits.maxPushConstantsSize;
+   
   GCaps.max_texture_size = max(
       limits.maxImageDimension3D,
       max(limits.maxImageDimension1D, limits.maxImageDimension2D));
@@ -302,7 +363,14 @@ void VKBackend::capabilities_init(VKContext *ctx)
   GCaps.max_varying_floats = limits.maxVertexOutputComponents;
   GCaps.max_shader_storage_buffer_bindings = limits.maxPerStageDescriptorStorageBuffers;
   GCaps.max_compute_shader_storage_blocks = limits.maxPerStageDescriptorStorageBuffers;
-  ///TODO 
+
+  /*GL_MAX_UNIFORM_BLOCK_SIZE*/
+  VKContext::max_ubo_size = limits.maxUniformBufferRange;
+  /*GL_MAX_FRAGMENT_UNIFORM_BLOCKS*/
+  VKContext::max_ubo_binds = limits.maxPerStageDescriptorUniformBuffers; 
+
+
+  /* TODO */
   #if 0 
 
   glGetIntegerv(GL_NUM_EXTENSIONS, &GCaps.extensions_len);

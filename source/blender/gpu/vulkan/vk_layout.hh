@@ -282,37 +282,7 @@ struct PipelineStateCreateInfoVk {
 
 
 
-struct VKVertexDescriptor {
 
-  /* Core Vertex Attributes. */
-  VkPipelineVertexInputStateCreateInfo vkPVISci;
-  Vector<VkVertexInputBindingDescription>      bindings;
-  Vector<VkVertexInputAttributeDescription> attributes;
-
-
-  bool operator==(const VKVertexDescriptor &other) const
-  {
-    if (!(vkPVISci.pVertexAttributeDescriptions == other.vkPVISci.pVertexAttributeDescriptions)) {
-      return false;
-    }
-    if (!(vkPVISci.pVertexBindingDescriptions == other.vkPVISci.pVertexBindingDescriptions)) {
-      return false;
-    }
-    if (!(vkPVISci.vertexAttributeDescriptionCount ==
-          other.vkPVISci.vertexAttributeDescriptionCount)) {
-      return false;
-    }
-    if (!(vkPVISci.vertexBindingDescriptionCount ==
-          other.vkPVISci.vertexBindingDescriptionCount)) {
-      return false;
-    }
-
-
-    return true;
-  }
-
-
-};
 
 
 struct VKGraphicsPipelineStateDescriptor {

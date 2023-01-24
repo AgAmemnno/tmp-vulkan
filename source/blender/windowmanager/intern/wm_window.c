@@ -555,7 +555,7 @@ static void wm_window_ghostwindow_add(wmWindowManager *wm,
   if (G.debug & G_DEBUG_GPU) {
     glSettings.flags |= GHOST_glDebugContext;
   }
-
+  
   eGPUBackendType gpu_backend = GPU_backend_type_selection_get();
   glSettings.context_type = wm_ghost_drawing_context_type(gpu_backend);
 
@@ -611,7 +611,7 @@ static void wm_window_ghostwindow_add(wmWindowManager *wm,
     }
 #endif
     /* until screens get drawn, make it nice gray */
-    GPU_clear_color(0.55f, 0.55f, 0.55f, 1.0f);
+    GPU_clear_color(1.00f, 0.00f, 0.00f, 1.0f);
 
     /* needed here, because it's used before it reads userdef */
     WM_window_set_dpi(win);
@@ -619,7 +619,7 @@ static void wm_window_ghostwindow_add(wmWindowManager *wm,
     wm_window_swap_buffers(win);
 
     /* Clear double buffer to avoids flickering of new windows on certain drivers. (See T97600) */
-    GPU_clear_color(0.55f, 0.55f, 0.55f, 1.0f);
+    GPU_clear_color(0.00f, 0.00f, 1.00f, 1.0f);
 
     // GHOST_SetWindowState(ghostwin, GHOST_kWindowStateModified);
     GPU_render_end();
@@ -1548,7 +1548,6 @@ void wm_ghost_init(bContext *C)
   consumer = GHOST_CreateEventConsumer(ghost_event_proc, C);
 
   GHOST_SetBacktraceHandler((GHOST_TBacktraceFn)BLI_system_backtrace);
-
   g_system = GHOST_CreateSystem();
 
   if (UNLIKELY(g_system == NULL)) {
@@ -2414,14 +2413,18 @@ void *WM_opengl_context_create(void)
    * Other platforms might successfully share resources from context which is active somewhere
    * else, but to keep our code behave the same on all platform we expect contexts to only be
    * created from the main thread. */
-
+#ifndef WITH_VULKAN_BACKEND
   BLI_assert(BLI_thread_is_main());
+#endif
   BLI_assert(GPU_framebuffer_active_get() == GPU_framebuffer_back_get());
 
   GHOST_GLSettings glSettings = {0};
   if (G.debug & G_DEBUG_GPU) {
     glSettings.flags |= GHOST_glDebugContext;
   }
+  eGPUBackendType gpu_backend = GPU_backend_type_selection_get();
+  glSettings.context_type = wm_ghost_drawing_context_type(gpu_backend);
+
   return GHOST_CreateOpenGLContext(g_system, glSettings);
 }
 

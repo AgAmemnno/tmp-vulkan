@@ -42,7 +42,7 @@ https://github.com/AgAmemnno/tmp-vulkan/blob/master/build_files/cmake/config/ble
 | $git clone git@github.com:AgAmemnno/tmp-vulkan.git  
 | $cd tmp-vulkan  
 | $make update
-| $make dev_vulkan builddir build-tmp 
+| $make debug dev_vulkan builddir build-tmp 
 
 
 -------

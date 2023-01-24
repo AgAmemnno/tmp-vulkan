@@ -46,13 +46,14 @@
 #  include <vulkan/vulkan.h>
 #endif
 
+#include "BLI_set.hh"
 
 
 #include <mutex>
 
 namespace blender::gpu {
 
-  static VkPrimitiveTopology to_vk(const GPUPrimType prim_type)
+static VkPrimitiveTopology to_vk(const GPUPrimType prim_type)
   {
 
     switch (prim_type) {
@@ -88,7 +89,7 @@ class VKSharedOrphanLists {
   std::mutex lists_mutex;
   /** Buffers and textures are shared across context. Any context can free them. */
   Vector<GLuint> textures;
-  Vector<GLuint> buffers;
+  Vector<VKBuffer*> buffers;
 
  public:
   void orphans_clear();
@@ -104,7 +105,8 @@ class VKShader;
 class VKImmediate;
 class VKShaderInterface;
 class VKTexture;
-    /* Metal Context Render Pass State -- Used to track active RenderCommandEncoder state based on
+class VKVaoCache;
+/* Metal Context Render Pass State -- Used to track active RenderCommandEncoder state based on
  * bound MTLFrameBuffer's.Owned by MTLContext. */
 class VKRenderPassState {
   friend class VKContext;
@@ -215,6 +217,10 @@ class VKRenderPassState {
 
 
 class VKStateManager;
+typedef VKBuffer     VKVAOty_impl;
+typedef VKVAOty_impl*   VKVAOty;
+typedef VKVAOty*   VecVKVAOty;
+
 class VKContext : public Context {
  private:
   /** Copies of the handles owned by the GHOST context. */
@@ -229,8 +235,8 @@ class VKContext : public Context {
   /** Mutex for the below structures. */
   std::mutex lists_mutex_;
   /** VertexArrays and framebuffers are not shared across context. */
-  Vector<GLuint> orphaned_vertarrays_;
-  Vector<GLuint> orphaned_framebuffers_;
+  Vector<VKBuffer*> orphaned_vertarrays_;
+  Vector<VkFramebuffer> orphaned_framebuffers_;
   /** #GLBackend owns this data. */
   VKSharedOrphanLists &shared_orphan_list_;
   uint32_t current_frame_index_;
@@ -242,12 +248,27 @@ class VKContext : public Context {
   VkSampler default_sampler_state_;
 
 
+
  public:
+
+   /*  Capabilities. */
+   static uint32_t    max_cubemap_size;
+   static uint32_t    max_ubo_size;
+   static  uint32_t   max_ubo_binds;
+   static  uint32_t   max_ssbo_size;
+   static  uint32_t   max_ssbo_binds;
+   static uint32_t    max_push_constants_size;
+   static uint32_t    max_inline_ubo_size;
+   static bool vertex_attrib_binding_support;
+
   VkSampler get_default_sampler_state();
   VkSampler get_sampler_from_state(VKSamplerState sampler_state);
   VkSampler generate_sampler_from_state(VKSamplerState sampler_state);
-
-
+  VkFormat  getImageFormat();
+  VkFormat getDepthFormat();
+  void getImageView(VkImageView& view, int i);
+  int getImageViewNums();
+  void getRenderExtent(VkExtent2D& _render_extent);
  VkRenderPass get_renderpass();
   VkPhysicalDevice get_physical_device();
   void *ghost_context_;
@@ -256,11 +277,13 @@ class VKContext : public Context {
   VKStagingBufferManager*  buffer_manager_;
   PipelineStateCreateInfoVk       pipeline_state;
   VkCommandBuffer                     current_cmd_;
+  Vector<VKFrameBuffer*>             frame_buffers_;
+  bool is_swapchain_ = false;
   VKContext(void *ghost_window, void *ghost_context,VKSharedOrphanLists &shared_orphan_list);
   ~VKContext();
   void init(void *ghost_window, void *ghost_context);
 
-
+  void clear_color(VkCommandBuffer cmd, const VkClearColorValue* clearValues);
   
   /* CommandBuffer managers.   */
   //
@@ -268,6 +291,8 @@ class VKContext : public Context {
   void deactivate() override;
   void begin_frame() override;
   void end_frame() override;
+  void begin_submit_simple(VkCommandBuffer& cmd);
+  void end_submit_simple();
 
   void begin_submit(int N);
   void end_submit();
@@ -286,8 +311,17 @@ class VKContext : public Context {
 
   void begin_render_pass(VkCommandBuffer &cmd, int i = -1);
   void end_render_pass(VkCommandBuffer &cmd, int i = -1);
+  bool is_onetime_commit_= false;
+  int begin_onetime_submit(VkCommandBuffer cmd);
+  void end_onetime_submit(int i);
   
-  
+  int   begin_offscreen_submit(VkCommandBuffer cmd);
+  void end_offscreen_submit(VkCommandBuffer& cmd, VkSemaphore wait, VkSemaphore signal);
+
+  void get_frame_buffer(VKFrameBuffer*& fb_);
+
+  void get_command_buffer(VkCommandBuffer& cmd);
+
   VmaAllocator mem_allocator_get() const
   {
     return mem_allocator_;
@@ -296,21 +330,50 @@ class VKContext : public Context {
     return device_;
   };
   VkQueue queue_get(uint32_t type_);
-  void fbo_free(GLuint fbo_id);
+  void fbo_free(VkFramebuffer fbo_id);
+  void vao_free(VKVAOty buf);
+  static   void buf_free(VKBuffer* buf);
+
   static VKContext *get()
   {
     return static_cast<VKContext *>(Context::get());
   }
 
-  uint32_t get_current_frame_index() {
-    return current_frame_index_;
-  };
+  Set<VKVaoCache*> vao_caches_;
+  void  vao_cache_register(VKVaoCache* cache) {
+    lists_mutex_.lock();
+    vao_caches_.add(cache);
+    lists_mutex_.unlock();
+  }
+  void vao_cache_unregister(VKVaoCache* cache)
+  {
+    lists_mutex_.lock();
+    vao_caches_.remove(cache);
+    lists_mutex_.unlock();
+  }
+  void         create_swapchain_fb();
+  uint32_t get_current_frame_index();
+  uint32_t get_current_image_index();
   uint32_t get_transferQueueIndex();
   uint32_t get_graphicQueueIndex();
+  VkImage get_current_image();
+  VkImageLayout get_current_image_layout();
+  
+
+  void set_current_image_layout(VkImageLayout layout);
+
+  bool begin_blit_submit(VkCommandBuffer& cmd);
+
+  bool end_blit_submit(VkCommandBuffer& cmd, std::vector<VkSemaphore> batch_signal);
+
+  bool is_support_format(VkFormat format,  VkFormatFeatureFlagBits flag,bool linear);
+
+
   VKStagingBufferManager *get_buffer_manager()
   {
     return buffer_manager_;
   }
+  VkCommandBuffer request_command_buffer(bool second= false);
   void framebuffer_bind(VKFrameBuffer *framebuffer);
   void framebuffer_restore();
 
@@ -336,11 +399,21 @@ class VKContext : public Context {
   GPUVertFormat dummy_vertformat_;
   GPUVertBuf *dummy_verts_ = nullptr;
   VKTexture *get_dummy_texture(eGPUTextureType type);
- 
+  void bottom_transition();
+  void fail_transition();
+
   private:
   /* Parent Context. */
    void orphans_clear();
-   void orphans_add(Vector<GLuint> &orphan_list, std::mutex &list_mutex, GLuint id);
+
+   template<typename T>
+   static  void orphans_add(Vector<T>& orphan_list, std::mutex& list_mutex, T id)
+   {
+     BLI_assert(id);
+     list_mutex.lock();
+     orphan_list.append(id);
+     list_mutex.unlock();
+   }
 };
 
 }  // namespace blender::gpu

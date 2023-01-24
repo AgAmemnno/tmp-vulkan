@@ -14,7 +14,7 @@
 
 #include <unordered_map>
 #include <array>
-
+#include <functional>
 #ifdef _WIN32
 #  include "GHOST_SystemWin32.h"
 #elif defined(__APPLE__)
@@ -331,23 +331,33 @@ class GHOST_ContextVK : public GHOST_Context {
 
   GHOST_TSuccess  init_image_layout();
   GHOST_TSuccess  finalize_image_layout();
+  GHOST_TSuccess  fail_image_layout();
+  
+  VkClearValue clearValues_[2] = { { {0.025f, 0.025f, 0.025f, 1.0f} } ,  {1.0f, 0} };
+  GHOST_TSuccess clear_color(VkCommandBuffer& cmd, const VkClearColorValue* clearValues) {
+    VkImageSubresourceRange ImageSubresourceRange;
+    ImageSubresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    ImageSubresourceRange.baseMipLevel = 0;
+    ImageSubresourceRange.levelCount = 1;
+    ImageSubresourceRange.baseArrayLayer = 0;
+    ImageSubresourceRange.layerCount = 1;
+    vkCmdClearColorImage(cmd, m_swapchain_images[m_currentImage], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, clearValues, 1, &ImageSubresourceRange);
+    return GHOST_kSuccess;
 
+  }
    GHOST_TSuccess begin_frame(VkCommandBuffer &cmd,int i=-1)
     {
+
+#if 0
       if (i==-1)i = m_currentFrame;
 
-      cmd = m_command_buffers[i];
+      cmd = m_command_buffers[m_currentCommand];
       static bool ini = true;
 
       static VkCommandBufferBeginInfo cmdBufInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-      static VkClearValue clearValues[2];
       static VkRenderPassBeginInfo renderPassBeginInfo = {
           VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
 
-      if (ini) {
-
-        clearValues[0].color = {{0.025f, 0.025f, 0.025f, 1.0f}};
-        clearValues[1].depthStencil = {1.0f, 0};
 
         renderPassBeginInfo.renderPass = m_render_pass;
         renderPassBeginInfo.renderArea.offset.x = 0;
@@ -355,14 +365,14 @@ class GHOST_ContextVK : public GHOST_Context {
         renderPassBeginInfo.renderArea.extent.width = m_render_extent.width;
         renderPassBeginInfo.renderArea.extent.height = m_render_extent.height;
         renderPassBeginInfo.clearValueCount = 2;
-        renderPassBeginInfo.pClearValues = clearValues;
-      }
+        renderPassBeginInfo.pClearValues = clearValues_;
+
 
       renderPassBeginInfo.framebuffer = m_swapchain_framebuffers[i];
+      vkResetCommandBuffer(m_command_buffers[m_currentCommand] ,VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+      VK_CHECK(vkBeginCommandBuffer(m_command_buffers[m_currentCommand], &cmdBufInfo));
 
-      VK_CHECK(vkBeginCommandBuffer(m_command_buffers[i], &cmdBufInfo));
-
-      vkCmdBeginRenderPass(m_command_buffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+      vkCmdBeginRenderPass(m_command_buffers[m_currentCommand], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
       VkViewport viewport = {};
       viewport.width = (float)m_render_extent.width;
@@ -375,30 +385,42 @@ class GHOST_ContextVK : public GHOST_Context {
       scissor.extent.height = m_render_extent.height;
       scissor.offset.x = 0;
       scissor.offset.y = 0;
-      vkCmdSetViewport(m_command_buffers[i], 0, 1, &viewport);
-      vkCmdSetScissor(m_command_buffers[i], 0, 1, &scissor);
+      vkCmdSetViewport(m_command_buffers[m_currentCommand], 0, 1, &viewport);
+      vkCmdSetScissor(m_command_buffers[m_currentCommand], 0, 1, &scissor);
+#endif
       return GHOST_kSuccess;
     };
-    GHOST_TSuccess end_frame(VkCommandBuffer &cmd)
-    {
 
+  void set_layout(VkImageLayout layout) {
+     m_current_layouts[m_currentImage] = layout;
+   }
+  
+  VkImageLayout get_layout() {
+    return m_current_layouts[m_currentImage];
+  }
+
+    GHOST_TSuccess end_frame()
+    {
+      VkCommandBuffer& cmd = m_command_buffers[m_currentCommand];
       vkCmdEndRenderPass(cmd);
       VK_CHECK(vkEndCommandBuffer(cmd));
-
+      m_currentCommand = (m_currentCommand + 1) % m_command_buffers.size();
             return GHOST_kSuccess;
 
     };
 
     GHOST_TSuccess begin_submit_simple(VkCommandBuffer& cmd) {
-        cmd = m_command_buffers[m_currentFrame];
+        cmd = getCommandBuffers(m_currentCommand);
         VkCommandBufferBeginInfo cmdBufInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+        vkResetCommandBuffer(cmd, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
         VK_CHECK(vkBeginCommandBuffer(cmd, &cmdBufInfo));
         return GHOST_kSuccess;
     };
     GHOST_TSuccess end_submit_simple() {
 
-        auto cmd = m_command_buffers[m_currentFrame];
+        auto cmd = getCommandBuffers(m_currentCommand);
         VK_CHECK(vkEndCommandBuffer(cmd));
+        m_currentCommand = (m_currentCommand + 1) % m_command_buffers.size();
 
 
         VkSubmitInfo submit_info = {};
@@ -410,20 +432,35 @@ class GHOST_ContextVK : public GHOST_Context {
         submit_info.pCommandBuffers = &cmd;
         submit_info.signalSemaphoreCount = 0;
         submit_info.pSignalSemaphores = nullptr;
-        VK_CHECK(vkQueueSubmit(m_graphic_queue, 1, &submit_info, VK_NULL_HANDLE));
+        VK_CHECK(vkQueueSubmit(m_graphic_queue, 1, &submit_info, m_in_flight_fences[m_currentFence]));
 
-        VkResult result = VK_NOT_READY;
-        do {
-            result = vkWaitForFences(m_device, 1, &m_in_flight_fences[m_currentFrame], VK_TRUE, 10000);
-        } while (result == VK_TIMEOUT);
+
+        waitCustom();
+
+
         return GHOST_kSuccess;
 
     };
+    GHOST_TSuccess begin_offscreen_submit(VkCommandBuffer& cmd);
+    GHOST_TSuccess end_offscreen_submit(VkCommandBuffer& cmd, VkSemaphore wait = VK_NULL_HANDLE, VkSemaphore signal = VK_NULL_HANDLE);
+    int begin_onetime_submit(VkCommandBuffer cmd);
+    GHOST_TSuccess end_onetime_submit(int registerID);
 
+    GHOST_TSuccess begin_blit_submit(VkCommandBuffer& cmd);
+
+    GHOST_TSuccess end_blit_submit(VkCommandBuffer& cmd, std::vector<VkSemaphore> batch_signal);
+
+    VkCommandBuffer getCommandBuffers(int i);
     GHOST_TSuccess begin_submit(int N);
     GHOST_TSuccess end_submit();
 
+
+   std::vector<VkCommandBuffer> onetime_commands_ ;
+
+    GHOST_TSuccess  initialize_onetime_submit();
+    GHOST_TSuccess  finalize_onetime_submit();
     int current_wait_sema_ = 0;
+    int pipeline_sema_idx_ = 0;
     GHOST_TSuccess submit_nonblocking();
 
   /**
@@ -465,7 +502,7 @@ class GHOST_ContextVK : public GHOST_Context {
 
   int getCurrent(VkCommandBuffer& cmd)
   {
-    cmd = m_command_buffers[m_currentFrame];
+    cmd = m_command_buffers[m_currentCommand];
     return m_currentFrame;
   }
   VkDevice getDevice()
@@ -487,13 +524,33 @@ int getFrame()
 
 void getImage(VkImage& image)
 {
-    image  =  m_swapchain_images[m_currentFrame];
+    image  =  m_swapchain_images[m_currentImage];
     return;
 };
 
+uint32_t   getCurrentImage()
+{
+  return m_currentImage;
+};
+
+
+void getImageView(VkImageView& view,int i)
+{
+  view = m_swapchain_image_views[i];
+  return;
+};
+uint32_t getImageCount()
+{
+  return static_cast<uint32_t>(m_swapchain_image_views.size());
+};
 VkFormat getImageFormat()
 {
     return  m_image_format;
+};
+
+VkFormat getDepthFormat()
+{
+  return  m_depth_format;
 };
  // bool getCommandBuffer(VkCommandBuffer &cmd, int i);
   /**
@@ -515,7 +572,7 @@ VkFormat getImageFormat()
                                      void *render_pass,
                                      void *extent,
                                      uint32_t *fb_id);
-
+  void getRenderExtent(VkExtent2D& _render_extent);
   /**
    * Sets the swap interval for swapBuffers.
    * \param interval The swap interval to use.
@@ -536,7 +593,7 @@ VkFormat getImageFormat()
     return GHOST_kFailure;
   };
 
-   
+  GHOST_TSuccess beginCustom(int i, VkCommandBuffer& cmd);
 
 
   GHOST_TSuccess acquireCustom();
@@ -547,7 +604,77 @@ VkFormat getImageFormat()
   GHOST_TSuccess presentCustom();
 
 
-  
+  void getCrrentCommandBuffer(VkCommandBuffer& cmd) {
+    cmd = getCommandBuffers(m_currentCommand);
+  }
+
+  int     primary_index_ = 0;
+  int     secondary_index_ = 0;
+  template<typename T>
+  GHOST_TSuccess requestCommandBuffer(T& cmd,bool secondary = false)
+  {
+
+    if (secondary)
+    {
+      int stored_nums = static_cast<int>(m_seco_command_buffers.size());
+      if (secondary_index_ < stored_nums) {
+        cmd = m_seco_command_buffers[secondary_index_];
+      }
+      else {
+
+        BLI_assert(m_command_pool != VK_NULL_HANDLE);
+        VkCommandBufferAllocateInfo alloc_info = {};
+        alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        alloc_info.commandPool = m_command_pool;
+        alloc_info.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+        alloc_info.commandBufferCount = 1;
+
+        VK_CHECK(vkAllocateCommandBuffers(m_device, &alloc_info, &cmd));
+
+        m_seco_command_buffers.push_back(cmd);
+
+      }
+      secondary_index_++;
+      return GHOST_kSuccess;
+    }
+   
+
+    int stored_nums = static_cast<int>(m_prim_command_buffers.size());
+    if (primary_index_ < stored_nums) {
+      cmd = m_prim_command_buffers[primary_index_];
+    }
+    else {
+
+      BLI_assert(m_command_pool != VK_NULL_HANDLE);
+      VkCommandBufferAllocateInfo alloc_info = {};
+      alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+      alloc_info.commandPool = m_command_pool;
+      alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+      alloc_info.commandBufferCount = 1;
+
+      VK_CHECK(vkAllocateCommandBuffers(m_device, &alloc_info, &cmd));
+
+      m_prim_command_buffers.push_back(cmd);
+
+    }
+    primary_index_++;
+    
+    return GHOST_kSuccess;
+  }
+  void flush();
+
+  void set_fb_cb(std::function<void(void)>& func) {
+    fb_cb = func;
+  }
+
+  void set_fb_sb_cb(std::function<void(void)>& func) {
+    fb_sb_cb = func;
+  }
+  void set_fb_sb2_cb(std::function<void(void)>& func) {
+    fb_sb2_cb = func;
+  }
+  std::function<void(void)> fb_cb, fb_sb_cb, fb_sb2_cb;
+
  private:
 
 
@@ -587,10 +714,18 @@ VkFormat getImageFormat()
   VkSurfaceKHR m_surface;
   VkSwapchainKHR m_swapchain;
   std::vector<VkImage> m_swapchain_images;
+  bool                         m_swapchain_acquires;
   VkFormat                  m_image_format;
+  VkFormat                  m_depth_format;
+  std::vector < VkImageLayout>         m_current_layouts;
   std::vector<VkImageView> m_swapchain_image_views;
-  std::vector<VkFramebuffer> m_swapchain_framebuffers;
+
+  //std::vector < VKFrameBuffer >    m_swapchain_framebuffers;
   std::vector<VkCommandBuffer> m_command_buffers;
+
+
+  std::vector<VkCommandBuffer> m_seco_command_buffers;
+  std::vector<VkCommandBuffer> m_prim_command_buffers;
   VkRenderPass m_render_pass;
   VkExtent2D m_render_extent;
   std::vector<VkSemaphore> m_image_available_semaphores;
@@ -599,10 +734,13 @@ VkFormat getImageFormat()
   std::vector<VkFence> m_in_flight_images;
   /** frame modulo swapchain_len. Used as index for sync objects. */
   int m_currentFrame = 0;
+  int m_currentCommand = 0;
+  int m_currentFence = 0;
   /** Image index in the swapchain. Used as index for render objects. */
   uint32_t m_currentImage = 0;
   /** Used to unique framebuffer ids to return when swapchain is recreated. */
   uint32_t m_swapchain_id = 0;
+  bool is_initialized = false;
 
   const char *getPlatformSpecificSurfaceExtension() const;
   GHOST_TSuccess pickPhysicalDevice(std::vector<const char *> required_exts);
@@ -613,18 +751,38 @@ VkFormat getImageFormat()
   GHOST_TSuccess recordCommandBuffers(void);
 
 
+
  GHOST_TSuccess pickPhysicalDevice2(std::vector<ExtensionEntry>& required_exts);
+
  std::vector<void *> featureStructs;
  std::vector<const char *> enabledDeviceExts;
+
+
 
  VkPhysicalDeviceMemoryProperties m_memoryProperties;
 #ifdef VULKAN_ERROR_CHECK
   VULKAN_DEBUG_TYPE m_debugMode;
 #endif
-
-
+  bool m_is_destroyed = false;
+ 
 };
 
+namespace blender {
+  namespace vulkan {
+    
+    void GHOST_ImageTransition(
+      VkCommandBuffer cmd,
+      VkImage image,
+      VkFormat format,
+      VkImageLayout dstLayout,  // How the image will be laid out in memory.
+      VkAccessFlags dstAccesses,
+      VkImageAspectFlags aspects = VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM,
+      VkAccessFlags srcAccess = VK_ACCESS_FLAG_BITS_MAX_ENUM,
+      VkImageLayout srcLayout =
+      VK_IMAGE_LAYOUT_MAX_ENUM);  // The ways that the app will be able to access the image.
+  };
+};
 
+void clear_draw_test(GHOST_ContextVK* context_);
 
 #pragma warning(pop)

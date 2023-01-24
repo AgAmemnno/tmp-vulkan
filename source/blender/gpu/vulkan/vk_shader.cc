@@ -83,6 +83,8 @@ Draft API (intern_shader_compiler). API is CPP as its only usage is inside GPU m
 
 #include "vk_texture.hh"
 #include "vk_framebuffer.hh"
+#include "vk_backend.hh"
+
 #include <string>
 
 #include "BLI_vector.hh"
@@ -135,6 +137,8 @@ VKShader::VKShader(const char *name) : Shader(name)
   interface = new VKShaderInterface();
   context_ = VKContext::get();
   pipe = VK_NULL_HANDLE;
+  write_iub_.clear();
+  write_descs_.clear();
 };
 
 
@@ -516,6 +520,9 @@ bool VKShader::finalize(const shader::ShaderCreateInfo *info )
       getShaderModule(vsm, 0);
       getShaderModule(fsm, 2);
       iface.parse(vsm, fsm);
+      auto fb = static_cast<VKFrameBuffer*>(VKContext::get()->active_fb);
+      CreatePipeline(fb->get_render_pass());
+
       iface.valid = true;
     }
 
@@ -863,11 +870,11 @@ static std::ostream &print_qualifier(std::ostream &os, const Qualifier &qualifie
   return os;
 }
 
-static void print_resource(std::ostream &os, const ShaderCreateInfo::Resource &res)
+static void print_resource(std::ostream &os, const ShaderCreateInfo::Resource &res,int slot = -1)
 {
-  ///if (VKContext::explicit_location_support) {
+
     if (true){
-    os << "layout(binding = " << res.slot;
+    os << "layout(set = 0 , binding = " << slot;
     if (res.bind_type == ShaderCreateInfo::Resource::BindType::IMAGE) {
       os << ", " << to_string(res.image.format);
     }
@@ -959,22 +966,76 @@ static void print_interface(std::ostream &os,
   os << "}";
   os << (iface.instance_name.is_empty() ? "" : "\n") << iface.instance_name << suffix << ";\n";
 }
+
+
+static int constant_type_size(Type type)
+{
+  switch (type) {
+  case Type::BOOL:
+  case Type::FLOAT:
+  case Type::INT:
+  case Type::UINT:
+  case Type::UCHAR4:
+  case Type::CHAR4:
+  case blender::gpu::shader::Type::VEC3_101010I2:
+    return 4;
+    break;
+  case Type::VEC2:
+  case Type::UVEC2:
+  case Type::IVEC2:
+    return 8;
+    break;
+  case Type::VEC3:
+  case Type::UVEC3:
+  case Type::IVEC3:
+    return 12;
+    break;
+  case Type::VEC4:
+  case Type::UVEC4:
+  case Type::IVEC4:
+    return 16;
+    break;
+  case Type::MAT3:
+    return 36 + 3 * 4;
+  case Type::MAT4:
+    return 64;
+    break;
+  case blender::gpu::shader::Type::UCHAR:
+  case blender::gpu::shader::Type::CHAR:
+    return 1;
+    break;
+  case blender::gpu::shader::Type::UCHAR2:
+  case blender::gpu::shader::Type::CHAR2:
+    return 2;
+    break;
+  case blender::gpu::shader::Type::UCHAR3:
+  case blender::gpu::shader::Type::CHAR3:
+    return 3;
+    break;
+  }
+  BLI_assert(false);
+  return -1;
+}
+
+
 std::string VKShader::resources_declare(const shader::ShaderCreateInfo &info) const
 {
   std::stringstream ss;
- /// 
+
   /* NOTE: We define macros in GLSL to trigger compilation error if the resource names
    * are reused for local variables. This is to match other backend behavior which needs accessors
    * macros. */
 
   ss << "\n/* Pass Resources. */\n";
-  #if 1
+  int slot = 0;
   for (const shader::ShaderCreateInfo::Resource &res : info.pass_resources_) {
-    print_resource(ss, res);
+    print_resource(ss, res,slot);
+    slot++;
   }
   for (const shader::ShaderCreateInfo::Resource &res : info.pass_resources_) {
     print_resource_alias(ss, res);
   }
+
   ss << "\n/* Batch Resources. */\n";
   for (const shader::ShaderCreateInfo::Resource &res : info.batch_resources_) {
     print_resource(ss, res);
@@ -982,39 +1043,84 @@ std::string VKShader::resources_declare(const shader::ShaderCreateInfo &info) co
   for (const shader::ShaderCreateInfo::Resource &res : info.batch_resources_) {
     print_resource_alias(ss, res);
   }
+  /*Check the size of pushconstants for development.
+Since the limit is mostly 256 bytes or less, we use a uniformbuffer instead.
+we can also use bufferreference.*/
+  /*for calc std140, ported #constants_calc_size  file :: gpu_py_shader_create_info.cc line :: 717  */
+  auto get_size = [](const shader::ShaderCreateInfo::PushConst& uniform, int& size_prev, int& size_last) {
+    int pad = 0;
+    int size = constant_type_size(uniform.type);
+    if (size_last && size_last != size) {
+      /* Calc pad. */
+      int pack = (size == 8) ? 8 : 16;
+      if (size_last < size) {
+        pad = pack - (size_last % pack);
+      }
+      else {
+        pad = size_prev % pack;
+      }
+    }
+    else if (size == 12) {
+      /* It is still unclear how Vulkan handles padding for `vec3` constants. For now let's follow
+       * the rules of the `std140` layout. */
+      pad = 4;
+    }
+    size_prev += pad + size * std::max(1, uniform.array_size);
+    size_last = size;
+    return;
+  };
+
+  Vector<shader::ShaderCreateInfo::PushConst> ubo;
+  int size_prev = 0;
+  int size_last = 0;
 
   ss << "\n/* Push Constants. */\n";
   int pushN = 0;
   ///uint32_t push_ofs = 0;
-  for (const shader::ShaderCreateInfo::PushConst &uniform : info.push_constants_) {
-    if (pushN == 0)
+  for (const shader::ShaderCreateInfo::PushConst& uniform : info.push_constants_) {
+    get_size(uniform, size_prev, size_last);
+    if (uniform.name == "parameters") {
+      ubo.append(uniform);
+      continue;
+    }
+    if (pushN == 0) {
       ss << "layout(push_constant) uniform PushConsts \n{\n";
+    }
     pushN++;
-   /// ss << " layout(offset = " + std::to_string(push_ofs) + ") "; 
-  
+    /// ss << " layout(offset = " + std::to_string(push_ofs) + ") "; 
     ss << to_string(uniform.type) << " " << uniform.name;
     if (uniform.array_size > 0) {
       ss << "[" << uniform.array_size << "]";
-      ///push_ofs += to_size(uniform.type, uniform.array_size);
     }
     //else
      // push_ofs += to_size(uniform.type, 1);
     ss << ";\n";
-    
-  }
-  if (pushN > 0)
-    ss << "};\n";
+  };
 
-  #endif
-#if 0 /* T95278: This is not be enough to prevent some compilers think it is recursive. */
-  for (const ShaderCreateInfo::PushConst &uniform : info.push_constants_) {
-    /* T95278: Double macro to avoid some compilers think it is recursive. */
-    ss << "#define " << uniform.name << "_ " << uniform.name << "\n";
-    ss << "#define " << uniform.name << " (" << uniform.name << "_)\n";
+  if (pushN > 0) {
+    ss << "};\n";
+    if (size_prev > VKContext::max_push_constants_size) {
+      printf("Warning: require pushconstants reconstruct.  \n");
+    };
   }
-#endif
+
+  ss << "\n/* UBO. Alternate ubo assumes set number 1.*/\n";
+  if (ubo.size() > 0) {
+    int i = 0;
+    for (auto& uniform : ubo) {
+      ss << "layout(set = 1, binding = " << std::to_string(i) << " ) uniform ubo_" << uniform.name << "\n";
+      ss << "{\n";
+      ss << to_string(uniform.type) << " " << uniform.name;
+      if (uniform.array_size > 0) {
+        ss << "[" << uniform.array_size << "]";
+      }
+      ss << ";\n";
+      ss << "};\n";
+    };
+  };
   ss << "\n";
   return ss.str();
+
 }
 
 static std::string main_function_wrapper(std::string &pre_main, std::string &post_main)
@@ -1040,6 +1146,7 @@ std::string VKShader::vertex_interface_declare(const shader::ShaderCreateInfo &i
   std::stringstream ss;
   std::string post_main;
   ss << "#define gl_VertexID gl_VertexIndex \n";
+  ss << "#define gl_InstanceID gl_InstanceIndex \n";
   ss << "#extension GL_EXT_debug_printf : enable \n ";
 
 
@@ -1093,12 +1200,18 @@ std::string VKShader::vertex_interface_declare(const shader::ShaderCreateInfo &i
       post_main += "  gpu_pos = gpu_pos_flat = gl_Position;\n";
     }
   }
-  ss << "\n";
 
-  if(true) { // (post_main.empty() == false) {
+  ss << "\n";
+  if(true) { 
     std::string pre_main =
         "gl_PointSize = 10.0f; \n";
-   /// pre_main += "debugPrintfEXT(\"Here pos %v3f  coord  %v2f \",pos, texCoord);\n\n";
+
+    if ("gpu_shader_2D_image_multi_rect_color" == info.name_) {
+      post_main += "debugPrintfEXT(\"Here texCoord_interp  %v2f  \", texCoord_interp);\n\n";
+    }else  if ("gpu_shader_2D_widget_base" == info.name_) {
+      //post_main += "debugPrintfEXT(\"Here position   %v3f  \",parameters[widgetID * MAX_PARAM + 1].xyz);\n\n";
+    }
+
     ss << main_function_wrapper(pre_main, post_main);
   }
 
@@ -1201,7 +1314,10 @@ std::string VKShader::fragment_interface_declare(const shader::ShaderCreateInfo 
 
   if (true) { //(pre_main.empty() == false) {
     std::string post_main ="";  ///"debugPrintfEXT(\"Here Frag texco %v2f    color %v4f \",texCoord_interp,color);";
-
+    if ("gpu_shader_2D_image_multi_rect_color" == info.name_) {
+      post_main += "debugPrintfEXT(\"Here  texCoord %v2f finalColor  %v4f  \",texCoord_interp,finalColor);\n\n";
+    }
+    
     ss << main_function_wrapper(pre_main, post_main);
   }
  
@@ -1328,6 +1444,8 @@ void VKShader::bind()
   VKShaderInterface &iface = *((VKShaderInterface *)interface);
   if(!iface.valid)return;
    ctx->pipeline_state.active_shader = this;
+   attr_mask_unbound_ = iface.enabled_attr_mask_;
+
 }
 
 void VKShader::unbind()
@@ -1359,12 +1477,44 @@ void VKShader::unbind()
     write_descs_.append(wd);
   };
 };
+  void  VKShader::append_write_descriptor(VkDescriptorSet set, void* data, VkDeviceSize size, uint binding)
+  {
+
+    VkWriteDescriptorSetInlineUniformBlockEXT writeDescriptorSetInlineUniformBlock{};
+    write_iub_.append(writeDescriptorSetInlineUniformBlock);
+    auto & iub = write_iub_.last();
+    iub.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT;
+    iub.dataSize = size;
+    iub.pData      = data;
+    iub.pNext     = NULL;
+
+    VkWriteDescriptorSet writeDescriptorSet{};
+    write_descs_.append(writeDescriptorSet);
+    auto& desc = write_descs_.last();
+    desc.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    desc.descriptorType = VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT;
+    desc.dstSet = set;
+    desc.dstBinding = binding;
+    desc.descriptorCount = size;
+
+    desc.pNext = &iub;
+    
+
+  
+   // vkUpdateDescriptorSets(VK_DEVICE, write_descs_.size(), write_descs_.data(), 0, NULL);
+  };
+
+
 bool VKShader::update_descriptor_set()
 {
   auto size  = write_descs_.size();
   if (size > 0) {
+    for (auto& desc : write_descs_) {
+      printf("  Set %llx    binding %d    type  %d    \n\n"  ,desc.dstSet,desc.dstBinding, (int)desc.descriptorType);
+    }
     vkUpdateDescriptorSets(VK_DEVICE, write_descs_.size(), write_descs_.data(), 0, NULL);
     write_descs_.clear();
+    write_iub_.clear();
     return true;
   }
   return false;
@@ -1390,11 +1540,18 @@ void VKShader::uniform_float(int location, int comp_len, int array_size, const f
       break;
   }
   ShaderInput &input = vkinterface->inputs_[location];
-  BLI_assert(input.binding + size <= vkinterface->push_range_.size);
-
-  memcpy(vkinterface->push_cache_ + input.binding, data, size);
-   ///vkCmdPushConstants( current_cmd_, current_layout_, stage, input.binding, size, &data);
-
+  
+  if (input.binding >= 1000) {
+    /*inline uniform block binding. IUBB */
+    int binding = input.binding - 1000;
+    int currentImage = VKContext::get()->get_current_image_index();
+    append_write_descriptor(vkinterface->sets_vec_[1][currentImage], (void*)data, size * array_size, binding);
+  }
+  else {
+    BLI_assert(input.binding + size <= vkinterface->push_range_.size);
+    memcpy(vkinterface->push_cache_ + input.binding, data, size);
+    ///vkCmdPushConstants( current_cmd_, current_layout_, stage, input.binding, size, &data);
+  }
 }
 
 void VKShader::uniform_int(int location, int comp_len, int array_size, const int *data)
@@ -1450,7 +1607,7 @@ VKShader::~VKShader()
    /// On invalid,may be memory leak. 
    /// </summary>
    ///BLI_assert(valid );
-  context_ = nullptr;
+  context_  = nullptr;
   is_valid_ = false;
 
 }
@@ -1480,9 +1637,6 @@ VkPipeline VKShader::CreatePipeline(
   current_cmd_ = ctx->current_cmd_;
   current_layout_ = layout; 
 
-
-
-
   auto stman = (VKStateManager *)(VKContext::get()->state_manager);
   
   shaderstages.resize(0);
@@ -1506,6 +1660,7 @@ VkPipeline VKShader::CreatePipeline(
 
 
   BLI_assert(vkinterface->desc_inputs_.size() <= 1);  /// input binding number == 0.
+
   auto &vkPVISci = vkinterface->desc_inputs_[0].vkPVISci;
   if ( vkinterface->desc_inputs_.size() == 0) {
 

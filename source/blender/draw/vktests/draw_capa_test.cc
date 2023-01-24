@@ -1,5 +1,6 @@
 #ifdef DRAW_GTEST_SUITE
-#include ""draw_testing.hh"
+#define DRAW_TESTING_CAPA 1
+#include "draw_testing.hh"
 #endif
 
 
@@ -16,7 +17,7 @@ namespace blender{
 #endif
         {
 
-           
+#if 0
             gpu::VKContext* ctx = (gpu::VKContext*)(gpu::Context::get());
             VkPhysicalDevice physical_device = ctx->get_physical_device();
 
@@ -73,7 +74,7 @@ namespace blender{
             PRINT_GCAPS(max_batch_vertices);
 
             PRINT_GCAPS(max_vertex_attribs);
-
+#endif
         };
    
 

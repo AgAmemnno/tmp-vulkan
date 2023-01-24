@@ -278,7 +278,7 @@ using namespace blender::gpu::shader;
 void gpu_shader_create_info_init()
 {
   g_create_infos = new CreateInfoDictionnary();
-  g_interfaces = new InterfaceDictionnary();
+  g_interfaces   = new InterfaceDictionnary();
 
 #define GPU_SHADER_INTERFACE_INFO(_interface, _inst_name) \
   auto *ptr_##_interface = new StageInterfaceInfo(#_interface, _inst_name); \

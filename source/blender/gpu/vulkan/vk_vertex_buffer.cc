@@ -9,25 +9,49 @@
 
 #include "vk_context.hh"
 #include "vk_vertex_buffer.hh"
+#include "vk_memory.hh"
 
 namespace blender::gpu {
 
 
+  size_t VKVertBuf::memory_usage_gpu_ = 0;
 
+  VKVertBuf::~VKVertBuf() {
+    release_data();
+  }
 
+void VKVertBuf::acquire_data()
+{
+  if (usage_ == GPU_USAGE_DEVICE_ONLY) {
+    return;
+  }
+  /* Discard previous data if any. */
+  MEM_SAFE_FREE(data);
+  data = (uchar*)MEM_mallocN(sizeof(uchar) * this->size_alloc_get(), __func__);
+}
+void VKVertBuf::resize_data(void) 
+{
+  if (usage_ == GPU_USAGE_DEVICE_ONLY) {
+    return;
+  }
+
+  data = (uchar*)MEM_reallocN(data, sizeof(uchar) * this->size_alloc_get());
+};
 void VKVertBuf::release_data()
 {
-  /*
   if (is_wrapper_) {
     return;
   }
-  if (vbo_id_ != 0) {
-    GPU_TEXTURE_FREE_SAFE(buffer_texture_);
-    GLContext::buf_free(vbo_id_);
-    vbo_id_ = 0;
-    memory_usage -= vbo_size_;
+
+  if (vbo_id_ != 0) {  
+    size_t  vbo_size_ = vbo_id_->get_buffer_size();
+    size_t  vbo_size_gpu = vbo_id_->get_size();
+    VKContext::buf_free(vbo_id_);
+    /*TODO :: #GPU_TEXTURE_FREE_SAFE(buffer_texture_);*/
+    vbo_id_ = nullptr;
+    memory_usage          -= vbo_size_;
+    memory_usage_gpu_ -= vbo_size_gpu;
   }
-  */
 
   MEM_SAFE_FREE(data);
   
@@ -35,110 +59,82 @@ void VKVertBuf::release_data()
 
 void VKVertBuf::duplicate_data(VertBuf *dst_)
 {
-  /*
-  BLI_assert(GLContext::get() != nullptr);
-  GLVertBuf *src = this;
-  GLVertBuf *dst = static_cast<GLVertBuf *>(dst_);
-  dst->buffer_texture_ = nullptr;
+  VKContext* context = VKContext::get();
+  BLI_assert(context);
+  BLI_assert(context->buffer_manager_);
 
-  if (src->vbo_id_ != 0) {
-    dst->vbo_size_ = src->size_used_get();
+  VKVertBuf* src = this;
+  VKVertBuf* dst = static_cast<VKVertBuf*>(dst_);
+  /*TODO :: dst->buffer_texture_ = nullptr; */
 
-    glGenBuffers(1, &dst->vbo_id_);
-    glBindBuffer(GL_COPY_WRITE_BUFFER, dst->vbo_id_);
-    glBufferData(GL_COPY_WRITE_BUFFER, dst->vbo_size_, nullptr, to_gl(dst->usage_));
+  VKBuffer* read   =  src->get_vbo();
+  VKBuffer* write  =  dst->get_vbo();
+  BLI_assert(read);
+  BLI_assert(write);
 
-    glBindBuffer(GL_COPY_READ_BUFFER, src->vbo_id_);
-
-    glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, dst->vbo_size_);
-
-    memory_usage += dst->vbo_size_;
+  /*It is the size of src, but is it necessary to resize it?*/
+  {
+    VkBufferCopy  region = {};
+    region.size = src->size_used_get();
+    
+    region.dstOffset = region.srcOffset = 0;
+    context->buffer_manager_->CopyBufferSubData(read,write, region);
+    memory_usage += region.size;
+    memory_usage_gpu_ += src->get_vbo()->get_size();
   }
 
   if (data != nullptr) {
-    dst->data = (uchar *)MEM_dupallocN(src->data);
+    dst->data = (uchar*)MEM_dupallocN(src->data);
   }
-  */
 }
 
 void VKVertBuf::upload_data()
 {
-  if (usage_ == GPU_USAGE_STATIC) {
-    MEM_SAFE_FREE(data);
-  }
   this->bind();
 }
 
 void VKVertBuf::bind()
 {
   BLI_assert(VKContext::get() != nullptr);
-
-  VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo{VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
-
-  uint32_t stride = 16;
-
-  VkVertexInputBindingDescription vInputBindDescription0{0, stride, VK_VERTEX_INPUT_RATE_VERTEX};
-  VkVertexInputBindingDescription vInputBindDescription1{1, stride, VK_VERTEX_INPUT_RATE_INSTANCE};
-
-  std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
-      vInputBindDescription0,
-      vInputBindDescription1
-  };
-
- 
-
-  std::vector<VkVertexInputAttributeDescription> vertexInputAttributes;
-  #if 0
-  int i = 0;
-  for (i = 0; i < geom->array.fieldNum; i++) {
-    vertexInputAttributes.push_back(vka::plysm::vertexInputAttributeDescription(
-        0, i, geom->array.format[i], geom->array.offset[i]));
-  };
-
-  for (int i1 = 0; i1 < insta->array.fieldNum; i1++) {
-    vertexInputAttributes.push_back(vka::plysm::vertexInputAttributeDescription(
-        1, i + i1, insta->array.format[i1], insta->array.offset[i1]));
-  };
-
-  log_obj2("InstancedObjects  Information   GeometryBlock Nums %zu    InstanceBlock Nums %zu   \n",
-           geom->array.fieldNum,
-           insta->array.fieldNum);
-
-  Attributes[structType] = vertexInputAttributes;
-
-  info.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexInputBindings.size());
-  info.pVertexBindingDescriptions = vertexInputBindings.data();
-  info.vertexAttributeDescriptionCount = static_cast<uint32_t>(Attributes[structType].size());
-  info.pVertexAttributeDescriptions = Attributes[structType].data();
-
-  Info[structType] = info;
-  if (vbo_id_ == 0) {
-    glGenBuffers(1, &vbo_id_);
-  }
-
-  glBindBuffer(GL_ARRAY_BUFFER, vbo_id_);
-
   if (flag & GPU_VERTBUF_DATA_DIRTY) {
-    vbo_size_ = this->size_used_get();
-    // Orphan the vbo to avoid sync then upload data. 
-    glBufferData(GL_ARRAY_BUFFER, vbo_size_, nullptr, to_gl(usage_));
-    // Do not transfer data from host to device when buffer is device only.
+    size_t vbo_size_ = this->size_used_get();
+    auto usage  = to_vk(usage_);
+    /* Do not transfer data from host to device when buffer is device only. */
+    if (vbo_id_ == nullptr) {
+      VKResourceOptions options;
+      if (usage  ==  VMA_MEMORY_USAGE_CPU_TO_GPU) {
+        options.setHostVisible(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+      }
+      else {
+        options.setDeviceLocal(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+      }
+      vbo_id_ = new VKVAOty_impl(vbo_size_, VK_BUFFER_DEFAULT_ALIGNMENT, options);
+    }
+    else {
+      vbo_id_->Resize(vbo_size_);
+    }
+   
+    /* Do not transfer data from host to device when buffer is device only. */
     if (usage_ != GPU_USAGE_DEVICE_ONLY) {
-      glBufferSubData(GL_ARRAY_BUFFER, 0, vbo_size_, data);
+      vbo_id_->Copy(data, vbo_size_);
+      /* #glBufferSubData(GL_ARRAY_BUFFER, 0, vbo_size_, data);*/
+
     }
     memory_usage += vbo_size_;
+    memory_usage_gpu_ += vbo_id_->get_size();
 
     if (usage_ == GPU_USAGE_STATIC) {
       MEM_SAFE_FREE(data);
     }
+  
     flag &= ~GPU_VERTBUF_DATA_DIRTY;
     flag |= GPU_VERTBUF_DATA_UPLOADED;
   }
-  #endif
 }
 
 void VKVertBuf::bind_as_ssbo(uint binding)
 {
+  BLI_assert(false);
   bind();
   /*
   BLI_assert(vbo_id_ != 0);
@@ -148,6 +144,7 @@ void VKVertBuf::bind_as_ssbo(uint binding)
 
 void VKVertBuf::bind_as_texture(uint binding)
 {
+  BLI_assert(false);
   /*
   bind();
   BLI_assert(vbo_id_ != 0);
@@ -160,45 +157,63 @@ void VKVertBuf::bind_as_texture(uint binding)
 
 const void *VKVertBuf::read() const
 {
-  /*
-  BLI_assert(is_active());
-  void *result = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY);
-  return result;
-  */
-  return (void *)0;
+
+   BLI_assert(vbo_id_);
+   auto usage = to_vk(usage_);
+   if (usage == VMA_MEMORY_USAGE_CPU_TO_GPU) {
+     return vbo_id_->get_host_ptr();
+   }
+  return nullptr;
+
 }
 
 void *VKVertBuf::unmap(const void *mapped_data) const
 {
-  /*
-  void *result = MEM_mallocN(vbo_size_, __func__);
-  memcpy(result, mapped_data, vbo_size_);
-  return result;
-  */
-  return (void*)0;
+  BLI_assert(vbo_id_);
+  VkDeviceSize  vbo_size_ = vbo_id_->get_buffer_size();
+  if (vbo_size_ > 0) {
+    void* result = MEM_mallocN(vbo_size_, __func__);
+    memcpy(result, mapped_data, vbo_size_);
+    return result;
+  }
+  return nullptr;
 }
 
-void VKVertBuf::wrap_handle(uint64_t handle)
+void VKVertBuf::wrap_handle(uint64_t handle_)
 {
+  BLI_assert(vbo_id_ == nullptr);
+  BLI_assert(handle_);
+
+  VKBuffer* handle = reinterpret_cast <VKBuffer*>(handle_);
+
+  BLI_assert(handle->get_vk_buffer() != VK_NULL_HANDLE);
+
+  is_wrapper_ = true;
+  vbo_id_ =  handle;
+  /* We assume the data is already on the device, so no need to allocate or send it. */
+  flag = GPU_VERTBUF_DATA_UPLOADED;
 
 }
 
 bool VKVertBuf::is_active() const
 {
-  /*
+  
   if (!vbo_id_) {
     return false;
   }
+  /* Need for design. Are we querying the active bindings for each command buffer, or should the command buffer actually be in the command begin state? */
+  /*
   int active_vbo_id = 0;
   glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &active_vbo_id);
   return vbo_id_ == active_vbo_id;
   */
-  return false;
+  return true;
 }
 
 void VKVertBuf::update_sub(uint start, uint len, const void *data)
 {
-   //glBufferSubData(GL_ARRAY_BUFFER, start, len, data);
+  BLI_assert(vbo_id_ );
+  vbo_id_->Copy((void*)data, len, start);
 }
 
 }  // namespace blender::gpu

@@ -54,17 +54,19 @@ PipelineStateCreateInfoVk &VKStateManager::getPipelineStateCI()
 
 VKStateManager::VKStateManager(VKContext *_ctx) : ctx_(_ctx)
 {
+  
+  texture_unbind_all();
 
   dynamicStateEnables.clear();
   dynamicStateEnables.push_back(VK_DYNAMIC_STATE_VIEWPORT);
   dynamicStateEnables.push_back(VK_DYNAMIC_STATE_SCISSOR);
 
   /* Set other states that never change. */
-  ///https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_EXT_non_seamless_cube_map.html
-  ///glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS); --> device extension(VK_EXT_NON_SEAMLESS_CUBE_MAP_EXTENSION_NAME)
+  /* https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_EXT_non_seamless_cube_map.html */
+  /* glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS); --> device extension(VK_EXT_NON_SEAMLESS_CUBE_MAP_EXTENSION_NAME) */
 
-  /// PipelineState  && RenderPass Resolve SubPass
-  ///glEnable(GL_MULTISAMPLE);
+  /* PipelineState&& RenderPass Resolve SubPass */
+  /* #glEnable(GL_MULTISAMPLE); */
   auto &ms = current_pipeline_.multisample;
   {
     ms.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
@@ -297,12 +299,13 @@ void VKStateManager::set_state(const GPUState &state)
 void VKStateManager::set_mutable_state(VkCommandBuffer commandBuffer,const GPUStateMutable &state)
 {
   dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT,
-                         VK_DYNAMIC_STATE_SCISSOR,VK_DYNAMIC_STATE_LINE_WIDTH,
-                                                            VK_DYNAMIC_STATE_DEPTH_BOUNDS,
-                                                            VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK,
-                                                            VK_DYNAMIC_STATE_STENCIL_WRITE_MASK,
-                                                            VK_DYNAMIC_STATE_STENCIL_REFERENCE,
-                                                            VK_DYNAMIC_STATE_STENCIL_OP_EXT};
+                                        VK_DYNAMIC_STATE_SCISSOR, 
+                                        VK_DYNAMIC_STATE_LINE_WIDTH,
+                                        VK_DYNAMIC_STATE_DEPTH_BOUNDS,
+                                        VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK,
+                                        VK_DYNAMIC_STATE_STENCIL_WRITE_MASK,
+                                        VK_DYNAMIC_STATE_STENCIL_REFERENCE,
+                                        VK_DYNAMIC_STATE_STENCIL_OP_EXT};
 
   auto &dynamic = current_pipeline_.dynamic;
   dynamic.flags = 0;
@@ -808,11 +811,11 @@ void VKStateManager::texture_bind(Texture *tex_, eGPUSamplerState sampler_type, 
   auto shader = VKContext::get()->pipeline_state.active_shader;
   shader->append_write_descriptor(tex, sampler_type,binding);
   /* Eliminate redundant binds. */
-  if ((textures_[binding] == tex->tex_id_) && (this->samplers_[binding] == ((uint32_t) sampler_type))) {
+  if ((textures_[binding].imageView == tex->desc_info_.imageView) && (this->samplers_[binding] == ((uint32_t) sampler_type))) {
     return;
   }
-  targets_[binding] = tex->target_;
-  textures_[binding] = tex->tex_id_;
+  targets_[binding] = tex->target_type_;
+  textures_[binding] = tex->desc_info_;
   this->samplers_[binding] = (uint)sampler_type;
   tex->is_bound_ = true;
   dirty_texture_binds_ |= 1ULL << binding;
@@ -820,28 +823,23 @@ void VKStateManager::texture_bind(Texture *tex_, eGPUSamplerState sampler_type, 
 
 void VKStateManager::texture_bind_temp(VKTexture *tex)
 {
-  /*
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(tex->target_, tex->tex_id_);
-  */
-  /* Will reset the first texture that was originally bound to slot 0 back before drawing. */
+  /*TODO :: Set in descriptorset. */
+
+  /*TODO :: Will update the descriptorset.*/
   dirty_texture_binds_ |= 1ULL;
-  /* NOTE: This might leave this texture attached to this target even after update.
-   * In practice it is not causing problems as we have incorrect binding detection
-   * at higher level. */
 }
 
 void VKStateManager::texture_unbind(Texture *tex_)
 {
   VKTexture *tex = static_cast<VKTexture *>(tex_);
-  if (!tex->is_bound_) {
+  if ( (!tex->is_bound_) || (tex->desc_info_.imageView == VK_NULL_HANDLE) ){
     return;
   }
 
-  GLuint tex_id = tex->tex_id_;
+
   for (int i = 0; i < ARRAY_SIZE(textures_); i++) {
-    if (textures_[i] == tex_id) {
-      textures_[i] = 0;
+    if (textures_[i].imageView == tex->desc_info_.imageView) {
+      textures_[i] = {};
       this->samplers_[i] = 0;
       dirty_texture_binds_ |= 1ULL << i;
     }
@@ -852,8 +850,8 @@ void VKStateManager::texture_unbind(Texture *tex_)
 void VKStateManager::texture_unbind_all()
 {
   for (int i = 0; i < ARRAY_SIZE(textures_); i++) {
-    if (textures_[i] != 0) {
-      textures_[i] = 0;
+    if (textures_[i].imageView != VK_NULL_HANDLE) {
+      textures_[i] = {VK_NULL_HANDLE,VK_NULL_HANDLE,VK_IMAGE_LAYOUT_MAX_ENUM};
       this->samplers_[i] = 0;
       dirty_texture_binds_ |= 1ULL << i;
     }
@@ -906,7 +904,7 @@ uint64_t VKStateManager::bound_texture_slots()
 {
   uint64_t bound_slots = 0;
   for (int i = 0; i < ARRAY_SIZE(textures_); i++) {
-    if (textures_[i] != 0) {
+    if (textures_[i].imageView != VK_NULL_HANDLE) {
       bound_slots |= 1ULL << i;
     }
   }

@@ -33,6 +33,10 @@ int GPU_max_texture_size()
   return GCaps.max_texture_size;
 }
 
+
+
+
+
 int GPU_max_texture_3d_size(void)
 {
   return GCaps.max_texture_3d_size;

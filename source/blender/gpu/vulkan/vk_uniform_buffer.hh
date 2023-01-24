@@ -34,13 +34,21 @@ namespace gpu {
  * Implementation of Uniform Buffers using OpenGL.
  **/
 class VKUniformBuf : public UniformBuf {
- public:
-  VKUniformBuf(size_t size, const char *name) : UniformBuf(size, name){};
-  ~VKUniformBuf(){};
+private:
+  
+  int slot_ = -1;
+  uint32_t ubo_id_ = 0;
+  VKBuffer* ubo = nullptr;
+  VkDescriptorBufferInfo info;
+public:
+  VKUniformBuf(size_t size, const char *name) ;
+  ~VKUniformBuf();
 
-  void update(const void *data) override{};
-  void bind(int slot) override{};
-  void unbind(void) override{};
+  void update(const void *data) override;
+  void bind(int slot) override;
+  void unbind(void) override;
+  void clear_to_zero()override;
+  void bind_as_ssbo(int slot) override;
 
  private:
   void init(void);

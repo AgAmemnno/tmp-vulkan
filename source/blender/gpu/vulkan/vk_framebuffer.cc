@@ -7,6 +7,9 @@
 
 #include "vk_texture.hh"
 #include "vk_framebuffer.hh"
+#include "vk_state.hh"
+
+#include "intern/GHOST_ContextVK.h"
 
 namespace blender::gpu {
  #define VK_PNEXT_INIT_VAL 0x7777777
@@ -25,49 +28,42 @@ int VKFrameBuffer::get_height()
 /** \name Creation & Deletion
  * \{ */
 
-VKFrameBuffer::VKFrameBuffer(const char *name) : FrameBuffer(name)
+VKFrameBuffer::VKFrameBuffer(const char *name,VKContext* ctx) : FrameBuffer(name),vk_attachments_(this)
 {
-  /* Just-In-Time init. See #GLFrameBuffer::init(). */
-  immutable_ = false;
-  fbo_id_ = 0;
-}
-
-
-VKFrameBuffer::VKFrameBuffer(VKContext *ctx, const char *name)
-    ///const char *name, VKContext *ctx, GLenum target, GLuint fbo, int w, int h)
-    : FrameBuffer(name)
-{
- 
-
+  /* Just-In-Time init. See #VKFrameBuffer::init(). */
+  init(ctx);
   context_ = ctx;
-  is_dirty_ = true;
-  is_loadstore_dirty_ = true;
-  dirty_state_ctx_ = nullptr;
-  has_pending_clear_ = false;
-  colour_attachment_count_ = 0;
-  srgb_enabled_ = false;
-  is_srgb_ = false;
+  viewport_[0] = scissor_[0] = 0;
+  viewport_[1] = scissor_[1] = 0;
+  viewport_[2] = scissor_[2] = 0;
+  viewport_[3] = scissor_[3] =0;
 
-  for (int i = 0; i < GPU_FB_MAX_COLOR_ATTACHMENT; i++) {
-    vk_color_attachments_[i].used = false;
-  }
-  vk_depth_attachment_.used = false;
-  vk_stencil_attachment_.used = false;
+  printf("Frmae buffer Init  Mutable ============================================%llu   %s     \n", (uint64_t)this, name_);
 
-  for (int i = 0; i < VK_FB_CONFIG_MAX; i++) {
-    framebuffer_descriptor_[i].sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebuffer_descriptor_[i].pNext = NULL;
-    descriptor_dirty_[i] = true;
-  };
-
-   
-
-
-  /* Initial state. */
-  this->size_set(0, 0);
-  this->viewport_reset();
-  this->scissor_reset();
 }
+
+VKFrameBuffer::VKFrameBuffer(const char *name, VKContext *ctx, int w , int h)
+    : FrameBuffer(name), vk_attachments_(this)
+{
+
+  init(ctx);
+  context_ = ctx;
+  immutable_ = true;
+  /* Never update an internal frame-buffer. */
+  dirty_attachments_ = false;
+  width_ = w;
+  height_ = h;
+  srgb_ = false;
+
+  viewport_[0] = scissor_[0] = 0;
+  viewport_[1] = scissor_[1] = 0;
+  viewport_[2] = scissor_[2] = w;
+  viewport_[3] = scissor_[3] = h;
+
+  printf("Frmae buffer Init  Immutable ============================================%llu   %s     \n",(uint64_t)this, name_);
+
+}
+
 VKFrameBuffer::~VKFrameBuffer()
 {
 
@@ -85,479 +81,154 @@ VKFrameBuffer::~VKFrameBuffer()
     GPU_framebuffer_restore();
   }
 
-  this->remove_all_attachments();
+  this->vk_attachments_.clear();
 
   if (context_ == nullptr) {
     return;
   }
-  
-}
+  VkDevice device = context_->device_get();
 
-void VKFrameBuffer::init()
-{
-  context_ = VKContext::get();
-  state_manager_ = (VKStateManager *)(context_->state_manager);
-  for (int i = 0; i < VK_FB_CONFIG_MAX; i++) {
-    framebuffer_descriptor_[i].sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    SET_VK_PNEXT_INIT(framebuffer_descriptor_[i]);
+  for (auto& sema : submit_signal_) {
+    vkDestroySemaphore(device, sema, nullptr);
   };
+
 }
 
+void VKFrameBuffer::init(VKContext* ctx)
+{
+  immutable_ = false;
+  fbo_id_   = 0;
+  is_init_    = true;
+  context_  = ctx;
+  state_manager_ = (VKStateManager *)(context_->state_manager);
+  vk_attachments_.set_ctx(ctx);
+  vk_attachments_.clear();
+  is_command_begin_ = false;
+  is_render_begin_ = false;
+  is_swapchain_ = false;
+  is_blit_begin_ = false;
+  offscreen_render_times_ = 0;
+  printf("Frmae buffer Init  Mutable ============================================   %s     \n", name_);
+}
 
 /** \} */
-
-
 void VKFrameBuffer::update_attachments()
 {
-}
+  /* Default frame-buffers cannot have attachments. */
+  BLI_assert(immutable_ == false);
+  BLI_assert(vk_attachments_.get_nums() == 0);
+
+  /* First color texture OR the depth texture if no color is attached.
+   * Used to determine frame-buffer color-space and dimensions. */
+  is_nocolor_ = true;
+
+  /*Color*/
+  for (int type = (int)GPU_FB_COLOR_ATTACHMENT0; type <= (int)GPU_FB_COLOR_ATTACHMENT7; type++ ) {
+    GPUAttachment& attach = attachments_[type];
+    if (attach.tex) {
+      vk_attachments_.append(attach, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+      is_nocolor_ = false;
+      
+    };
+  };
+
+  /*Depth*/
+ 
+  {
+    GPUAttachment& attach = attachments_[GPU_FB_DEPTH_ATTACHMENT];
+    if (attach.tex) {
+      vk_attachments_.append(attach, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+    }
+  };
 
 
+  
+  /*Stencil*/
+  
+  {
+    GPUAttachment& attach = attachments_[GPU_FB_DEPTH_STENCIL_ATTACHMENT];
+    if (attach.tex) {
+      vk_attachments_.append(attach, VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL);
+    }
+  };
 
+  /*Skip unused_fb_slot_workaround*/
 
-void VKFrameBuffer::mark_dirty()
-{
-  is_dirty_ = true;
-  is_loadstore_dirty_ = true;
-}
-
-
-
-void VKFrameBuffer::mark_loadstore_dirty()
-{
-  is_loadstore_dirty_ = true;
-}
-
-void VKFrameBuffer::mark_cleared()
-{
-  has_pending_clear_ = false;
-}
-
-void VKFrameBuffer::mark_do_clear()
-{
-  has_pending_clear_ = true;
-}
-
-uint VKFrameBuffer::get_attachment_count()
-{
-  BLI_assert(this);
-  return colour_attachment_count_;
-}
-bool VKFrameBuffer::has_depth_attachment()
-{
-  BLI_assert(this);
-  return vk_depth_attachment_.used;
-}
-
-
-
-
-bool VKFrameBuffer::add_color_attachment(VKTexture *texture,
-                                          uint slot,
-                                          int miplevel,
-                                          int layer)
-{
-  BLI_assert(this);
-  BLI_assert(slot >= 0 && slot < this->get_attachment_limit());
-
-
-  return true;
-}
-
-bool VKFrameBuffer::add_depth_attachment(gpu::VKTexture *texture, int miplevel, int layer)
-{
-  BLI_assert(this);
-
-  return true;
-}
-
-bool VKFrameBuffer::add_stencil_attachment(gpu::VKTexture *texture, int miplevel, int layer)
-{
-  BLI_assert(this);
-
-
-  return true;
-}
-
-
-bool VKFrameBuffer::remove_color_attachment(uint slot)
-{
-  BLI_assert(this);
-  BLI_assert(slot >= 0 && slot < this->get_attachment_limit());
-
-
-  return false;
-}
-
-bool VKFrameBuffer::remove_depth_attachment()
-{
-  BLI_assert(this);
-
-
-  return true;
-}
-
-bool VKFrameBuffer::remove_stencil_attachment()
-{
-  BLI_assert(this);
-
-
-
-  return true;
-}
-
-
-void VKFrameBuffer::ensure_render_target_size()
-{
-  /* If we have no attachments, reset width and height to zero. */
-  if (colour_attachment_count_ == 0 && !this->has_depth_attachment() &&
-      !this->has_stencil_attachment()) {
-
-    /* Reset Viewport and Scissor for NULL framebuffer. */
-    this->size_set(0, 0);
-    this->scissor_reset();
-    this->viewport_reset();
-  }
-}
-
-void VKFrameBuffer::remove_all_attachments()
-{
-  BLI_assert(this);
-
-  for (int attachment = 0; attachment < GPU_FB_MAX_COLOR_ATTACHMENT; attachment++) {
-    this->remove_color_attachment(attachment);
-  }
-  this->remove_depth_attachment();
-  this->remove_stencil_attachment();
-  colour_attachment_count_ = 0;
-  this->mark_dirty();
-
-  /* Verify height. */
-  this->ensure_render_target_size();
-
-  /* Flag attachments as no longer being dirty. */
   dirty_attachments_ = false;
-}
+  vk_attachments_.create_framebuffer();
 
-bool VKFrameBuffer::has_stencil_attachment()
-{
-  BLI_assert(this);
-  return vk_stencil_attachment_.used;
-}
-/** \} */
-void VKFrameBuffer::update_attachments(bool update_viewport)
-{
-  if (!dirty_attachments_) {
-    return;
+  VkSemaphoreCreateInfo semaphore_info = {};
+  semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+  semaphore_info.flags = 0;
+  VKContext* context = VKContext::get();
+  VkDevice device = context->device_get();
+  for (int i = 0; i < 2; i++) {
+    VkSemaphore sema = VK_NULL_HANDLE;
+    VK_CHECK(vkCreateSemaphore(device, &semaphore_info, NULL, &sema));
+    submit_signal_.append(sema);
   }
+  VkCommandBuffer cmd = VK_NULL_HANDLE;;
+
+  
+  BLI_assert(vk_attachments_.vtex_.size() == 1);
+
+  VKTexture *  tex  = vk_attachments_.vtex_[0];
+  
+
+  context->begin_submit_simple(cmd);
+  blender::vulkan::GHOST_ImageTransition(cmd, tex->get_image(), tex->info.format,
+    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+    VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+    VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM,
+    VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+    VK_IMAGE_LAYOUT_UNDEFINED);
+  context->end_submit_simple();
+  tex->set_image_layout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
 
 
-
-  }
-
-
-/* -------------------------------------------------------------------- */
-
-
-void VKFrameBuffer::attachment_set_loadstore_op(GPUAttachmentType type,
-                                                 eGPULoadOp load_action,
-                                                 eGPUStoreOp store_action)
-{
-  if (type >= GPU_FB_COLOR_ATTACHMENT0) {
-    int slot = type - GPU_FB_COLOR_ATTACHMENT0;
-    this->set_color_loadstore_op(slot, load_action, store_action);
-  }
-  else if (type == GPU_FB_DEPTH_STENCIL_ATTACHMENT) {
-    this->set_depth_loadstore_op(load_action, store_action);
-    this->set_stencil_loadstore_op(load_action, store_action);
-  }
-  else if (type == GPU_FB_DEPTH_ATTACHMENT) {
-    this->set_depth_loadstore_op(load_action, store_action);
-  }
-}
-
-bool VKFrameBuffer::set_color_attachment_clear_color(uint slot, const float clear_color[4])
-{
-  BLI_assert(this);
-  BLI_assert(slot >= 0 && slot < this->get_attachment_limit());
-
-
-  return true;
-}
-
-bool VKFrameBuffer::set_depth_attachment_clear_value(float depth_clear)
-{
-  BLI_assert(this);
-
-  if (vk_depth_attachment_.clear_value.depth != depth_clear ||
-      vk_depth_attachment_.load_action != GPU_LOADACTION_CLEAR) {
-    vk_depth_attachment_.clear_value.depth = depth_clear;
-    vk_depth_attachment_.load_action = GPU_LOADACTION_CLEAR;
-    this->mark_loadstore_dirty();
-  }
-  return true;
-}
-
-bool VKFrameBuffer::set_stencil_attachment_clear_value(uint stencil_clear)
-{
-  BLI_assert(this);
-
-  if (vk_stencil_attachment_.clear_value.stencil != stencil_clear ||
-      vk_stencil_attachment_.load_action != GPU_LOADACTION_CLEAR) {
-    vk_stencil_attachment_.clear_value.stencil = stencil_clear;
-    vk_stencil_attachment_.load_action = GPU_LOADACTION_CLEAR;
-    this->mark_loadstore_dirty();
-  }
-  return true;
-}
-
-bool VKFrameBuffer::set_color_loadstore_op(uint slot,
-                                            eGPULoadOp load_action,
-                                            eGPUStoreOp store_action)
-{
-  BLI_assert(this);
-  eGPULoadOp prev_load_action = vk_color_attachments_[slot].load_action;
-  eGPUStoreOp prev_store_action = vk_color_attachments_[slot].store_action;
-  vk_color_attachments_[slot].load_action = load_action;
-  vk_color_attachments_[slot].store_action = store_action;
-
-  bool changed = (vk_color_attachments_[slot].load_action != prev_load_action ||
-                  vk_color_attachments_[slot].store_action != prev_store_action);
-  if (changed) {
-    this->mark_loadstore_dirty();
-  }
-
-  return changed;
-}
-
-bool VKFrameBuffer::set_depth_loadstore_op(eGPULoadOp load_action, eGPUStoreOp store_action)
-{
-  BLI_assert(this);
-  eGPULoadOp prev_load_action = vk_depth_attachment_.load_action;
-  eGPUStoreOp prev_store_action = vk_depth_attachment_.store_action;
-  vk_depth_attachment_.load_action = load_action;
-  vk_depth_attachment_.store_action = store_action;
-
-  bool changed = (vk_depth_attachment_.load_action != prev_load_action ||
-                  vk_depth_attachment_.store_action != prev_store_action);
-  if (changed) {
-    this->mark_loadstore_dirty();
-  }
-
-  return changed;
-}
-
-bool VKFrameBuffer::set_stencil_loadstore_op(eGPULoadOp load_action, eGPUStoreOp store_action)
-{
-  BLI_assert(this);
-  eGPULoadOp prev_load_action = vk_stencil_attachment_.load_action;
-  eGPUStoreOp prev_store_action = vk_stencil_attachment_.store_action;
-  vk_stencil_attachment_.load_action = load_action;
-  vk_stencil_attachment_.store_action = store_action;
-
-  bool changed = (vk_stencil_attachment_.load_action != prev_load_action ||
-                  vk_stencil_attachment_.store_action != prev_store_action);
-  if (changed) {
-    this->mark_loadstore_dirty();
-  }
-
-  return changed;
-}
-
-
-
-
-
-bool VKFrameBuffer::reset_clear_state()
-{
-  for (int slot = 0; slot < colour_attachment_count_; slot++) {
-    this->set_color_loadstore_op(slot, GPU_LOADACTION_LOAD, GPU_STOREACTION_STORE);
-  }
-  this->set_depth_loadstore_op(GPU_LOADACTION_LOAD, GPU_STOREACTION_STORE);
-  this->set_stencil_loadstore_op(GPU_LOADACTION_LOAD, GPU_STOREACTION_STORE);
-  return true;
-}
+};
 
 void VKFrameBuffer::bind(bool enabled_srgb)
 {
+  BLI_assert_msg(context_, "Trying to use the same frame-buffer in multiple context");
+  if (!immutable_ && !is_init_) {
+    this->init(context_);
+  }
+  printf("Frmae buffer Bind ============================================%llu   %s     \n", (uint64_t)this, name_);
 
-  /* Verify Context is valid. */
-  if (context_ != static_cast<VKContext *>(unwrap(GPU_context_active_get()))) {
-    BLI_assert(false && "Trying to use the same frame-buffer in multiple context's.");
-    return;
+  if (context_->active_fb != this) {
+    /*Do we need to regenerate the pipeline?*/
   }
 
-  /* Ensure SRGB state is up-to-date and valid. */
-  bool srgb_state_changed = srgb_enabled_ != enabled_srgb;
-  if (context_->active_fb != this || srgb_state_changed) {
-    if (srgb_state_changed) {
-      this->mark_dirty();
-    }
-    srgb_enabled_ = enabled_srgb;
-    GPU_shader_set_framebuffer_srgb_target(srgb_enabled_ && is_srgb_);
+  if (dirty_attachments_) {
+    this->update_attachments();
+    this->viewport_reset();
+    this->scissor_reset();
   }
 
-  /* Ensure local MTLAttachment data is up to date. */
-  this->update_attachments(true);
+  if (context_->active_fb != this || enabled_srgb_ != enabled_srgb) {
+    enabled_srgb_ = enabled_srgb;
+    GPU_shader_set_framebuffer_srgb_target(enabled_srgb && srgb_);
+  }
 
-  /* Reset clear state on bind -- Clears and load/store ops are set after binding. */
-  this->reset_clear_state();
-
-  /* Bind to active context. */
-  VKContext *vk_context = reinterpret_cast<VKContext *>(GPU_context_active_get());
-  if (vk_context) {
-    vk_context->framebuffer_bind(this);
+  if (context_->active_fb != this) {
+    context_->active_fb = this;
+    state_manager_->active_fb = this;
     dirty_state_ = true;
   }
-  else {
-    GPU_VK_DEBUG_PRINTF("Attempting to bind FrameBuffer, but no context is active\n");
-  }
 
 }
+
 bool VKFrameBuffer::check(char err_out[256])
 {
-  /* Ensure local MTLAttachment data is up to date. */
-  this->update_attachments(true);
+  this->bind(true);
 
-  /* Ensure there is at least one attachment. */
-  bool valid = (this->get_attachment_count() > 0 ||
-                this->has_depth_attachment() | this->has_stencil_attachment());
-  if (!valid) {
-    const char *format = "Framebuffer %s does not have any attachments.\n";
-    if (err_out) {
-      BLI_snprintf(err_out, 256, format, name_);
-    }
-    else {
-      GPU_VK_DEBUG_PRINTF(format, name_);
-    }
-    return false;
-  }
 
-  /* Ensure all attachments have identical dimensions. */
-  /* Ensure all attachments are render-targets. */
-  bool first = true;
-  uint dim_x = 0;
-  uint dim_y = 0;
-  for (int col_att = 0; col_att < this->get_attachment_count(); col_att++) {
-    VKAttachment att = this->get_color_attachment(col_att);
-    if (att.used) {
-      if (att.texture->gpu_image_usage_flags_ & GPU_TEXTURE_USAGE_ATTACHMENT) {
-        if (first) {
-          dim_x = att.texture->width_get();
-          dim_y = att.texture->height_get();
-          first = false;
-        }
-        else {
-          if (dim_x != att.texture->width_get() || dim_y != att.texture->height_get()) {
-            const char *format =
-                "Framebuffer %s: Color attachment dimensions do not match those of previous "
-                "attachment\n";
-            if (err_out) {
-              BLI_snprintf(err_out, 256, format, name_);
-            }
-            else {
-              fprintf(stderr, format, name_);
-             
-            }
-            return false;
-          }
-        }
-      }
-      else {
-        const char *format =
-            "Framebuffer %s: Color attachment texture does not have usage flag "
-            "'GPU_TEXTURE_USAGE_ATTACHMENT'\n";
-        if (err_out) {
-          BLI_snprintf(err_out, 256, format, name_);
-        }
-        else {
-          fprintf(stderr, format, name_);
-          ///MTL_LOG_ERROR(format, name_);
-        }
-        return false;
-      }
-    }
-  }
-  VKAttachment depth_att = this->get_depth_attachment();
-  VKAttachment stencil_att = this->get_stencil_attachment();
-  if (depth_att.used) {
-    if (first) {
-      dim_x = depth_att.texture->width_get();
-      dim_y = depth_att.texture->height_get();
-      first = false;
-      valid = (depth_att.texture->gpu_image_usage_flags_ & GPU_TEXTURE_USAGE_ATTACHMENT);
 
-      if (!valid) {
-        const char *format =
-            "Framebuffer %n: Depth attachment does not have usage "
-            "'GPU_TEXTURE_USAGE_ATTACHMENT'\n";
-        if (err_out) {
-          BLI_snprintf(err_out, 256, format, name_);
-        }
-        else {
-          fprintf(stderr, format, name_);
-          ///MTL_LOG_ERROR(format, name_);
-        }
-        return false;
-      }
-    }
-    else {
-      if (dim_x != depth_att.texture->width_get() || dim_y != depth_att.texture->height_get()) {
-        const char *format =
-            "Framebuffer %n: Depth attachment dimensions do not match that of previous "
-            "attachment\n";
-        if (err_out) {
-          BLI_snprintf(err_out, 256, format, name_);
-        }
-        else {
-          fprintf(stderr, format, name_);
-
-        }
-        return false;
-      }
-    }
-  }
-  if (stencil_att.used) {
-    if (first) {
-      dim_x = stencil_att.texture->width_get();
-      dim_y = stencil_att.texture->height_get();
-      first = false;
-      valid = (stencil_att.texture->gpu_image_usage_flags_ & GPU_TEXTURE_USAGE_ATTACHMENT);
-      if (!valid) {
-        const char *format =
-            "Framebuffer %s: Stencil attachment does not have usage "
-            "'GPU_TEXTURE_USAGE_ATTACHMENT'\n";
-        if (err_out) {
-          BLI_snprintf(err_out, 256, format, name_);
-        }
-        else {
-          fprintf(stderr, format, name_);
-          ///MTL_LOG_ERROR(format, name_);
-        }
-        return false;
-      }
-    }
-    else {
-      if (dim_x != stencil_att.texture->width_get() ||
-          dim_y != stencil_att.texture->height_get()) {
-        const char *format =
-            "Framebuffer %s: Stencil attachment dimensions do not match that of previous "
-            "attachment";
-        if (err_out) {
-          BLI_snprintf(err_out, 256, format, name_);
-        }
-        else {
-          fprintf(stderr, format, name_);
-          ///MTL_LOG_ERROR(format, name_);
-        }
-        return false;
-      }
-    }
-  }
-
-  BLI_assert(valid);
-  return valid;
+  return true;
 }
+
 void VKFrameBuffer::force_clear()
 {
 
@@ -568,7 +239,90 @@ void VKFrameBuffer::clear(eGPUFrameBufferBits buffers,
                            float clear_depth,
                            uint clear_stencil)
 {
+  
+  VkClearValue clearValues[2];
+  for (int i = 0; i < 4; i++)clearValues[0].color.float32[i] = clear_col[i];
+  clearValues[1].depthStencil.depth = clear_depth;
+  clearValues[1].depthStencil.stencil = clear_stencil;
+  auto loadOp = vk_attachments_.get_LoadOp();
+  if (loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR) {  //VK_ATTACHMENT_LOAD_OP_LOAD
+    if (is_render_begin_) {
+      render_end();
+      context_->end_frame();
+      context_->begin_frame();
+    }
+    render_begin(VK_NULL_HANDLE, VK_COMMAND_BUFFER_LEVEL_PRIMARY, (VkClearValue*)clearValues);
+  }
+  else if (loadOp == VK_ATTACHMENT_LOAD_OP_LOAD) {
 
+    BLI_assert(!is_render_begin_);
+
+    VKContext* context = VKContext::get();
+    VkCommandBuffer cmd = VK_NULL_HANDLE;
+    VKTexture* tex = vk_attachments_.vtex_[0];
+    VkImage            srcImage =   tex->get_image();
+    VkImageLayout  src_layout = tex->get_image_layout();
+    //VkFormat src_format = tex->info.format;
+
+    context->begin_submit_simple(cmd);
+
+    if (src_layout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+      VkImageMemoryBarrier imageMemoryBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+      imageMemoryBarrier.pNext = NULL;
+      imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+      imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+      imageMemoryBarrier.oldLayout = src_layout;
+      imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+      imageMemoryBarrier.image = srcImage;
+      imageMemoryBarrier.subresourceRange = VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+
+      vkCmdPipelineBarrier(
+        cmd,
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &imageMemoryBarrier);
+      tex->set_image_layout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    }
+
+    VkImageSubresourceRange ImageSubresourceRange;
+    ImageSubresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    ImageSubresourceRange.baseMipLevel = 0;
+    ImageSubresourceRange.levelCount = 1;
+    ImageSubresourceRange.baseArrayLayer = 0;
+    ImageSubresourceRange.layerCount = 1;
+    vkCmdClearColorImage(cmd, srcImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, (const VkClearColorValue*) & clearValues[0].color, 1, &ImageSubresourceRange);
+    {
+      VkImageMemoryBarrier imageMemoryBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+      imageMemoryBarrier.pNext = NULL;
+      imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+      imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+      imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+      imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; 
+      imageMemoryBarrier.image = srcImage;
+      imageMemoryBarrier.subresourceRange = VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+
+      vkCmdPipelineBarrier(
+        cmd,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &imageMemoryBarrier);
+      tex->set_image_layout(imageMemoryBarrier.newLayout);
+    }
+
+    context->end_submit_simple();
+
+
+  }
+
+   
+
+ //context_->clear_color(vk_cmd, (VkClearColorValue*)&clearValues[0].color.float32[0]);
 
 
 }
@@ -576,8 +330,11 @@ void VKFrameBuffer::clear(eGPUFrameBufferBits buffers,
 
 void VKFrameBuffer::apply_state()
 {
+  
   VKContext *vk_ctx = static_cast<VKContext *>(unwrap(GPU_context_active_get()));
+  
   BLI_assert(vk_ctx);
+  
   if (vk_ctx->active_fb == this) {
     if (dirty_state_ == false && dirty_state_ctx_ == vk_ctx) {
       return;
@@ -590,8 +347,6 @@ void VKFrameBuffer::apply_state()
           "Viewport had width and height of (0,0) -- Updating -- DEBUG Safety check\n");
       viewport_reset();
     }
-
-
 
     /// Update Context State.
     vk_ctx->set_viewport(viewport_[0], viewport_[1], viewport_[2], viewport_[3]);
@@ -606,6 +361,7 @@ void VKFrameBuffer::apply_state()
         "Attempting to set FrameBuffer State (VIEWPORT, SCISSOR), But FrameBuffer is not bound to "
         "current Context.\n");
   }
+
 }
 
 
@@ -635,64 +391,7 @@ void VKFrameBuffer::read(eGPUFrameBufferBits planes,
   BLI_assert(area[2] > 0);
   BLI_assert(area[3] > 0);
 
-  switch (planes) {
-    case GPU_DEPTH_BIT: {
-      if (this->has_depth_attachment()) {
-        VKAttachment depth = this->get_depth_attachment();
-        gpu::VKTexture *tex = depth.texture;
-        if (tex) {
-          size_t sample_len = area[2] * area[3];
-          size_t sample_size = to_bytesize(tex->format_, format);
-          int debug_data_size = sample_len * sample_size;
-          tex->read_internal(0,
-                             area[0],
-                             area[1],
-                             0,
-                             area[2],
-                             area[3],
-                             1,
-                             format,
-                             channel_len,
-                             debug_data_size,
-                             r_data);
-        }
-      }
-      else {
-        GPU_VK_DEBUG_PRINTF(
-            "Attempting to read depth from a framebuffer which does not have a depth "
-            "attachment!\n");
-      }
-    }
-      return;
 
-    case GPU_COLOR_BIT: {
-      if (this->has_attachment_at_slot(slot)) {
-        VKAttachment color = this->get_color_attachment(slot);
-        gpu::VKTexture *tex = color.texture;
-        if (tex) {
-          size_t sample_len = area[2] * area[3];
-          size_t sample_size = to_bytesize(tex->format_, format);
-          int debug_data_size = sample_len * sample_size * channel_len;
-          tex->read_internal(0,
-                             area[0],
-                             area[1],
-                             0,
-                             area[2],
-                             area[3],
-                             1,
-                             format,
-                             channel_len,
-                             debug_data_size,
-                             r_data);
-        }
-      }
-    }
-      return;
-
-    case GPU_STENCIL_BIT:
-      GPU_VK_DEBUG_PRINTF("GPUFramebuffer: Error: Trying to read stencil bit. Unsupported.\n");
-      return;
-  }
 }
 
 
@@ -711,46 +410,403 @@ void VKFrameBuffer::blit(uint read_slot,
 
 void VKFrameBuffer::blit_to(eGPUFrameBufferBits planes,
                             int src_slot,
-                            FrameBuffer *dst,
+                            FrameBuffer *dst_,
                             int dst_slot,
-                            int dst_offset_x,
-                            int dst_offset_y){};
+                            int x,
+                            int y){
 
-
-
-
-
-bool VKFrameBuffer::has_attachment_at_slot(uint slot)
-{
-  BLI_assert(this);
-
-  if (slot >= 0 && slot < this->get_attachment_limit()) {
-    return vk_color_attachments_[slot].used;
+  VKFrameBuffer* src = this;
+  VKFrameBuffer* dst = static_cast<VKFrameBuffer*>(dst_);
+  
+  /* Frame-buffers must be up to date. This simplify this function. */
+  if (src->dirty_attachments_) {
+    src->bind(true);
   }
-  return false;
+  if (dst->dirty_attachments_) {
+    dst->bind(true);
+  }
+
+  VkCommandBuffer cmd  = dst->get_command();
+  BLI_assert(cmd != VK_NULL_HANDLE);
+
+
+  if (planes & GPU_COLOR_BIT) {
+    BLI_assert(src->immutable_ == false || src_slot == 0);
+    BLI_assert(dst->immutable_ == false || dst_slot == 0);
+  }
+
+  context_->state_manager->apply_state();
+
+ 
+  VKContext* context_  =VKContext::get();
+
+  //VkImageAspectFlags mask = to_vk(planes);
+  VkImage dstImage = dst->get_swapchain_image();
+  VkImageLayout  dst_layout = dst->get_swapchain_image_layout();
+  VkFormat dst_format = VKContext::get()->getImageFormat();
+
+  BLI_assert(context_->is_support_format(dst_format, VK_FORMAT_FEATURE_BLIT_DST_BIT, false));
+
+  if (dst_layout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+    VkImageMemoryBarrier imageMemoryBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+    imageMemoryBarrier.pNext = NULL;
+    imageMemoryBarrier.srcAccessMask = VK_ACCESS_NONE_KHR;
+    imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    imageMemoryBarrier.oldLayout = dst_layout;
+    imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    imageMemoryBarrier.image = dstImage;
+    imageMemoryBarrier.subresourceRange = VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+
+    vkCmdPipelineBarrier(
+      cmd,
+      VK_PIPELINE_STAGE_TRANSFER_BIT,
+      VK_PIPELINE_STAGE_TRANSFER_BIT,
+      0,
+      0, nullptr,
+      0, nullptr,
+      1, &imageMemoryBarrier);
+    dst->set_swapchain_image_layout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+  }
+
+
+  VKTexture* src_tex = src->vk_attachments_.vtex_[0];
+
+  VkImage srcImage = src_tex->get_image();
+  VkImageLayout  src_layout = src_tex->get_image_layout();
+  VkFormat src_format = src_tex->info.format;
+
+  BLI_assert(context_->is_support_format(src_format, VK_FORMAT_FEATURE_BLIT_SRC_BIT, false));
+  if (src_layout != VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL) {
+    VkImageMemoryBarrier imageMemoryBarrier =  { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+    imageMemoryBarrier.pNext = NULL;
+    imageMemoryBarrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+    imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+    imageMemoryBarrier.oldLayout = src_layout;
+    imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    imageMemoryBarrier.image = srcImage;
+    imageMemoryBarrier.subresourceRange = VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+
+    vkCmdPipelineBarrier(
+      cmd,
+      VK_PIPELINE_STAGE_TRANSFER_BIT,
+      VK_PIPELINE_STAGE_TRANSFER_BIT,
+      0,
+      0, nullptr,
+      0, nullptr,
+      1, &imageMemoryBarrier);
+    src_tex->set_image_layout(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+  }
+
+  {
+    VkOffset3D blitSize;
+
+    VkImageBlit imageBlitRegion{};
+    imageBlitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    imageBlitRegion.srcSubresource.layerCount = 1;
+    blitSize.x = 0;
+    blitSize.y = 0;
+    blitSize.z = 0;
+    imageBlitRegion.srcOffsets[0] = blitSize;
+    blitSize.x = src->width_;
+    blitSize.y = src->height_;
+    blitSize.z = 1;
+    imageBlitRegion.srcOffsets[1] = blitSize;
+
+
+    imageBlitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    imageBlitRegion.dstSubresource.layerCount = 1;
+    blitSize.x = x;
+    blitSize.y = y;
+    blitSize.z = 0;
+    imageBlitRegion.dstOffsets[0] = blitSize;
+    blitSize.x = x + src->width_;
+    blitSize.y = y + src->height_;
+    blitSize.z = 1;
+    imageBlitRegion.dstOffsets[1] = blitSize;
+
+
+
+    vkCmdBlitImage(
+      cmd,
+      srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+      dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+      1,
+      &imageBlitRegion,
+      VK_FILTER_NEAREST);
+
+  }
+
+ {
+    VkImageMemoryBarrier imageMemoryBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+    imageMemoryBarrier.pNext = NULL;
+    imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    imageMemoryBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+    imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    imageMemoryBarrier.image = dstImage;
+    imageMemoryBarrier.subresourceRange = VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+
+    vkCmdPipelineBarrier(
+      cmd,
+      VK_PIPELINE_STAGE_TRANSFER_BIT,
+      VK_PIPELINE_STAGE_TRANSFER_BIT,
+      0,
+      0, nullptr,
+      0, nullptr,
+      1, &imageMemoryBarrier);
+    dst->set_swapchain_image_layout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+  }
+
+ {
+   VkImageMemoryBarrier imageMemoryBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+   imageMemoryBarrier.pNext = NULL;
+   imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+   imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+   imageMemoryBarrier.oldLayout  = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+   imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+   imageMemoryBarrier.image = srcImage;
+   imageMemoryBarrier.subresourceRange = VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+
+   vkCmdPipelineBarrier(
+     cmd,
+     VK_PIPELINE_STAGE_TRANSFER_BIT,
+     VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+     0,
+     0, nullptr,
+     0, nullptr,
+     1, &imageMemoryBarrier);
+   src_tex->set_image_layout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+ }
+
+
+#if 0
+  if (!dst->immutable_) {
+    /* Restore the draw buffers. */
+    glDrawBuffers(ARRAY_SIZE(dst->gl_attachments_), dst->gl_attachments_);
+  }
+#endif
+  /* Ensure previous buffer is restored. */
+  context_->active_fb = dst;
+
+};
+
+
+VkCommandBuffer VKFrameBuffer::render_begin(VkCommandBuffer cmd,VkCommandBufferLevel level, VkClearValue* clearValues, bool blit ){
+
+  BLI_assert(vk_attachments_.renderpass_ != VK_NULL_HANDLE );
+  if (is_command_begin_) {
+    BLI_assert(vk_cmd != VK_NULL_HANDLE);
+    if (is_blit_begin_) {
+      return vk_cmd;
+    }
+    if (blit) {
+      if (is_render_begin_) {
+        render_end();
+        context_->end_frame();
+      };
+    }
+    else {
+      bool prim = bool(level == VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+      if (prim) {
+        BLI_assert(is_render_begin_ == true);
+      }
+      return vk_cmd;
+    }
+  };
+  BLI_assert(flight_ticket_ < 0);
+
+  printf("Begin  Renderpass =================================================-- %llu  \n", (uint64_t)vk_attachments_.renderpass_);
+
+
+  bool prim = false;
+  if (cmd == VK_NULL_HANDLE) {
+    if (level == VK_COMMAND_BUFFER_LEVEL_SECONDARY) {
+      vk_cmd = context_->request_command_buffer(true);
+    }
+    else {
+      vk_cmd = context_->request_command_buffer();
+      prim = true;
+    };
+  }
+  else {
+    //vk_cmd = cmd;
+    vk_cmd = context_->request_command_buffer();
+    prim = bool(level == VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+  };
+  
+
+  cmd_refs = 0;
+  if (blit) {
+    flight_ticket_ = context_->begin_blit_submit(vk_cmd);
+    is_blit_begin_ = true; 
+  }
+  else if (is_swapchain_) {
+    flight_ticket_ = context_->begin_onetime_submit(vk_cmd);
+  }
+  else {
+    flight_ticket_ = context_ ->begin_offscreen_submit(vk_cmd);
+  }
+
+ 
+
+  VkCommandBufferBeginInfo       begin_info{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+  /*
+  VkCommandBufferInheritanceInfo inheritance = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO };
+  inheritance.renderPass = vk_attachments_.renderpass_;
+  inheritance.framebuffer = vk_attachments_.framebuffer_;
+  inheritance.pNext = NULL;
+  inheritance.subpass = 0;
+  */
+ // begin_info.pInheritanceInfo = &inheritance;
+  begin_info.pNext = NULL;
+  begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT | VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+
+  /*#vkResetCommandBuffer(vk_cmd, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);*/
+  VK_CHECK2(vkBeginCommandBuffer(vk_cmd, &begin_info));
+  
+  is_command_begin_ = true;
+  if (prim &&  !blit ) {
+    BLI_assert(is_render_begin_== false);
+
+
+
+    static VkRenderPassBeginInfo renderPassBeginInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+
+    
+    renderPassBeginInfo.renderPass = vk_attachments_.renderpass_;
+    renderPassBeginInfo.renderArea.offset.x = 0;
+    renderPassBeginInfo.renderArea.offset.y = 0;
+    renderPassBeginInfo.renderArea.extent.width = vk_attachments_.extent_.width;
+    renderPassBeginInfo.renderArea.extent.height = vk_attachments_.extent_.height;
+    renderPassBeginInfo.clearValueCount = 1;
+    if (clearValues == nullptr) {
+      static VkClearValue clearValues_[2];
+      clearValues_[0].color = { {0.25f, 0.25f, 0.25f, 1.0f} };
+      clearValues_[1].depthStencil = { 1.0f, 0 };
+      renderPassBeginInfo.pClearValues = clearValues_;
+    }
+    else {
+      renderPassBeginInfo.pClearValues = clearValues;
+    }
+    
+    auto fid = 0;
+    if (is_swapchain_) {
+        fid =  context_->get_current_image_index(); 
+    }
+    renderPassBeginInfo.framebuffer = vk_attachments_.framebuffer_[fid];
+    vkCmdBeginRenderPass(vk_cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+    is_render_begin_ = true;
+
+  }
+  if (blit) {
+    /*blit does not use renderpass.*/
+    is_dirty_render_ = true;
+  }
+  else {
+    is_dirty_render_ = false;
+  }
+
+  return vk_cmd;
+
+
+};
+void VKFrameBuffer::render_end() {
+
+
+  bool submit = false;
+
+  if (is_render_begin_) {
+    vkCmdEndRenderPass(vk_cmd);
+    is_render_begin_ = false;
+    submit = true;
+  }
+
+  if (is_command_begin_) {
+    VK_CHECK2(vkEndCommandBuffer(vk_cmd));
+    is_command_begin_ = false;
+    submit = true;
+  }
+
+  if (!is_dirty_render_) {
+    context_->fail_transition();
+ 
+  }
+  
+  if (submit) {
+    
+    if (is_blit_begin_) {
+      context_->end_blit_submit(vk_cmd, wait_sema);
+      is_blit_begin_ = false;
+    }
+    else if (is_swapchain_) {
+      BLI_assert(flight_ticket_ >= 0);
+      context_->end_onetime_submit(flight_ticket_);
+    }
+    else {
+
+      signal_index_ = (signal_index_ + 1 ) % 2;
+      if (offscreen_render_times_ > 0) {
+        int wait_index_ = (signal_index_ + 1) % 2;
+        context_->end_offscreen_submit(vk_cmd, submit_signal_[wait_index_], submit_signal_[signal_index_]);
+      }
+      else {
+        context_->end_offscreen_submit(vk_cmd, VK_NULL_HANDLE, submit_signal_[signal_index_]);
+      }
+      offscreen_render_times_++;
+    }
+   
+  
+  }
+
+
+  if (cmd_refs == 0) {
+    /*Different attachment frameworks have different ways of transitioning. For now, for a simple frame of a swap chain.*/
+    //context_->bottom_transition(vk_cmd);
+  }
+  if (offscreen_render_times_ == 0) {
+    vk_cmd = VK_NULL_HANDLE;
+  };
+
+  flight_ticket_ = -1;
+  cmd_refs = 0;
+  is_dirty_render_ = true;
+
+};
+
+void  VKFrameBuffer::create_swapchain_frame_buffer(int i) {
+  
+
+  srgb_ = false;
+
+  vk_attachments_.append_from_swapchain(i);
+  vk_attachments_.create_framebuffer();
+  width_ = vk_attachments_.extent_.width;
+  height_ = vk_attachments_.extent_.height;
+
+  immutable_ = true;
+  /* Never update an internal frame-buffer. */
+  dirty_attachments_ = false;
+  is_swapchain_ = true;
+ };
+
+
+
+
+/*Couldn't find it used.Will leave the attachments to a naive implementation and do it later.*/
+void VKFrameBuffer::attachment_set_loadstore_op(GPUAttachmentType type,
+                                  eGPULoadOp load_action,
+                                  eGPUStoreOp store_action)
+{
+  if (type >= GPU_FB_COLOR_ATTACHMENT0) {
+
+  }
+  else if (type == GPU_FB_DEPTH_STENCIL_ATTACHMENT) {
+
+  }
+  else if (type == GPU_FB_DEPTH_ATTACHMENT) {
+
+  }
 }
-
-VKAttachment VKFrameBuffer::get_color_attachment(uint slot)
-{
-  BLI_assert(this);
-  if (slot >= 0 && slot < GPU_FB_MAX_COLOR_ATTACHMENT) {
-    return vk_color_attachments_[slot];
-  }
-  VKAttachment null_attachment;
-  null_attachment.used = false;
-  return null_attachment;
-};
-VKAttachment VKFrameBuffer::get_depth_attachment()
-{
-  BLI_assert(this);
-  return vk_depth_attachment_;
-};
-
-VKAttachment VKFrameBuffer::get_stencil_attachment()
-{
-  BLI_assert(this);
-  return vk_stencil_attachment_;
-};
 VkAttachmentLoadOp  vk_load_action_from_gpu(eGPULoadOp action)
 {
   return (action == GPU_LOADACTION_LOAD) ?

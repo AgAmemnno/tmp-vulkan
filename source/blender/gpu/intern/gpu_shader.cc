@@ -298,6 +298,8 @@ GPUShader *GPU_shader_create_from_info(const GPUShaderCreateInfo *_info)
 
   Shader *shader = GPUBackend::get()->shader_alloc(info.name_.c_str());
 
+
+
   std::string defines = shader->defines_declare(info);
   std::string resources = shader->resources_declare(info);
 

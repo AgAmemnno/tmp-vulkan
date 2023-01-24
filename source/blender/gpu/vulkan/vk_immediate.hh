@@ -61,8 +61,7 @@ namespace blender::gpu {
 
   VmaAllocation allocation = nullptr;
 };
-
-  class VKImmediate : public Immediate {
+class VKImmediate : public Immediate {
  public:
     void record();
 

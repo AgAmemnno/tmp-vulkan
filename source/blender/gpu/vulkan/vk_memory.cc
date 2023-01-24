@@ -33,6 +33,8 @@
 
 namespace blender::gpu {
 
+
+
   void *GetMappedData(VmaAllocation &allo)
 {
    return allo->GetMappedData();
@@ -45,10 +47,12 @@ VKBuffer::VKBuffer(uint64_t size, uint alignment, VmaMemoryUsage usage)
 {
   vk_buffer_ = VK_NULL_HANDLE;
   BLI_assert(alignment > 0);
-  if (usage == VMA_MEMORY_USAGE_GPU_ONLY)
+  if (usage == VMA_MEMORY_USAGE_GPU_ONLY) {
     options_.setDeviceLocal(0);
-  if (usage == VMA_MEMORY_USAGE_CPU_ONLY)
+  }
+  else {
     options_.setHostVisible(0);
+  };
   Create(size, alignment, options_);
 
 }
@@ -77,65 +81,88 @@ void gpu::VKBuffer::Create(uint64_t size, uint alignment , VKResourceOptions& op
   options.allocInfo.offset = 0;
   options.allocInfo.size = size;
   options.allocCreateInfo.flags = VMA_ALLOCATION_CREATE_STRATEGY_BEST_FIT_BIT;
-  
-  VmaAllocator mem_allocator = ((VKContext *)Context::get())->mem_allocator_get();
+  if (size > 0)
+  {
+    VmaAllocator mem_allocator = ((VKContext*)Context::get())->mem_allocator_get();
 
-  vmaCreateBufferWithAlignment(mem_allocator,
-                               &options.bufferInfo,
-                               &options.allocCreateInfo,
-                               alignment,
-                               &vk_buffer_,
-                               &allocation,
-                               &options.allocInfo);
+    vmaCreateBufferWithAlignment(mem_allocator,
+      &options.bufferInfo,
+      &options.allocCreateInfo,
+      alignment,
+      &vk_buffer_,
+      &allocation,
+      &options.allocInfo);
+    BLI_assert(size <= allocation->GetSize());
 
+    if (options.allocInfo.pUserData != nullptr)
+    {
+      can_mapped_ = true;
+    }
+    else
+    {
+      can_mapped_ = false;
+    }
 
-
-  /// <summary>
-  /// TODO :: Check Aligment Mismatch  
-  /// </summary>
-  /*
-  printf("AllocationError:: size %u   alignment mismatch    request = %u   valSize = %u  valAli  %u     \n",size,
-         alignment,
-         allocation->GetSize(),
-         allocation->GetAlignment());
- */
-  ///BLI_assert(alignment == allocation->GetAlignment());
-  BLI_assert(size <= allocation->GetSize());
-
+  }
   options_ = options;
+  
 }
 void gpu::VKBuffer::free()
 {
-  VmaAllocator mem_allocator = ((VKContext *)Context::get())->mem_allocator_get();
-  auto size = allocation->GetSize();
+ 
   if (vk_buffer_ != VK_NULL_HANDLE) {
+      VmaAllocator mem_allocator = ((VKContext*)Context::get())->mem_allocator_get();
       vmaDestroyBuffer(mem_allocator, vk_buffer_, allocation);
      vk_buffer_ = VK_NULL_HANDLE;
-     size = 0;
+     options_.bufferInfo.size = 0;
+     options_.allocInfo.size      = 0;
   };
 
  
 }
 void gpu::VKBuffer::Flush()
 {
-  VmaAllocator mem_allocator = ((VKContext *)Context::get())->mem_allocator_get();
-  VK_CHECK(vmaFlushAllocation(mem_allocator, allocation, 0, VK_WHOLE_SIZE));
+  if (allocation) {
+    VmaAllocator mem_allocator = ((VKContext*)Context::get())->mem_allocator_get();
+    VK_CHECK(vmaFlushAllocation(mem_allocator, allocation, 0, VK_WHOLE_SIZE));
+  }
 
 }
+
+void gpu::VKBuffer::Fill(uint32_t val) {
+
+  BLI_assert(vk_buffer_ != VK_NULL_HANDLE);
+
+  VKContext* context = VKContext::get();
+  VkCommandBuffer cmd = VK_NULL_HANDLE;
+  context->begin_submit_simple(cmd);
+
+  vkCmdFillBuffer(cmd, vk_buffer_, 0, VK_WHOLE_SIZE, val);
+
+  context->end_submit_simple();
+
+};
+
 void gpu::VKBuffer::Resize(VkDeviceSize size, uint alignment){
 
   VmaAllocator mem_allocator = ((VKContext *)Context::get())->mem_allocator_get();
   auto cursize = options_.bufferInfo.size;
-  BLI_assert(vk_buffer_ != VK_NULL_HANDLE);
-  bool recr = false;
-  if (cursize < size) {
-    recr = true;
+  if (cursize == 0) {
+    Create(size, alignment, options_);
+    return;
   }
- 
-  if (recr){
+  BLI_assert(vk_buffer_ != VK_NULL_HANDLE);
+
+  if (cursize < size) 
+  {
+  
     vmaDestroyBuffer(mem_allocator, vk_buffer_, allocation);
     vk_buffer_ = VK_NULL_HANDLE;
+    if (alignment <= 0) {
+      alignment = allocation->GetAlignment();
+    };
     Create(size, alignment, options_);
+  
   }
 
 };
@@ -165,15 +192,37 @@ void VKBuffer::unmap() const
   VmaAllocator mem_allocator = ((VKContext *)Context::get())->mem_allocator_get();
   vmaUnmapMemory(mem_allocator, allocation);
 };
-void VKBuffer::Copy(void *data, VkDeviceSize size)
+void VKBuffer::Copy(void *data, VkDeviceSize size, VkDeviceSize ofs)
 {
-  VmaAllocator mem_allocator = ((VKContext *)Context::get())->mem_allocator_get();
+  VKContext* context_ = VKContext::get();
+  BLI_assert(context_);
 
-  void *mappedData = nullptr;
-  VK_CHECK(vmaMapMemory(mem_allocator, allocation, &mappedData));
-  memcpy(mappedData, &data, size);
-  vmaUnmapMemory(mem_allocator, allocation);
-}
+  if (can_mapped_) {
+    VmaAllocator mem_allocator = context_->mem_allocator_get();
+
+    void* mappedData = nullptr;
+    VK_CHECK(vmaMapMemory(mem_allocator, allocation, &mappedData));
+    memcpy((char*)mappedData + ofs, &data, size);
+    vmaUnmapMemory(mem_allocator, allocation);
+  }
+  else {
+   
+    VKStagingBufferManager* staging = context_->buffer_manager_;
+    BLI_assert(staging);
+
+    VKBuffer* buffer = staging->Create(size, VK_BUFFER_DEFAULT_ALIGNMENT);
+    memcpy((char*)(buffer->get_host_ptr()), data, size);
+    buffer->unmap();
+
+    VkBufferCopy vbCopyRegion = {};
+    vbCopyRegion.srcOffset = 0;
+    vbCopyRegion.dstOffset = ofs;
+    vbCopyRegion.size = size;
+
+    staging->Copy(*this, vbCopyRegion);
+  };
+};
+
 VKStagingBufferManager::~VKStagingBufferManager()
 {
   destroy();

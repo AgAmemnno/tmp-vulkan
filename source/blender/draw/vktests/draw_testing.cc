@@ -11,6 +11,11 @@
 
 #include  "intern/GHOST_ContextVK.h"
 #include "intern/GHOST_Window.h"
+#include "BLI_system.h"
+
+#include "BKE_appdir.h"
+
+static char* argv0 = nullptr;
 
 namespace blender::draw {
 void STUB_WM_window_set_dpi(GHOST_WindowHandle &ghostwin)
@@ -67,13 +72,36 @@ void DrawVulkanTest::SetUp()
   DRW_draw_state_init_gtests(GPU_SHADER_CFG_DEFAULT);
 }
 #endif
-
+static void callback_mem_error(const char* errorStr)
+{
+  fputs(errorStr, stderr);
+  fflush(stderr);
+}
+static void callback_clg_fatal(void* fp)
+{
+  BLI_system_backtrace((FILE*)fp);
+}
+static void main_callback_setup(void)
+{
+  /* Error output from the guarded allocation routines. */
+  MEM_set_error_callback(callback_mem_error);
+}
 
 void GPUTest::SetUp()
 {
   ghost_context = NULL;
+  MEM_init_memleak_detection();
+  MEM_use_memleak_detection(true);
 
   CLG_init();
+
+  CLG_fatal_fn_set(callback_clg_fatal);
+
+
+  C = CTX_create();
+
+  BKE_appdir_program_path_init(argv0);
+
   ghost_system = GHOST_CreateSystem();
   GHOST_GLSettings glSettings = {0,GHOST_kDrawingContextTypeVulkan };
 #ifdef WITH_VULKAN_BACKEND
@@ -98,7 +126,7 @@ void GPUTest::SetUp()
       NULL,
       "Blender gpu_test",
       0,
-      0,512,512,
+      0,1024,1024,
       //1920,
       //1080,
       //(GHOST_TWindowState)GHOST_kWindowStateMinimized,
@@ -113,6 +141,8 @@ void GPUTest::SetUp()
   STUB_WM_window_set_dpi( ghost_window);
 
   BLI_assert(ghost_context);
+
+
   context = (GPUContext*)GPU_context_create(ghost_window, ghost_context);
   GHOST_ActivateOpenGLContext(ghost_context);
 
@@ -120,18 +150,24 @@ void GPUTest::SetUp()
 
 
   GPU_context_active_set((GPUContext*)context);
-  
+
 
 }
 
 void GPUTest::TearDown()
 {
+
   GPU_exit();
 
   GPU_context_discard(context);
+
   GHOST_DisposeWindow(ghost_system, ghost_window);
+
   /// GHOST_DisposeOpenGLContext(ghost_system, ghost_context);
   GHOST_DisposeSystem(ghost_system);
+
+  CTX_free(C);
+
 
   CLG_exit();
 }
@@ -141,6 +177,7 @@ void GPUTest::TearDown()
 
 #ifndef DRAW_GTEST_SUITE
 
+#include "draw_multithread.hh"
 #include "draw_capa_test.cc"
 #include "draw_icon_test.cc"
 
@@ -152,9 +189,29 @@ t->TearDown();\
 delete t;\
 }
 
-int main() {
+#define DRAW_TEST_STAND_ALONE_RAW(NAME){\
+blender::draw::GPUTest* t = new blender::draw::GPUTest;\
+t->test_##NAME();\
+delete t;\
+}
+
+int main(int argc,
+
+  const char** argv) {
+  
+    argv0 = const_cast<char*>(argv[0]);
+
+    DRAW_TEST_STAND_ALONE_RAW(RangeIter)
+    DRAW_TEST_STAND_ALONE_RAW(MempoolIter)
+    DRAW_TEST_STAND_ALONE_RAW(ListBaseIter)
+    DRAW_TEST_STAND_ALONE_RAW(ParallelInvoke)
+    DRAW_TEST_STAND_ALONE_RAW(Task)
+
     DRAW_TEST_STAND_ALONE(capabilities)
+   
+    
     DRAW_TEST_STAND_ALONE(icon)
+    
     return 0;
 };
 

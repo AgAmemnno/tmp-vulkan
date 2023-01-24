@@ -798,7 +798,17 @@ if(WITH_GTESTS)
     )
 
     include(GTestTesting)
+    
+    set(TEST_INC_SYS
+      ${CMAKE_SOURCE_DIR}/tests/gtests
+      ${GLOG_INCLUDE_DIRS}
+      ${GFLAGS_INCLUDE_DIRS}
+      ${CMAKE_SOURCE_DIR}/extern/gtest/include
+      ${CMAKE_SOURCE_DIR}/extern/gmock/include
+    )
+   
     set(TEST_INC
+      ${TEST_INC_SYS}
       ../../../intern/ghost
       ../gpu/tests
       ../editors/screen
@@ -806,8 +816,9 @@ if(WITH_GTESTS)
       ${Epoxy_INCLUDE_DIRS}
 
     )
-    
+
     set(TEST_LIB
+    extern_gtest
     bf_gpu
     bf_intern_clog
     bf_blenlib

@@ -56,8 +56,8 @@ class VKStateManager : public StateManager {
   float line_width_range_[2];
 
 
-  GLuint targets_[64] = {GL_TEXTURE_2D};
-  GLuint textures_[64] = {0};
+  VkImageType targets_[64] = {};
+  VkDescriptorImageInfo textures_[64] = {};
   GLuint samplers_[64] = {0};
   uint64_t dirty_texture_binds_ = 0;
 
@@ -83,6 +83,9 @@ class VKStateManager : public StateManager {
   void image_unbind_all(void) override;
 
   void texture_unpack_row_length_set(uint len) override;
+
+  void texture_bind_temp(VKTexture* tex);
+
 
   VkGraphicsPipelineCreateInfo get_pipelinecreateinfo(VkRenderPass vkRP, VkPipelineLayout &layout);
   static VKGraphicsPipelineStateDescriptor &getPipelineStateDesc();
@@ -113,7 +116,7 @@ class VKStateManager : public StateManager {
   void set_mutable_state(const GPUStateMutable &state){};
   void set_mutable_state(VkCommandBuffer commandBuffer, const GPUStateMutable &state);
 
-  void texture_bind_temp(VKTexture *tex);
+  
   void texture_bind_apply();
   uint64_t bound_texture_slots();
   void image_bind_apply();

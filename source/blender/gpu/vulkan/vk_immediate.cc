@@ -327,18 +327,16 @@ void VKImmediate::end()
 
   vkstaging_->unmap();
   if (vertex_len > 0) {
-    context_->get_buffer_manager()->Copy(*vkbuffer_);
+    VkBufferCopy region_ = {0,0, vkbuffer_->get_buffer_size()};
+    context_->get_buffer_manager()->Copy(*vkbuffer_,region_);
 
-    VkRenderPass render_pass = context_->get_renderpass();
-    BLI_assert(render_pass != VK_NULL_HANDLE);
+    context_->state_manager->apply_state();
+    auto fb = static_cast<VKFrameBuffer*>(context_->active_fb);
+    context_->pipeline_state.active_shader->CreatePipeline(fb->get_render_pass());
 
-    VKShader *vkshader = reinterpret_cast<VKShader *>(shader);
-    if (vkshader->CreatePipeline(render_pass) == VK_NULL_HANDLE) {
-        assert(false);
-        return;
-    };
     record();
-    context_->submit_nonblocking();
+
+
   }
 
 }
@@ -355,47 +353,58 @@ void VKImmediate::record(){
 
 
   auto vkinterface = (VKShaderInterface *)vkshader->interface;
-  auto descN = vkinterface->sets_vec_.size();
+  auto descN = 0;
+  for (auto& set : vkinterface->setlayouts_) {
+    if (set != VK_NULL_HANDLE) {
+      descN++;
+     }
+  }
+
   auto vert = vkbuffer_->get_vk_buffer();
   VkDeviceSize offsets[1] = {0};
-  for (int i = 0; i < 2; i++) {
-    context_->begin_render_pass(vkshader->current_cmd_, i);
-    vkCmdBindPipeline(vkshader->current_cmd_, VK_PIPELINE_BIND_POINT_GRAPHICS, current_pipe_);
+  VKFrameBuffer* fb = static_cast<VKFrameBuffer*>(context_->active_fb);
+  int swapID = context_->get_current_image_index();
 
-    VKStateManager::cmd_dynamic_state(vkshader->current_cmd_);
+  vkshader->current_cmd_ = VK_NULL_HANDLE;
+  vkshader->current_cmd_  = fb->render_begin(vkshader->current_cmd_, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+ 
+  /* To know when we generate a command and start a record but don't use it. It might be better for the state manager to do it. */
+  fb->set_dirty_render(true);
+  vkCmdBindPipeline(vkshader->current_cmd_, VK_PIPELINE_BIND_POINT_GRAPHICS, current_pipe_);
 
-    if (vkinterface->push_range_.size > 0) {
-      vkCmdPushConstants(vkshader->current_cmd_,
-                         vkshader->current_layout_,
-                         vkinterface->push_range_.stageFlags,
-                         vkinterface->push_range_.offset,
-                         vkinterface->push_range_.size,
-                         vkinterface->push_cache_);
-    }
-    if (descN == 1) {
-      vkCmdBindDescriptorSets(vkshader->current_cmd_,
-                              VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              vkshader->current_layout_,
-                              0,
-                              1,
-                              &vkinterface->sets_vec_[0][i],
-                              0,
-                              NULL);
-    }
-    else if (descN != 0)
-      BLI_assert_msg(false, "Descriptor Set Number is only 0 for now.");
+  VKStateManager::cmd_dynamic_state(vkshader->current_cmd_);
+
+  if (vkinterface->push_range_.size > 0) {
+    vkCmdPushConstants(vkshader->current_cmd_,
+                        vkshader->current_layout_,
+                        vkinterface->push_range_.stageFlags,
+                        vkinterface->push_range_.offset,
+                        vkinterface->push_range_.size,
+                        vkinterface->push_cache_);
+  }
+  if (descN == 1) {
+    vkCmdBindDescriptorSets(vkshader->current_cmd_,
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            vkshader->current_layout_,
+                            0,
+                            1,
+                            &vkinterface->sets_vec_[0][swapID],
+                            0,
+                            NULL);
+  }
+  else if (descN != 0)
+    BLI_assert_msg(false, "Descriptor Set Number is only 0 for now.");
 
 
 
-    vkCmdBindVertexBuffers(vkshader->current_cmd_, 0, 1, &vert, offsets);
-    vkCmdDraw(vkshader->current_cmd_, vertex_len, 1, 0, 0);
+  vkCmdBindVertexBuffers(vkshader->current_cmd_, 0, 1, &vert, offsets);
+  vkCmdDraw(vkshader->current_cmd_, vertex_len, 1, 0, 0);
 
+  fb->render_end();
 
-
-    context_->end_render_pass(vkshader->current_cmd_, i);
   };
 
-};
+
 
 /** \} */
 

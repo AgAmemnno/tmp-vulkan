@@ -42,7 +42,6 @@
 #include "vk_context.hh"
 #include "vk_memory.hh"
 
-
 namespace blender {
 namespace gpu {
 
@@ -50,10 +49,11 @@ class VKTexture : public Texture {
   friend class VKContext;
   friend class VKStateManager;
   friend class VKFrameBuffer;
+
  public:
   friend class VKStateManager;
   friend class VKFrameBuffer;
-   eGPUTextureType getType()
+  eGPUTextureType getType()
   {
     return type_;
   }
@@ -66,21 +66,20 @@ class VKTexture : public Texture {
     return w_;
   }
 
-   int getd()
+  int getd()
   {
     return d_;
   }
 
-VkSampler getsampler(eGPUSamplerState id)
+  VkSampler getsampler(eGPUSamplerState id)
   {
-  return VKContext::get()->get_sampler_from_state(id);
-  
+    return VKContext::get()->get_sampler_from_state(id);
   }
-const char *  get_name()
-{
+  const char *get_name()
+  {
     return name_;
   }
-void generate_mipmaps(const void *data);
+  void generate_mipmaps(const void *data);
   bool get_needs_update()
   {
     return needs_update_descriptor_;
@@ -89,14 +88,14 @@ void generate_mipmaps(const void *data);
   {
     needs_update_descriptor_ = t;
   }
- protected:
 
+ protected:
   /* Core parameters and sub-resources. */
   VkImageType target_type_ = VK_IMAGE_TYPE_MAX_ENUM;
   VkImageViewType target_view_type_ = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
   /** opengl identifier for texture. */
-  //GLuint
-   unsigned int tex_id_ = 0;
+  // GLuint
+  unsigned int tex_id_ = 0;
 
   /** True if this texture is bound to at least one texture unit. */
   /* TODO(fclem): How do we ensure thread safety here? */
@@ -107,16 +106,13 @@ void generate_mipmaps(const void *data);
   bool has_pixels_ = false;
   bool needs_update_descriptor_ = false;
 
- 
-
-
   /* Vulkan context who created the object. */
   VKContext *context_ = nullptr;
   /* Vulkan object handle. */
   VkImage vk_image_ = VK_NULL_HANDLE;
   VkImageView vk_image_view_ = VK_NULL_HANDLE;
 
-  VkImageLayout vk_image_layout_;
+  Vector<VkImageLayout> vk_image_layout_;
   /* GPU Memory allocated by this object. */
   VmaAllocation vk_allocation_ = VK_NULL_HANDLE;
   /* Vulkan format used to initialize the texture. */
@@ -130,33 +126,38 @@ void generate_mipmaps(const void *data);
                                     VK_COMPONENT_SWIZZLE_IDENTITY,
                                     VK_COMPONENT_SWIZZLE_IDENTITY};
 
-  
+ private:
+  bool proxy_check(VkImageCreateInfo &info);
 
-private:
-  bool proxy_check(VkImageCreateInfo& info);
  public:
-   VkImageCreateInfo info = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
-   VkDescriptorImageInfo desc_info_;
-   eGPUTextureUsage gpu_image_usage_flags_;
-  ///VKTexture(const char *name);
+  VkImageCreateInfo info = {VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
+  VkDescriptorImageInfo desc_info_;
+  eGPUTextureUsage gpu_image_usage_flags_;
+  /// VKTexture(const char *name);
   VKTexture(const char *name, VKContext *context);
   ~VKTexture();
 
   void update_sub(
       int mip, int offset[3], int extent[3], eGPUDataFormat type, const void *data) override;
   void update_sub(int offset[3],
-      int extent[3],
-      eGPUDataFormat format,
-      GPUPixelBuffer* pixbuf) override {};
+                  int extent[3],
+                  eGPUDataFormat format,
+                  GPUPixelBuffer *pixbuf) override{};
 
-   void set_image_layout(VkImageLayout layout) {
-    vk_image_layout_ = layout;
+  void TextureSubImage(int mip, int offset[3], int extent[3], const void *data);
+  void update_sub_direct_state_access(int mip, int offset[3], int extent[3], const void *data);
+
+  void set_image_layout(VkImageLayout layout, int mip)
+  {
+    vk_image_layout_[mip] = layout;
   };
 
-  VkImageLayout get_image_layout() {
-    return vk_image_layout_;
+  VkImageLayout get_image_layout(int i)
+  {
+    return vk_image_layout_[i];
   };
-  VkImage get_image() {
+  VkImage get_image()
+  {
     return vk_image_;
   };
   void generate_mipmap(void) override{};
@@ -195,12 +196,12 @@ private:
   /* Vulkan specific functions. */
   VkImageView vk_image_view_get(int mip);
   VkImageView vk_image_view_get(int mip, int layer);
-  VkDescriptorImageInfo* get_image_info(eGPUSamplerState id = (eGPUSamplerState)257)
+  VkDescriptorImageInfo *get_image_info(eGPUSamplerState id = (eGPUSamplerState)257)
   {
     /*BLI_assert((int)id <= 257);*/
-  
-    desc_info_.imageLayout = vk_image_layout_;
-    desc_info_.imageView = vk_image_view_get(mip_min_);
+    int mip = 0;
+    desc_info_.imageLayout = vk_image_layout_[mip];
+    desc_info_.imageView = vk_image_view_get(mip);
     if (id == 257) {
       desc_info_.sampler = NULL;
     }
@@ -208,7 +209,7 @@ private:
       desc_info_.sampler = getsampler(id);
     }
 
-     return &desc_info_;
+    return &desc_info_;
   };
 
   VkFormat vk_format_get(void) const
@@ -222,9 +223,8 @@ private:
       mip_min_ = i;
     else
       mip_min_ = 0;
-
   };
-  VkImageView  create_image_view(int mip, int layer, int mipcount, int levelcount);
+  VkImageView create_image_view(int mip, int layer, int mipcount, int levelcount);
 
  protected:
   bool init_internal(void) override;
@@ -232,12 +232,12 @@ private:
   {
     return false;
   };
-  bool init_internal(const GPUTexture *src, int mip_offset, int layer_offset) override{
+  bool init_internal(const GPUTexture *src, int mip_offset, int layer_offset) override
+  {
     return false;
   };
-   void stencil_texture_mode_set(bool use_stencil) override{};
+  void stencil_texture_mode_set(bool use_stencil) override{};
 
- 
   MEM_CXX_CLASS_ALLOC_FUNCS("VKTexture")
 };
 
@@ -416,60 +416,66 @@ inline VkFormat to_vk(eGPUTextureFormat format)
   return VK_FORMAT_R32G32B32A32_SFLOAT;
 }
 
-
 class VKAttachment {
 
-  public:
-    VKAttachment(VKFrameBuffer* fb);
-    ~VKAttachment();
+ public:
+  VKAttachment(VKFrameBuffer *fb);
+  ~VKAttachment();
   /* naive implementation. Can subpath be used effectively? */
-    void append(GPUAttachment& attach, VkImageLayout layout);
+  void append(GPUAttachment &attach, VkImageLayout layout);
   uint32_t get_nums();
 
-  void  create_framebuffer();
+  void create_framebuffer();
   void clear();
 
-
   void append_from_swapchain(int swapchain_idx);
-  
-  VkRenderPass                                   renderpass_;
-  Vector<VkFramebuffer>                                framebuffer_;
-  VkExtent3D                                                extent_;
-  void set_ctx(VKContext* ctx) {
+
+  VkRenderPass renderpass_;
+  Vector<VkFramebuffer> framebuffer_;
+  VkExtent3D extent_;
+  void set_ctx(VKContext *ctx)
+  {
     context_ = ctx;
   };
-  VKContext* get_ctx() {
+  VKContext *get_ctx()
+  {
     BLI_assert(context_);
     return context_;
   }
-  int    fbo_id_ = -1;
-  Vector < VKTexture* >                                  vtex_;
+  int fbo_id_ = -1;
+  Vector<VKTexture *> vtex_;
 
-
-  VkAttachmentLoadOp get_LoadOp() {
+  VkAttachmentLoadOp get_LoadOp()
+  {
 
     BLI_assert(vdesc_.size() == 1);
     return vdesc_[0].loadOp;
   };
-  private:
-    
-    bool used_ = false;
-  
-    Vector < VkImageView>                    vview_;
-    Vector<VkAttachmentDescription>   vdesc_;
-    Vector<VkAttachmentReference>     vref_color_;
-    Vector < VkAttachmentReference>   vref_depth_stencil_;
-    uint32_t                                           num_;
-    VKContext* context_ = nullptr;
 
-    
-    int                              mip_;
-    VKFrameBuffer* fb_ = nullptr;
+ private:
+  bool used_ = false;
 
+  Vector<VkImageView> vview_;
+  Vector<VkAttachmentDescription> vdesc_;
+  Vector<VkAttachmentReference> vref_color_;
+  Vector<VkAttachmentReference> vref_depth_stencil_;
+  uint32_t num_;
+  VKContext *context_ = nullptr;
 
+  int mip_;
+  VKFrameBuffer *fb_ = nullptr;
 };
 
-}  // namespace gpu
+void insert_image_memory_barrier(VkCommandBuffer command_buffer,
+                                 VkImage image,
+                                 VkAccessFlags src_access_mask,
+                                 VkAccessFlags dst_access_mask,
+                                 VkImageLayout old_layout,
+                                 VkImageLayout new_layout,
+                                 VkPipelineStageFlags src_stage_mask,
+                                 VkPipelineStageFlags dst_stage_mask,
+                                 VkImageSubresourceRange subresource_range);
 
+}  // namespace gpu
 
 }  // namespace blender

@@ -27,18 +27,18 @@
 #include "vk_context.hh"
 #include "vk_memory.hh"
 
-#include "vk_texture.hh"
 #include "vk_state.hh"
+#include "vk_texture.hh"
 
 #include "vk_framebuffer.hh"
 
 #include "intern/GHOST_ContextVK.h"
 
 namespace blender::gpu {
-  /// <summary>
-  /// @SaschaWillems , Vulkan Samples-1
-  /// https://github.com/Mandar-Shinde/Vulkan-Samples-1/blob/master/samples/api/texture_mipmap_generation/texture_mipmap_generation_tutorial.md
-  /// </summary>
+/// <summary>
+/// @SaschaWillems , Vulkan Samples-1
+/// https://github.com/Mandar-Shinde/Vulkan-Samples-1/blob/master/samples/api/texture_mipmap_generation/texture_mipmap_generation_tutorial.md
+/// </summary>
 void insert_image_memory_barrier(VkCommandBuffer command_buffer,
                                  VkImage image,
                                  VkAccessFlags src_access_mask,
@@ -63,160 +63,358 @@ void insert_image_memory_barrier(VkCommandBuffer command_buffer,
   vkCmdPipelineBarrier(
       command_buffer, src_stage_mask, dst_stage_mask, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 };
-
-  void VKTexture::generate_mipmaps(const void *data)
+static VkDeviceSize get_size_fromformat(VkFormat format, uint32_t w_, uint32_t h_, uint32_t d_)
 {
 
-    BLI_assert(vk_image_);
-    BLI_assert(this->mipmaps_ > 1);
+  VkDeviceSize size = 0;
+  switch (format) {
+    case VK_FORMAT_R8_UNORM:
+    case VK_FORMAT_R8_SNORM:
+    case VK_FORMAT_R8_USCALED:
+    case VK_FORMAT_R8_SSCALED:
+    case VK_FORMAT_R8_UINT:
+    case VK_FORMAT_R8_SINT:
+    case VK_FORMAT_R8_SRGB:
+      size = w_ * h_ * d_;
+      break;
+    case VK_FORMAT_R8G8_UNORM:
+    case VK_FORMAT_R8G8_SNORM:
+    case VK_FORMAT_R8G8_USCALED:
+    case VK_FORMAT_R8G8_SSCALED:
+    case VK_FORMAT_R8G8_UINT:
+    case VK_FORMAT_R8G8_SINT:
+    case VK_FORMAT_R8G8_SRGB:
+      size = 2 * w_ * h_ * d_;
+      break;
+    case VK_FORMAT_R8G8B8_UNORM:
+    case VK_FORMAT_R8G8B8_SNORM:
+    case VK_FORMAT_R8G8B8_USCALED:
+    case VK_FORMAT_R8G8B8_SSCALED:
+    case VK_FORMAT_R8G8B8_UINT:
+    case VK_FORMAT_R8G8B8_SINT:
+    case VK_FORMAT_R8G8B8_SRGB:
+    case VK_FORMAT_B8G8R8_UNORM:
+    case VK_FORMAT_B8G8R8_SNORM:
+    case VK_FORMAT_B8G8R8_USCALED:
+    case VK_FORMAT_B8G8R8_SSCALED:
+    case VK_FORMAT_B8G8R8_UINT:
+    case VK_FORMAT_B8G8R8_SINT:
+    case VK_FORMAT_B8G8R8_SRGB:
+      size = 3 * w_ * h_ * d_;
+      break;
+    case VK_FORMAT_R8G8B8A8_UNORM:
+    case VK_FORMAT_R8G8B8A8_SNORM:
+    case VK_FORMAT_R8G8B8A8_USCALED:
+    case VK_FORMAT_R8G8B8A8_SSCALED:
+    case VK_FORMAT_R8G8B8A8_UINT:
+    case VK_FORMAT_R8G8B8A8_SINT:
+    case VK_FORMAT_R8G8B8A8_SRGB:
+    case VK_FORMAT_B8G8R8A8_UNORM:
+    case VK_FORMAT_B8G8R8A8_SNORM:
+    case VK_FORMAT_B8G8R8A8_USCALED:
+    case VK_FORMAT_B8G8R8A8_SSCALED:
+    case VK_FORMAT_B8G8R8A8_UINT:
+    case VK_FORMAT_B8G8R8A8_SINT:
+    case VK_FORMAT_B8G8R8A8_SRGB:
+    case VK_FORMAT_A8B8G8R8_UNORM_PACK32:
+    case VK_FORMAT_A8B8G8R8_SNORM_PACK32:
+    case VK_FORMAT_A8B8G8R8_USCALED_PACK32:
+    case VK_FORMAT_A8B8G8R8_SSCALED_PACK32:
+    case VK_FORMAT_A8B8G8R8_UINT_PACK32:
+    case VK_FORMAT_A8B8G8R8_SINT_PACK32:
+    case VK_FORMAT_A8B8G8R8_SRGB_PACK32:
+    case VK_FORMAT_A2R10G10B10_UNORM_PACK32:
+    case VK_FORMAT_A2R10G10B10_SNORM_PACK32:
+    case VK_FORMAT_A2R10G10B10_USCALED_PACK32:
+    case VK_FORMAT_A2R10G10B10_SSCALED_PACK32:
+    case VK_FORMAT_A2R10G10B10_UINT_PACK32:
+    case VK_FORMAT_A2R10G10B10_SINT_PACK32:
+    case VK_FORMAT_A2B10G10R10_UNORM_PACK32:
+    case VK_FORMAT_A2B10G10R10_SNORM_PACK32:
+    case VK_FORMAT_A2B10G10R10_USCALED_PACK32:
+    case VK_FORMAT_A2B10G10R10_SSCALED_PACK32:
+    case VK_FORMAT_A2B10G10R10_UINT_PACK32:
+    case VK_FORMAT_A2B10G10R10_SINT_PACK32:
+    case VK_FORMAT_X8_D24_UNORM_PACK32:
+      size = 4 * w_ * h_ * d_;
+      break;
+    default:
+      /*TODO :: rest type*/
+      BLI_assert(false);
+      return 0;
+      break;
+  }
+  return size;
+}
+void VKTexture::generate_mipmaps(const void *data)
+{
 
-   VkFormatProperties formatProperties;
-    auto pdevice = context_->get_physical_device();
-   vkGetPhysicalDeviceFormatProperties(pdevice, to_vk(format_), &formatProperties);
-    if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT) ||
-        !(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT)) {
-      BLI_assert_msg(false,
-          "Selected image format does not support blit source and destination");
-    };
-    /// <summary>
-    /// Assume R8G8B8A8
-    /// </summary>
-    VkDeviceSize size = 4 * w_ * h_ ;
+  BLI_assert(vk_image_);
+  BLI_assert(this->mipmaps_ > 0);
 
-    VKStagingBufferManager *staging = context_->buffer_manager_;
+  VkFormatProperties formatProperties;
+  auto pdevice = context_->get_physical_device();
+  vkGetPhysicalDeviceFormatProperties(pdevice, to_vk(format_), &formatProperties);
+  if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT) ||
+      !(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT)) {
+    BLI_assert_msg(false, "Selected image format does not support blit source and destination");
+  };
 
-    VKBuffer* buffer = staging->Create(size,256);
+  VkDeviceSize size = get_size_fromformat(info.format, w_, h_, d_);
 
-    memcpy(buffer->get_host_ptr(), data, size);
-    buffer->unmap();
+  VKStagingBufferManager *staging = context_->buffer_manager_;
 
-     auto cmd = staging->begin();
+  VKBuffer *buffer = staging->Create(size, 256);
 
-     insert_image_memory_barrier(cmd,
-                                      vk_image_,
-                                      0,
-                                      VK_ACCESS_TRANSFER_WRITE_BIT,
-                                      VK_IMAGE_LAYOUT_UNDEFINED,
-                                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                      VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                      VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                      {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
+  memcpy(buffer->get_host_ptr(), data, size);
+  buffer->unmap();
 
-     // Copy the first mip of the chain, remaining mips will be generated
-     VkBufferImageCopy buffer_copy_region = {};
-     buffer_copy_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-     buffer_copy_region.imageSubresource.mipLevel = 0;
-     buffer_copy_region.imageSubresource.baseArrayLayer = 0;
-     buffer_copy_region.imageSubresource.layerCount = 1;
-     buffer_copy_region.imageExtent.width = w_;
-     buffer_copy_region.imageExtent.height = h_;
-     buffer_copy_region.imageExtent.depth = 1;
-     vkCmdCopyBufferToImage(cmd,
-                            buffer->get_vk_buffer(),
-                            vk_image_,
-                            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                            1,
-                            &buffer_copy_region);
+  auto cmd = staging->begin();
 
+  insert_image_memory_barrier(cmd,
+                              vk_image_,
+                              0,
+                              VK_ACCESS_TRANSFER_WRITE_BIT,
+                              VK_IMAGE_LAYOUT_UNDEFINED,
+                              VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                              VK_PIPELINE_STAGE_TRANSFER_BIT,
+                              VK_PIPELINE_STAGE_TRANSFER_BIT,
+                              {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
 
-     insert_image_memory_barrier(cmd,
-                                 vk_image_,
-                                 VK_ACCESS_TRANSFER_WRITE_BIT,
-                                 VK_ACCESS_TRANSFER_READ_BIT,
-                                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                 VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                                 VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                 VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                 {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
+  // Copy the first mip of the chain, remaining mips will be generated
+  VkBufferImageCopy buffer_copy_region = {};
+  buffer_copy_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  buffer_copy_region.imageSubresource.mipLevel = 0;
+  buffer_copy_region.imageSubresource.baseArrayLayer = 0;
+  buffer_copy_region.imageSubresource.layerCount = 1;
+  buffer_copy_region.imageExtent.width = w_;
+  buffer_copy_region.imageExtent.height = h_;
+  buffer_copy_region.imageExtent.depth = 1;
+  vkCmdCopyBufferToImage(cmd,
+                         buffer->get_vk_buffer(),
+                         vk_image_,
+                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                         1,
+                         &buffer_copy_region);
 
-     staging->end();
+  if (this->mipmaps_ > 1) {
+    insert_image_memory_barrier(cmd,
+                                vk_image_,
+                                VK_ACCESS_TRANSFER_WRITE_BIT,
+                                VK_ACCESS_TRANSFER_READ_BIT,
+                                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
+  }
+  else {
+    // After the loop, all mip layers are in TRANSFER_SRC layout, so transition all to SHADER_READ
+    insert_image_memory_barrier(cmd,
+                                vk_image_,
+                                VK_ACCESS_TRANSFER_WRITE_BIT,
+                                VK_ACCESS_SHADER_READ_BIT,
+                                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                                {VK_IMAGE_ASPECT_COLOR_BIT, 0, (uint32_t)this->mipmaps_, 0, 1});
+    for (auto &layout : vk_image_layout_) {
+      layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    }
+  }
 
+  staging->end();
 
+  if (this->mipmaps_ > 1) {
 
-     staging->begin();
+    staging->begin();
 
+    // Copy down mips from n-1 to n
+    for (uint32_t i = 1; i < this->mipmaps_; i++) {
+      VkImageBlit image_blit{};
 
-	 // Copy down mips from n-1 to n
-     for (uint32_t i = 1; i < this->mipmaps_; i++) {
-       VkImageBlit image_blit{};
+      // Source
+      image_blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+      image_blit.srcSubresource.layerCount = 1;
+      image_blit.srcSubresource.mipLevel = i - 1;
+      image_blit.srcOffsets[1].x = int32_t(w_ >> (i - 1));
+      image_blit.srcOffsets[1].y = int32_t(h_ >> (i - 1));
+      image_blit.srcOffsets[1].z = 1;
 
-       // Source
-       image_blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-       image_blit.srcSubresource.layerCount = 1;
-       image_blit.srcSubresource.mipLevel = i - 1;
-       image_blit.srcOffsets[1].x = int32_t(w_ >> (i - 1));
-       image_blit.srcOffsets[1].y = int32_t(h_ >> (i - 1));
-       image_blit.srcOffsets[1].z = 1;
+      // Destination
+      image_blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+      image_blit.dstSubresource.layerCount = 1;
+      image_blit.dstSubresource.mipLevel = i;
+      image_blit.dstOffsets[1].x = int32_t(w_ >> (i));
+      image_blit.dstOffsets[1].y = int32_t(h_ >> (i));
+      image_blit.dstOffsets[1].z = 1;
 
-       // Destination
-       image_blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-       image_blit.dstSubresource.layerCount = 1;
-       image_blit.dstSubresource.mipLevel = i;
-       image_blit.dstOffsets[1].x = int32_t(w_ >> (i ));
-       image_blit.dstOffsets[1].y = int32_t(h_ >> (i ));
-       image_blit.dstOffsets[1].z = 1;
+      // Prepare current mip level as image blit destination
+      insert_image_memory_barrier(cmd,
+                                  vk_image_,
+                                  0,
+                                  VK_ACCESS_TRANSFER_WRITE_BIT,
+                                  VK_IMAGE_LAYOUT_UNDEFINED,
+                                  VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                  VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                  VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                  {VK_IMAGE_ASPECT_COLOR_BIT, i, 1, 0, 1});
 
-       // Prepare current mip level as image blit destination
-       insert_image_memory_barrier(cmd,
-                                        vk_image_,
-                                        0,
-                                        VK_ACCESS_TRANSFER_WRITE_BIT,
-                                        VK_IMAGE_LAYOUT_UNDEFINED,
-                                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                        VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                        VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                        {VK_IMAGE_ASPECT_COLOR_BIT, i, 1, 0, 1});
+      // Blit from previous level
+      vkCmdBlitImage(cmd,
+                     vk_image_,
+                     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                     vk_image_,
+                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                     1,
+                     &image_blit,
+                     VK_FILTER_LINEAR);
 
-       // Blit from previous level
-       vkCmdBlitImage(cmd,
-                      vk_image_,
-                      VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                      vk_image_,
-                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                      1,
-                      &image_blit,
-                      VK_FILTER_LINEAR);
+      // Prepare current mip level as image blit source for next level
+      insert_image_memory_barrier(cmd,
+                                  vk_image_,
+                                  VK_ACCESS_TRANSFER_WRITE_BIT,
+                                  VK_ACCESS_TRANSFER_READ_BIT,
+                                  VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                  VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                                  VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                  VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                  {VK_IMAGE_ASPECT_COLOR_BIT, i, 1, 0, 1});
+    }
 
-       // Prepare current mip level as image blit source for next level
-       insert_image_memory_barrier(cmd,
-                                        vk_image_,
-                                        VK_ACCESS_TRANSFER_WRITE_BIT,
-                                        VK_ACCESS_TRANSFER_READ_BIT,
-                                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                                        VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                        VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                        {VK_IMAGE_ASPECT_COLOR_BIT, i, 1, 0, 1});
-     }
+    // After the loop, all mip layers are in TRANSFER_SRC layout, so transition all to SHADER_READ
+    insert_image_memory_barrier(cmd,
+                                vk_image_,
+                                VK_ACCESS_TRANSFER_READ_BIT,
+                                VK_ACCESS_SHADER_READ_BIT,
+                                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                                {VK_IMAGE_ASPECT_COLOR_BIT, 0, (uint32_t)this->mipmaps_, 0, 1});
 
-     // After the loop, all mip layers are in TRANSFER_SRC layout, so transition all to SHADER_READ
-     insert_image_memory_barrier(cmd,
-                                      vk_image_,
-                                      VK_ACCESS_TRANSFER_READ_BIT,
-                                      VK_ACCESS_SHADER_READ_BIT,
-                                      VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                      VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                      VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                                 {VK_IMAGE_ASPECT_COLOR_BIT, 0, (uint32_t)this->mipmaps_, 0, 1});
-     vk_image_layout_ = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    for (auto &layout : vk_image_layout_) {
+      layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    }
     staging->end();
+  }
 
-
-     mip_max_ = mipmaps_;
+  mip_max_ = mipmaps_;
 }
 
+void VKTexture::TextureSubImage(int mip, int offset[3], int extent[3], const void *data)
+{
 
-VKTexture::VKTexture(const char *name,VKContext* context) : Texture(name)
+  int dim = dimensions_count();
+
+  BLI_assert(vk_image_);
+  BLI_assert(this->mipmaps_ > 0 && mip < this->mipmaps_);
+  auto &vk_image_layout = vk_image_layout_[mip];
+
+  if (dim == 1) {
+    extent[1] = extent[2] = 1;
+    offset[1] = offset[2] = 0;
+  }
+  else if (dim == 2) {
+    extent[2] = 1;
+    offset[2] = 0;
+  }
+
+  VkDeviceSize size = get_size_fromformat(info.format, extent[0], extent[1], extent[2]);
+  VkImageAspectFlagBits aspect_flag = VK_IMAGE_ASPECT_COLOR_BIT;
+  VkImageLayout dst_layout;
+  VkAccessFlags dst_access = 0;
+  VkPipelineStageFlagBits dst_stage = VK_PIPELINE_STAGE_NONE_KHR;
+  /* Restrictions on how flags can be combined.
+   * https://vulkan.lunarg.com/doc/view/1.3.231.1/windows/1.3-extensions/vkspec.html#VkRenderPassFragmentDensityMapCreateInfoEXT*/
+  if (info.usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) {
+    BLI_assert(info.format == VK_FORMAT_X8_D24_UNORM_PACK32);
+    aspect_flag = VK_IMAGE_ASPECT_DEPTH_BIT;
+    dst_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    dst_access = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                 VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    dst_stage = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+  }
+  else {
+    if ((info.usage & VK_IMAGE_USAGE_SAMPLED_BIT) ||
+        (info.usage & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT)) {
+      dst_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+      dst_access = VK_ACCESS_SHADER_READ_BIT;
+      dst_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    }
+    else if ((info.usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)) {
+      dst_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+      dst_access = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+      dst_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    }
+    else {
+      BLI_assert(false);
+    }
+  };
+
+  VKStagingBufferManager *staging = context_->buffer_manager_;
+
+  VKBuffer *buffer = staging->Create(size, 256);
+
+  memcpy(buffer->get_host_ptr(), data, size);
+  buffer->unmap();
+
+  auto cmd = staging->begin();
+
+  insert_image_memory_barrier(cmd,
+                              vk_image_,
+                              (vk_image_layout == dst_layout) ? dst_access : 0,
+                              VK_ACCESS_TRANSFER_WRITE_BIT,
+                              vk_image_layout,
+                              VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                              (vk_image_layout == dst_layout) ? dst_stage :
+                                                                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                              VK_PIPELINE_STAGE_TRANSFER_BIT,
+                              {(uint32_t)aspect_flag, (uint32_t)mip, 1, 0, 1});
+
+  // Copy the first mip of the chain, remaining mips will be generated
+  VkBufferImageCopy buffer_copy_region = {};
+  buffer_copy_region.imageSubresource.aspectMask = aspect_flag;
+  buffer_copy_region.imageSubresource.mipLevel = mip;
+  buffer_copy_region.imageSubresource.baseArrayLayer = 0;
+  buffer_copy_region.imageSubresource.layerCount = 1;
+  buffer_copy_region.imageExtent.width = extent[0];
+  buffer_copy_region.imageExtent.height = extent[1];
+  buffer_copy_region.imageExtent.depth = extent[2];
+  buffer_copy_region.imageOffset.x = offset[0];
+  buffer_copy_region.imageOffset.y = offset[1];
+  buffer_copy_region.imageOffset.z = offset[2];
+
+  vkCmdCopyBufferToImage(cmd,
+                         buffer->get_vk_buffer(),
+                         vk_image_,
+                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                         1,
+                         &buffer_copy_region);
+
+  /* After the loop, all mip layers are in TRANSFER_SRC layout, so transition all to SHADER_READ */
+  insert_image_memory_barrier(cmd,
+                              vk_image_,
+                              VK_ACCESS_TRANSFER_WRITE_BIT,
+                              dst_access,
+                              VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                              dst_layout,
+                              VK_PIPELINE_STAGE_TRANSFER_BIT,
+                              dst_stage,
+                              {(uint32_t)aspect_flag, (uint32_t)mip, 1, 0, 1});
+  vk_image_layout = dst_layout;
+
+  staging->end();
+};
+
+VKTexture::VKTexture(const char *name, VKContext *context) : Texture(name)
 {
   context_ = context;
 
   mip_max_ = 0;
-  mip_min_  = 0;
+  mip_min_ = 0;
   current_view_id_ = -1;
-
-
-
 }
 
 VKTexture::~VKTexture(void)
@@ -237,12 +435,11 @@ VKTexture::~VKTexture(void)
     vk_image_view_ = VK_NULL_HANDLE;
   }
 
-
   if (vk_image_ != VK_NULL_HANDLE) {
     VmaAllocator mem_allocator = context_->mem_allocator_get();
     vmaDestroyImage(mem_allocator, vk_image_, vk_allocation_);
     vk_image_ = VK_NULL_HANDLE;
-    ///vkDestroyImage(device, vk_image_, nullptr);
+    /// vkDestroyImage(device, vk_image_, nullptr);
   }
 }
 
@@ -251,11 +448,11 @@ static int VK_IMAGE_ALLOCATED_TIMES = 0;
 bool VKTexture::init_internal(void)
 {
   /*blender type check.*/
-  target_type_          = to_vk_image_type(type_);
+  target_type_ = to_vk_image_type(type_);
   target_view_type_ = to_vk_image_view_type(type_);
 
   /*image conf*/
-  info.sType =  VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+  info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
   {
     /*internal_format & gl_format & gl_type(OpenGL)*/
     info.format = to_vk(format_);
@@ -270,12 +467,15 @@ bool VKTexture::init_internal(void)
     info.samples = VK_SAMPLE_COUNT_1_BIT;
     info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     /* TODO(fclem) improve this. */
-    /* VK_IMAGE_TILING_LINEAR listrictions ==> https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkImageCreateInfo.html#_description */
+    /* VK_IMAGE_TILING_LINEAR listrictions ==>
+     * https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkImageCreateInfo.html#_description
+     */
     /* Is it better to do it with VkBuffer? */
     info.tiling = VK_IMAGE_TILING_OPTIMAL;
     info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     info.mipLevels = mipmaps_;
-    /*KTX texture Compressed Texture sample https://github.com/KhronosGroup/Vulkan-Samples/blob/master/samples/performance/texture_compression_comparison/texture_compression_comparison.cpp*/
+    /*KTX texture Compressed Texture sample
+     * https://github.com/KhronosGroup/Vulkan-Samples/blob/master/samples/performance/texture_compression_comparison/texture_compression_comparison.cpp*/
 
     /*need a little more detailed flag.*/
     if (name_[0] == 'o' && name_[1] == 'f' && name_[2] == 's') {
@@ -286,7 +486,12 @@ bool VKTexture::init_internal(void)
         info.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     }
     else {
-      info.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+      if (format_flag_ & GPU_FORMAT_DEPTH) {
+        info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+      }
+      else {
+        info.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+      }
     }
 
     info.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
@@ -300,63 +505,60 @@ bool VKTexture::init_internal(void)
       info.flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT;
     }
   }
-  
+
   if (!proxy_check(info)) {
     return false;
   };
-  
+
   VmaAllocator mem_allocator = context_->mem_allocator_get();
   VmaAllocationCreateInfo alloc_info = {};
   alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-  alloc_info.flags  = VMA_ALLOCATION_CREATE_STRATEGY_BEST_FIT_BIT;
-  
+  alloc_info.flags = VMA_ALLOCATION_CREATE_STRATEGY_BEST_FIT_BIT;
+
   VmaAllocationInfo allocinfo = {};
-  allocinfo.pName =  ( name_ + std::to_string(VK_IMAGE_ALLOCATED_TIMES++)).c_str();
-  
+  allocinfo.pName = (name_ + std::to_string(VK_IMAGE_ALLOCATED_TIMES++)).c_str();
+
   vmaCreateImage(mem_allocator, &info, &alloc_info, &vk_image_, &vk_allocation_, &allocinfo);
   needs_update_descriptor_ = true;
 
-  auto state_manager = reinterpret_cast<VKStateManager*>(context_->state_manager);
+  auto state_manager = reinterpret_cast<VKStateManager *>(context_->state_manager);
   state_manager->texture_bind_temp(this);
 
-  views_.resize(info.mipLevels* (info.arrayLayers + 1), VK_NULL_HANDLE);
+  views_.resize(info.mipLevels * (info.arrayLayers + 1), VK_NULL_HANDLE);
   desc_info_.imageView = VK_NULL_HANDLE;
-  vk_image_layout_ =  desc_info_.imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  desc_info_.imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   desc_info_.sampler = VK_NULL_HANDLE;
-  
+  vk_image_layout_.resize(mipmaps_);
+  for (auto &layout : vk_image_layout_) {
+    layout = VK_IMAGE_LAYOUT_UNDEFINED;
+  }
   return true;
-
 }
 
-
-bool VKTexture::proxy_check(VkImageCreateInfo& info)
+bool VKTexture::proxy_check(VkImageCreateInfo &info)
 {
   /*TODO :: Skip if Check is unnecessary*/
   auto pdevice = context_->get_physical_device();
-  
+
   VkImageFormatProperties ImageProps = {};
 
-  VK_CHECK(vkGetPhysicalDeviceImageFormatProperties(pdevice,
-    info.format,
-    info.imageType,
-    info.tiling,
-    info.usage,
-    info.flags,
-    &ImageProps));
+  VK_CHECK(vkGetPhysicalDeviceImageFormatProperties(
+      pdevice, info.format, info.imageType, info.tiling, info.usage, info.flags, &ImageProps));
 
   if (type_ & GPU_TEXTURE_ARRAY) {
     if (info.arrayLayers > ImageProps.maxArrayLayers) {
       return false;
     }
   }
-  
+
   if (info.mipLevels > ImageProps.maxMipLevels) {
     return false;
   }
 
-  auto  max_ext = ImageProps.maxExtent;
+  auto max_ext = ImageProps.maxExtent;
   if (type_ == GPU_TEXTURE_3D) {
-    if (info.extent.width > max_ext.width || info.extent.height > max_ext.height || info.extent.depth > max_ext.depth) {
+    if (info.extent.width > max_ext.width || info.extent.height > max_ext.height ||
+        info.extent.depth > max_ext.depth) {
       return false;
     }
   }
@@ -377,38 +579,125 @@ bool VKTexture::proxy_check(VkImageCreateInfo& info)
   }
 
   /*TODO :: All Hardware Check Required*/
-  if (GPU_type_matches(GPU_DEVICE_NVIDIA, GPU_OS_WIN, GPU_DRIVER_OFFICIAL) ){
+  if (GPU_type_matches(GPU_DEVICE_NVIDIA, GPU_OS_WIN, GPU_DRIVER_OFFICIAL)) {
     return true;
   }
 
   /*TODO :: Check memory type, tiling, etc.*/
   return true;
-
 };
 /* Fetch the raw buffer data from a texture and copy to CPU host ptr. */
 void VKTexture::read_internal(int mip,
-                                    int x_off,
-                                    int y_off,
-                                    int z_off,
-                                    int width,
-                                    int height,
-                                    int depth,
-                                    eGPUDataFormat desired_output_format,
-                                    int num_output_components,
-                                    int debug_data_size,
-                                    void *r_data)
+                              int x_off,
+                              int y_off,
+                              int z_off,
+                              int width,
+                              int height,
+                              int depth,
+                              eGPUDataFormat desired_output_format,
+                              int num_output_components,
+                              int debug_data_size,
+                              void *r_data)
 {
   /* Verify textures are baked. */
   printf("TODO read attachment.\n");
   BLI_assert(false);
-
-
 }
 
+void VKTexture::update_sub_direct_state_access(int mip,
+                                               int offset[3],
+                                               int extent[3],
+                                               const void *data)
+{
+  if (format_flag_ & GPU_FORMAT_COMPRESSED) {
+    BLI_assert(false);
+    /*NIL*/
+#if 0
+    size_t size = ((extent[0] + 3) / 4) * ((extent[1] + 3) / 4) * to_block_size(format_);
+    switch (this->dimensions_count()) {
+    default:
+    case 1:
+      glCompressedTextureSubImage1D(tex_id_, mip, offset[0], extent[0], format, size, data);
+      break;
+    case 2:
+      glCompressedTextureSubImage2D(
+        tex_id_, mip, UNPACK2(offset), UNPACK2(extent), format, size, data);
+      break;
+    case 3:
+      glCompressedTextureSubImage3D(
+        tex_id_, mip, UNPACK3(offset), UNPACK3(extent), format, size, data);
+      break;
+    }
+#endif
+  }
+  else {
+
+    TextureSubImage(mip, offset, extent, data);
+  }
+
+  has_pixels_ = true;
+}
 void VKTexture::update_sub(
     int mip, int offset[3], int extent[3], eGPUDataFormat type, const void *data)
 {
-  if (mip== 0) generate_mipmaps(data);
+  BLI_assert(validate_data_format(format_, type));
+  BLI_assert(data != nullptr);
+  if (mip >= mipmaps_) {
+    fprintf(stderr, "Updating a miplvl on a texture too small to have this many levels.");
+    return;
+  }
+
+  /* Some drivers have issues with cubemap & glTextureSubImage3D even if it is correct. */
+  // if (GLContext::direct_state_access_support &&
+  if (type_ != GPU_TEXTURE_CUBE) {
+    this->update_sub_direct_state_access(mip, offset, extent, data);
+    return;
+  }
+
+  /*NIL*/
+  BLI_assert(false);
+#if 0
+  GLContext::state_manager_active_get()->texture_bind_temp(this);
+  if (type_ == GPU_TEXTURE_CUBE) {
+    for (int i = 0; i < extent[2]; i++) {
+      GLenum target = GL_TEXTURE_CUBE_MAP_POSITIVE_X + offset[2] + i;
+      glTexSubImage2D(target, mip, UNPACK2(offset), UNPACK2(extent), gl_format, gl_type, data);
+    }
+  }
+  else if (format_flag_ & GPU_FORMAT_COMPRESSED) {
+    size_t size = ((extent[0] + 3) / 4) * ((extent[1] + 3) / 4) * to_block_size(format_);
+    switch (dimensions) {
+    default:
+    case 1:
+      glCompressedTexSubImage1D(target_, mip, offset[0], extent[0], gl_format, size, data);
+      break;
+    case 2:
+      glCompressedTexSubImage2D(
+        target_, mip, UNPACK2(offset), UNPACK2(extent), gl_format, size, data);
+      break;
+    case 3:
+      glCompressedTexSubImage3D(
+        target_, mip, UNPACK3(offset), UNPACK3(extent), gl_format, size, data);
+      break;
+    }
+  }
+  else {
+    switch (dimensions) {
+    default:
+    case 1:
+      glTexSubImage1D(target_, mip, offset[0], extent[0], gl_format, gl_type, data);
+      break;
+    case 2:
+      glTexSubImage2D(target_, mip, UNPACK2(offset), UNPACK2(extent), gl_format, gl_type, data);
+      break;
+    case 3:
+      glTexSubImage3D(target_, mip, UNPACK3(offset), UNPACK3(extent), gl_format, gl_type, data);
+      break;
+    }
+  }
+
+  has_pixels_ = true;
+#endif
 }
 
 void VKTexture::swizzle_set(const char swizzle_mask[4])
@@ -430,7 +719,7 @@ void VKTexture::swizzle_set(const char swizzle_mask[4])
   }
 }
 
-VkImageView VKTexture::create_image_view(int mip, int layer,int mipcount=1,int levelcount=1)
+VkImageView VKTexture::create_image_view(int mip, int layer, int mipcount = 1, int levelcount = 1)
 {
   BLI_assert(mip >= 0);
   BLI_assert(layer >= 0);
@@ -441,25 +730,22 @@ VkImageView VKTexture::create_image_view(int mip, int layer,int mipcount=1,int l
     vk_image_view_ = VK_NULL_HANDLE;
   };
 
-
   VkImageSubresourceRange range;
-  range.aspectMask        = to_vk(format_flag_);
-  range.baseMipLevel      =  mip;
-  range.baseArrayLayer  =  layer;
+  range.aspectMask = to_vk(format_flag_);
+  range.baseMipLevel = mip;
+  range.baseArrayLayer = layer;
   range.levelCount = mipcount;
   range.layerCount = levelcount;
 
   VkImageViewCreateInfo info = {VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
-  info.flags           =  0;
-  info.image          =  vk_image_;
-  info.viewType    =   to_vk_image_view_type(type_);
-  info.format        =  to_vk(format_);
-  info.components = {
-                      VK_COMPONENT_SWIZZLE_R,
-                      VK_COMPONENT_SWIZZLE_G,
-                      VK_COMPONENT_SWIZZLE_B,
-                      VK_COMPONENT_SWIZZLE_A
-  };
+  info.flags = 0;
+  info.image = vk_image_;
+  info.viewType = to_vk_image_view_type(type_);
+  info.format = to_vk(format_);
+  info.components = {VK_COMPONENT_SWIZZLE_R,
+                     VK_COMPONENT_SWIZZLE_G,
+                     VK_COMPONENT_SWIZZLE_B,
+                     VK_COMPONENT_SWIZZLE_A};
 
   info.subresourceRange = range;
 
@@ -499,8 +785,7 @@ void VKTexture::check_feedback_loop()
     return;
   }
 
-
-  #if 0
+#if 0
   /* Do not check if using compute shader. */
   VKShader *sh = dynamic_cast<VKShader *>(Context::get()->shader);
   if (sh && sh->is_compute()) {
@@ -526,22 +811,22 @@ void VKTexture::check_feedback_loop()
       return;
     }
   }
-  #endif
-
-
-
+#endif
 }
-VKAttachment::VKAttachment(VKFrameBuffer* fb) {
+VKAttachment::VKAttachment(VKFrameBuffer *fb)
+{
   BLI_assert(fb != nullptr);
   clear();
   fb_ = fb;
 }
-VKAttachment::~VKAttachment() {
+VKAttachment::~VKAttachment()
+{
   clear();
 };
 
-void VKAttachment::clear() {
- 
+void VKAttachment::clear()
+{
+
   if (context_) {
     auto device = context_->device_get();
 
@@ -551,7 +836,7 @@ void VKAttachment::clear() {
     };
     for (auto framebuffer : framebuffer_) {
       if (framebuffer != VK_NULL_HANDLE) {
-        vkDestroyFramebuffer(device, framebuffer , nullptr);
+        vkDestroyFramebuffer(device, framebuffer, nullptr);
         framebuffer = VK_NULL_HANDLE;
       };
     }
@@ -561,16 +846,16 @@ void VKAttachment::clear() {
   vref_depth_stencil_.clear();
   vview_.clear();
   num_ = 0;
-  extent_ = { 0,0,0 };
+  extent_ = {0, 0, 0};
   renderpass_ = VK_NULL_HANDLE;
   framebuffer_.clear();
 };
 
-
 /* naive implementation. Can subpath be used effectively? */
-void VKAttachment::append(GPUAttachment& attach, VkImageLayout layout) {
+void VKAttachment::append(GPUAttachment &attach, VkImageLayout layout)
+{
 
-  VKTexture* tex = static_cast<VKTexture*>(unwrap(attach.tex));
+  VKTexture *tex = static_cast<VKTexture *>(unwrap(attach.tex));
 
   if (extent_.width == 0) {
     extent_ = tex->info.extent;
@@ -580,21 +865,22 @@ void VKAttachment::append(GPUAttachment& attach, VkImageLayout layout) {
     fb_->size_set(size[0], size[1]);
   }
 
-  BLI_assert(attach.mip == mip_ && extent_.width == tex->info.extent.width && extent_.height == tex->info.extent.height && extent_.depth == tex->info.extent.depth);
+  BLI_assert(attach.mip == mip_ && extent_.width == tex->info.extent.width &&
+             extent_.height == tex->info.extent.height && extent_.depth == tex->info.extent.depth);
 
   if (layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
-    vref_color_.append({ num_,layout });
+    vref_color_.append({num_, layout});
     fb_->set_srgb(GPU_texture_format(attach.tex) == GPU_SRGB8_A8);
     vtex_.append(tex);
   }
   else {
-    vref_depth_stencil_.append({ num_,layout });
+    vref_depth_stencil_.append({num_, layout});
   }
 
   VkAttachmentDescription desc = {};
   desc.format = tex->info.format;
   desc.samples = VK_SAMPLE_COUNT_1_BIT;
-  desc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD; // VK_ATTACHMENT_LOAD_OP_CLEAR;
+  desc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;  // VK_ATTACHMENT_LOAD_OP_CLEAR;
   desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
   desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
   desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -605,16 +891,14 @@ void VKAttachment::append(GPUAttachment& attach, VkImageLayout layout) {
   vview_.append(tex->create_image_view(mip_, 0, 1, tex->info.arrayLayers));
 
   num_++;
-
 };
 
-
-
-uint32_t VKAttachment::get_nums() {
+uint32_t VKAttachment::get_nums()
+{
   return num_;
 }
-void VKAttachment::create_framebuffer() {
-
+void VKAttachment::create_framebuffer()
+{
 
   auto device = context_->device_get();
 
@@ -624,8 +908,9 @@ void VKAttachment::create_framebuffer() {
     subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpassDescription.colorAttachmentCount = static_cast<uint32_t>(vref_color_.size());
     subpassDescription.pColorAttachments = vref_color_.data();
-    subpassDescription.pDepthStencilAttachment = (vref_depth_stencil_.size() == 0 ) ? nullptr :vref_depth_stencil_.data();
-
+    subpassDescription.pDepthStencilAttachment = (vref_depth_stencil_.size() == 0) ?
+                                                     nullptr :
+                                                     vref_depth_stencil_.data();
 
     // Use subpass dependencies for layout transitions
     std::array<VkSubpassDependency, 2> dependencies;
@@ -635,14 +920,16 @@ void VKAttachment::create_framebuffer() {
     dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
     dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-    dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+                                    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
     dependencies[1].srcSubpass = 0;
     dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
     dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-    dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+                                    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
     dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
@@ -656,13 +943,11 @@ void VKAttachment::create_framebuffer() {
     renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
     renderPassInfo.pDependencies = dependencies.data();
     VK_CHECK2(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderpass_));
-    
-    BLI_assert(framebuffer_.size() == 0);
-    
-    framebuffer_.resize(vview_.size());
-  
-  };
 
+    BLI_assert(framebuffer_.size() == 0);
+
+    framebuffer_.resize(vview_.size());
+  };
 
   int i = 0;
   BLI_assert(framebuffer_.size() == vview_.size());
@@ -684,19 +969,20 @@ void VKAttachment::create_framebuffer() {
   return;
 }
 
-void VKAttachment::append_from_swapchain(int swapchain_idx) {
-  
+void VKAttachment::append_from_swapchain(int swapchain_idx)
+{
+
   clear();
-  
+
   fbo_id_ = swapchain_idx;
-  
+
   auto device_ = context_->device_get();
 
   auto size = context_->getImageViewNums();
   BLI_assert(vview_.size() == 0);
-  
+
   framebuffer_.resize(size);
-  
+
   for (int i = 0; i < size; i++) {
     VkImageView view = VK_NULL_HANDLE;
     context_->getImageView(view, i);
@@ -705,7 +991,7 @@ void VKAttachment::append_from_swapchain(int swapchain_idx) {
 
   VkExtent2D ext = {};
   context_->getRenderExtent(ext);
-  
+
   extent_.width = ext.width;
   extent_.height = ext.height;
   extent_.depth = 1;
@@ -713,18 +999,18 @@ void VKAttachment::append_from_swapchain(int swapchain_idx) {
   VkAttachmentDescription colorAttachment = {};
   colorAttachment.format = context_->getImageFormat();
   colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-  colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR; //VK_ATTACHMENT_LOAD_OP_LOAD;// 
+  colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;  // VK_ATTACHMENT_LOAD_OP_LOAD;//
   colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
   colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
   colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-  colorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;// VK_IMAGE_LAYOUT_UNDEFINED;
+  colorAttachment.initialLayout =
+      VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;  // VK_IMAGE_LAYOUT_UNDEFINED;
   colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
   vdesc_.append(colorAttachment);
 
   VkAttachmentReference colorAttachmentRef = {};
   colorAttachmentRef.attachment = 0;
   colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
 
   VkSubpassDependency subpassDependencies[2] = {};
 
@@ -736,7 +1022,7 @@ void VKAttachment::append_from_swapchain(int swapchain_idx) {
   subpassDependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
   subpassDependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
   subpassDependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                                         VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
   subpassDependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
   // Transition from initial to final
@@ -745,12 +1031,11 @@ void VKAttachment::append_from_swapchain(int swapchain_idx) {
   subpassDependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
   subpassDependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
   subpassDependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                                         VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
   subpassDependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
   subpassDependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
   VkSubpassDescription subpassDescription = {};
-
 
   subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
   subpassDescription.flags = 0;
@@ -763,8 +1048,6 @@ void VKAttachment::append_from_swapchain(int swapchain_idx) {
   subpassDescription.preserveAttachmentCount = 0;
   subpassDescription.pPreserveAttachments = NULL;
 
-
-
   VkRenderPassCreateInfo renderPassInfo = {};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
   renderPassInfo.attachmentCount = 1;
@@ -774,9 +1057,9 @@ void VKAttachment::append_from_swapchain(int swapchain_idx) {
   renderPassInfo.dependencyCount = 2;
   renderPassInfo.pDependencies = subpassDependencies;
   VK_CHECK2(vkCreateRenderPass(device_, &renderPassInfo, NULL, &renderpass_));
-  printf("Swapchain Renderpass =================================================-- %llu  \n", (uint64_t)renderpass_);
+  printf("Swapchain Renderpass =================================================-- %llu  \n",
+         (uint64_t)renderpass_);
   num_++;
-
 };
 
 }  // namespace blender::gpu

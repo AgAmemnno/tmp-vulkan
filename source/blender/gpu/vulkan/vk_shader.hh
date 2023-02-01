@@ -46,7 +46,9 @@
 namespace blender {
 namespace gpu {
 
-enum class VKShaderStageType {
+  class VKUniformBuf;
+
+  enum class VKShaderStageType {
   VertexShader,
   GeometryShader,
   FragmentShader,
@@ -155,7 +157,7 @@ class VKShader : public Shader {
 
 
   void append_write_descriptor(VKTexture *tex,eGPUSamplerState samp_state,uint binding);
-  void append_write_descriptor(VkDescriptorSet set, void* data, VkDeviceSize size, uint binding);
+  void append_write_descriptor(VkDescriptorSet set, void* data, VkDeviceSize size, uint binding,  bool iubo);
   template<typename T >
   void  append_write_descriptor(uint setid, uint binding, VkDescriptorType type,T& info)
   {
@@ -233,6 +235,7 @@ class VKShader : public Shader {
   Vector<VkWriteDescriptorSet> write_descs_;
   Vector<VkWriteDescriptorSetInlineUniformBlockEXT>  write_iub_;
   uint16_t                                                                           attr_mask_unbound_;
+  VKUniformBuf* push_ubo = nullptr;
 
  private:
   bool is_valid_ = false;

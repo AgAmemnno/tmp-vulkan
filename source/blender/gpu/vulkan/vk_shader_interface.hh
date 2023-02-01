@@ -141,6 +141,8 @@ class VKShaderInterface : public ShaderInterface {
   blender::Vector<VKDescriptorInputs> desc_inputs_;
   VkPushConstantRange                         push_range_;
   Vector<VKVaoCache*>                                    refs_;
+  shader::ShaderCreateInfo* sc_info_= nullptr;
+  VKShader* active_shader = nullptr;
 
   int push_loc_[2];
   bool is_valid_push_location(int i)
@@ -198,8 +200,8 @@ class VKShaderInterface : public ShaderInterface {
 
 
 
+  bool parse(ShaderModule& vcode, ShaderModule& fcode, const shader::ShaderCreateInfo* scinfo, VKShader* shader);
 
-  bool parse(ShaderModule &vcode, ShaderModule &fcode);
   bool finalize(VkPipelineLayout* playout = nullptr);
 
   GHOST_TSuccess createPipelineLayout(VkPipelineLayout &layout,

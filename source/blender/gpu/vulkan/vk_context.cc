@@ -370,11 +370,52 @@ void VKContext::orphans_clear()
  };
 
 void VKContext::activate()
+
 {
+  /* Make sure no other context is already bound to this thread. */
+  BLI_assert(is_active_ == false);
+
+  is_active_ = true;
+  thread_ = pthread_self();
+
+  /* Clear accumulated orphans. */
+  orphans_clear();
+
+  if (ghost_window_) {
+    /* Get the correct framebuffer size for the internal framebuffers. */
+    GHOST_RectangleHandle bounds = GHOST_GetClientBounds((GHOST_WindowHandle)ghost_window_);
+    int w = GHOST_GetWidthRectangle(bounds);
+    int h = GHOST_GetHeightRectangle(bounds);
+    GHOST_DisposeRectangle(bounds);
+
+    if (front_left) {
+      front_left->size_set(w, h);
+    }
+    if (back_left) {
+      back_left->size_set(w, h);
+    }
+    if (front_right) {
+      front_right->size_set(w, h);
+    }
+    if (back_right) {
+      back_right->size_set(w, h);
+    }
+  }
+
+  /* Not really following the state but we should consider
+   * no ubo bound when activating a context. 
+  bound_ubo_slots = 0;
+  */
+
+  immActivate();
 }
+
+
 
 void VKContext::deactivate()
 {
+  immDeactivate();
+  is_active_ = false;
 }
 
 

@@ -18,6 +18,7 @@
 #include "vk_shader_interface_type.hh"
 #include "vk_context.hh"
 #include "vk_vertex_buffer.hh"
+
 #include "vk_framebuffer.hh"
 #include "vk_shader.hh"
 
@@ -26,6 +27,11 @@
 #include "BLI_utildefines.h"
 
 #include "BLI_vector.hh"
+
+
+#include "GPU_uniform_buffer.h"
+#include "vk_uniform_buffer.hh"
+
 
 #include "gpu_shader_create_info.hh"
 #include "gpu_shader_interface.hh"
@@ -72,6 +78,14 @@ void VKDescriptorInputs::append(uint32_t stride, uint32_t binding, bool vert) {
 
 void VKDescriptorInputs::finalise()
 {
+  auto bindings_ = bindings;
+  bindings.clear();
+  for (auto& bind : bindings_) {
+    if (bind.stride > 0) {
+      bindings.append(bind);
+    }
+  }
+
   vkPVISci.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
   vkPVISci.pNext = NULL;  // TODO Divisor
   vkPVISci.flags = 0;     // VUID-VkPipelineVertexInputStateCreateInfo-flags-zerobitmask
@@ -165,12 +179,22 @@ uint16_t  VKShaderInterface::vbo_bind(VKVertBuf* vbo,VkCommandBuffer cmd, const 
 
   blender::gpu::VKDescriptorInputs& dinputs = desc_inputs_.last();
   BLI_assert(dinputs.is_block);
-  BLI_assert(dinputs.bindings[0].binding == 0);
+  
 
 
   uint stride = format->stride;
+  bool recreate = false;
+  for (auto& bind : dinputs.bindings) {
+    if (bind.binding == 0) {
+      BLI_assert(bind.inputRate == VK_VERTEX_INPUT_RATE_VERTEX);
+      if (stride != 0 && bind.stride != stride) {
+         bind.stride = stride;
+         recreate = true;
+      }
+    }
+  }
 
-  if (dinputs.bindings[0].stride != stride) {
+  if(recreate){
     /* Need to generate the pipeline again.
     However, it can be avoided if more detailed layout information about input attribute can be described in shadercreateinfo. */
     VKContext* context = VKContext::get();
@@ -178,6 +202,7 @@ uint16_t  VKShaderInterface::vbo_bind(VKVertBuf* vbo,VkCommandBuffer cmd, const 
     auto shader =  context->pipeline_state.active_shader;
     shader->CreatePipeline(fb->get_render_pass());
   }
+
 
 
   
@@ -203,15 +228,11 @@ uint16_t  VKShaderInterface::vbo_bind(VKVertBuf* vbo,VkCommandBuffer cmd, const 
     for (uint n_idx = 0; n_idx < a->name_len; n_idx++) {
       const char* name = GPU_vertformat_attr_name_get(format, a, n_idx);
       const ShaderInput* input = attr_get(name);
-      if (input == nullptr || input->location == -1) {
+      
+      if (((input == nullptr || input->location == -1)) || ((use_instancing) && (input->binding != 1)) || ((!use_instancing) && (input->binding != 0))) {
         continue;
-      }
-      if (use_instancing) {
-        BLI_assert(input->binding == 1);
-      }
-      else {
-        BLI_assert(input->binding == 0);
-      }
+      };
+
       enabled_attrib |= (1 << input->location);
       /*TODO  attrib pointer*/
 #if 0
@@ -699,15 +720,22 @@ bool VKShaderInterface::apply(spirv_cross::CompilerBlender *vert,
   BLI_assert( ofs == len_.attr + len_.ubo + len_.image +  len_.push + len_.ssbo);
   
 
+  const uint32_t SetNums = VKContext::get()->getImageViewNums();
 
   if (createPool() == GHOST_kFailure) {
       /* no descriptor set. */
+    for (int i = 0; i < 2; i++) {
+      for (int j = 0; j < SetNums; j++) {
+        sets_vec_[i].append(VK_NULL_HANDLE);
+      }
+      setlayouts_[i] = VK_NULL_HANDLE;
+    }
     return true;
   }
   else {
     
     /*Swapchain image nums.*/
-    const uint32_t SetNums = VKContext::get()->getImageViewNums();
+   
 
 
     int i = 0;
@@ -874,14 +902,8 @@ namespace spirv_cross {
         BLI_assert(binding_ == 0);
 #endif
         const SPIRType spirv_type = get_type(resource.type_id);
-        BLI_assert(is_vector(spirv_type));
-        BLI_assert(spirv_type.basetype == SPIRType::Float);
-
         attrN++;
-        if (stride == 0)
-          stride = spirv_type.width;
-        else
-          BLI_assert(stride == spirv_type.width);
+
       };
 
     };
@@ -890,25 +912,37 @@ namespace spirv_cross {
     if (attrN == 0)
       return 0;
    
-
+    Vector<uint32_t> stride_(attrN);
 
     bool block_attributes = true;
     /*TODO :: instance buffer*/
-    dinputs.initialise(attrN, 0, block_attributes);
+    uint32_t binding = 0;
+    if (iface_.sc_info_->name_ == "gpu_shader_text") {
+      dinputs.initialise(0,attrN, block_attributes);
+      binding = 1;
+    }
+    else {
+      dinputs.initialise(attrN, 0, block_attributes);
+    }
 
     attrN = 0;
     int inpN = 0;
-    stride    = 0;
+
     for (const auto &resource : resources_.stage_inputs) {
 
       VkVertexInputAttributeDescription& attr = dinputs.attributes[attrN];
       attr.location = get_decoration(resource.id, spv::DecorationLocation);
-      attr.binding = (block_attributes) ? get_decoration(resource.id, spv::DecorationBinding) : attr.location;
-      attr.offset = (block_attributes) ? stride :0;/* get_decoration(resource.id, spv::DecorationOffset); */
-      
+      //attr.binding = (block_attributes) ? get_decoration(resource.id, spv::DecorationBinding) : attr.location;
+      attr.binding = (block_attributes) ?  binding : attr.location;
+
       const SPIRType spirv_type = get_type(resource.type_id);
+      uint32_t vec_multi = 1;
+      if (is_vector(spirv_type)) {
+        vec_multi = spirv_type.vecsize;
+      };
       uint32_t stride_attr = 0;
-      switch (spirv_type.vecsize) {
+      auto float_type = [&]() {
+        switch (vec_multi) {
         case 1:
           attr.format = VK_FORMAT_R32_SFLOAT;
           stride_attr = 4;
@@ -927,13 +961,99 @@ namespace spirv_cross {
           break;
         default:
           BLI_assert(false);
+          break;
+        }
+      };
+      auto int_type = [&]() {
+        switch (vec_multi) {
+        case 1:
+          attr.format = VK_FORMAT_R32_SINT;
+          stride_attr = 4;
+          break;
+        case 2:
+          attr.format = VK_FORMAT_R32G32_SINT;
+          stride_attr = 8;
+          break;
+        case 3:
+          attr.format = VK_FORMAT_R32G32B32_SINT;
+          stride_attr = 12;
+          break;
+        case 4:
+          attr.format = VK_FORMAT_R32G32B32A32_SINT;
+          stride_attr = 16;
+          break;
+        default:
+          BLI_assert(false);
+          break;
+        }
+      };
+      auto uint_type = [&]() {
+        switch (vec_multi) {
+        case 1:
+          attr.format = VK_FORMAT_R32_UINT;
+          stride_attr = 4;
+          break;
+        case 2:
+          attr.format = VK_FORMAT_R32G32_UINT;
+          stride_attr = 8;
+          break;
+        case 3:
+          attr.format = VK_FORMAT_R32G32B32_UINT;
+          stride_attr = 12;
+          break;
+        case 4:
+          attr.format = VK_FORMAT_R32G32B32A32_UINT;
+          stride_attr = 16;
+          break;
+        default:
+          BLI_assert(false);
+          break;
+        }
+      };
+      auto ubyte_type = [&]() {
+        switch (vec_multi) {
+        case 1:
+          attr.format = VK_FORMAT_R8_UINT;
+          stride_attr = 1;
+          break;
+        case 2:
+          attr.format = VK_FORMAT_R8G8_UINT;
+          stride_attr = 2;
+          break;
+        case 3:
+          attr.format = VK_FORMAT_R8G8B8_UINT;
+          stride_attr = 3;
+          break;
+        case 4:
+          attr.format = VK_FORMAT_R8G8B8A8_UINT;
+          stride_attr = 4;
+          break;
+        default:
+          BLI_assert(false);
+          break;
+        }
+      };
+      switch (spirv_type.basetype) {
+        case SPIRType::Float:
+          float_type();
+          break;
+        case SPIRType::Int:
+          int_type();
+          break;
+        case SPIRType::UInt:
+          uint_type();
+          break;
+        case SPIRType::UByte:
+          ubyte_type();
+          break;
+        default:
+          BLI_assert(false);
       }
       
       if (!block_attributes) {
         dinputs.append(stride_attr, attrN, true);
       }
-
-      stride += stride_attr;
+      stride_[attr.location] = stride_attr;
       attrN++;
       if (!iface_.attr_get(resource.name.data())) {
         iface_.append_input(ofs + inpN++,
@@ -949,11 +1069,38 @@ namespace spirv_cross {
     };
 
 
+
+
+
+
+    auto OffsetCompare1 = [](const void* p1, const void* p2) -> int {
+
+      auto l1 = ((VkVertexInputAttributeDescription*)p1)->location;
+      auto l2 = ((VkVertexInputAttributeDescription*)p2)->location;
+      return (l1 < l2) ? -1 : 1; 
+    };
+
+    qsort(dinputs.attributes.data(), dinputs.attributes.size(), sizeof(VkVertexInputAttributeDescription), OffsetCompare1);
+
+    stride = 0;
+    int ii = 0;
+
+    for (auto& attr : dinputs.attributes) {
+      attr.offset = (block_attributes) ? stride : 0;/* get_decoration(resource.id, spv::DecorationOffset); */
+      
+      stride += stride_[ii++];
+    }
+
     if (block_attributes) {
-      dinputs.append(stride, 0, true);
+      if (binding == 1) {
+        dinputs.append(0, 0, true);
+        dinputs.append(stride, 1, false);
+      }
+      else {
+        dinputs.append(stride, 0, true);
+      }
     }
     dinputs.finalise();
-
     return inpN;
   }
  int   CompilerBlender::parse_images(blender::gpu::ShaderInput *inputs,int ofs)
@@ -1072,8 +1219,9 @@ namespace spirv_cross {
        std::string name = "";
        if (setNum == 1) {
          /*Uniform blocks are prefixed with ubo_.  #VKShader::resources_declare */
-         dtype = VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT;
-         desc_count = block_size;
+         //dtype = VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT;
+         //desc_count = block_size;
+         dtype = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
          name = get_member_name(resource.base_type_id, 0);
        }
        else {
@@ -1090,7 +1238,13 @@ namespace spirv_cross {
          auto& input = inputs[ofs + apdN];
          input.location = setNum;
          input.binding = binding;
+         if (setNum == 1) {
+           std::string pre_name_ = iface_.sc_info_->name_.data();
+           auto * ubo = (blender::gpu::VKUniformBuf*)GPU_uniformbuf_create_ex(block_size, nullptr,  (pre_name_ + std::string("_alt_ubo")).c_str());
+           ubo->setLayoutSetID(1);
+           iface_.active_shader->push_ubo = ubo;// (blender::gpu::VKUniformBuf*)ubo;// (VKUniformBuf*)ubo;
 
+         }
          iface_.append_input(ofs + apdN++,
            name.c_str(),
            name.size(),
@@ -1171,20 +1325,22 @@ namespace spirv_cross {
 
   };
   namespace blender::gpu {
-  bool VKShaderInterface::parse(ShaderModule &vcode, ShaderModule &fcode)
+  bool VKShaderInterface::parse(ShaderModule &vcode, ShaderModule &fcode,  const shader::ShaderCreateInfo* scinfo,VKShader* shader)
   {
 
+    active_shader = shader;
+    sc_info_ = const_cast<shader::ShaderCreateInfo*>(scinfo);
 
-  std::vector<uint32_t> Code;
-  Code.resize(vcode.shaderModuleInfo.codeSize / 4);
-  memcpy(Code.data(), vcode.shaderModuleInfo.pCode, vcode.shaderModuleInfo.codeSize);
-  spirv_cross::CompilerBlender vcom(Code, *this, VK_SHADER_STAGE_VERTEX_BIT);
-  Code.resize(fcode.shaderModuleInfo.codeSize / 4);
-  memcpy(Code.data(), fcode.shaderModuleInfo.pCode, fcode.shaderModuleInfo.codeSize);
-  spirv_cross::CompilerBlender fcom(Code, *this, VK_SHADER_STAGE_FRAGMENT_BIT);
+    std::vector<uint32_t> Code;
+    Code.resize(vcode.shaderModuleInfo.codeSize / 4);
+    memcpy(Code.data(), vcode.shaderModuleInfo.pCode, vcode.shaderModuleInfo.codeSize);
+    spirv_cross::CompilerBlender vcom(Code, *this, VK_SHADER_STAGE_VERTEX_BIT);
+    Code.resize(fcode.shaderModuleInfo.codeSize / 4);
+    memcpy(Code.data(), fcode.shaderModuleInfo.pCode, fcode.shaderModuleInfo.codeSize);
+    spirv_cross::CompilerBlender fcom(Code, *this, VK_SHADER_STAGE_FRAGMENT_BIT);
 
 
-  apply(&vcom, &fcom);
+   apply(&vcom, &fcom);
 
 
   this->sort_inputs();

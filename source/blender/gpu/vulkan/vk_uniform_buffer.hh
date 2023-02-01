@@ -40,6 +40,7 @@ private:
   uint32_t ubo_id_ = 0;
   VKBuffer* ubo = nullptr;
   VkDescriptorBufferInfo info;
+  int setID = 0;
 public:
   VKUniformBuf(size_t size, const char *name) ;
   ~VKUniformBuf();
@@ -49,7 +50,9 @@ public:
   void unbind(void) override;
   void clear_to_zero()override;
   void bind_as_ssbo(int slot) override;
-
+  void setLayoutSetID(int id) {
+    setID = id;
+  };
  private:
   void init(void);
 

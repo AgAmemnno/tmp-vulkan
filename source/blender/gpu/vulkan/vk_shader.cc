@@ -84,7 +84,7 @@ Draft API (intern_shader_compiler). API is CPP as its only usage is inside GPU m
 #include "vk_texture.hh"
 #include "vk_framebuffer.hh"
 #include "vk_backend.hh"
-
+#include "vk_uniform_buffer.hh"
 #include <string>
 
 #include "BLI_vector.hh"
@@ -519,7 +519,7 @@ bool VKShader::finalize(const shader::ShaderCreateInfo *info )
       blender::gpu::ShaderModule vsm, fsm;
       getShaderModule(vsm, 0);
       getShaderModule(fsm, 2);
-      iface.parse(vsm, fsm);
+      iface.parse(vsm, fsm,info,this);
       auto fb = static_cast<VKFrameBuffer*>(VKContext::get()->active_fb);
       CreatePipeline(fb->get_render_pass());
 
@@ -1035,7 +1035,7 @@ std::string VKShader::resources_declare(const shader::ShaderCreateInfo &info) co
   for (const shader::ShaderCreateInfo::Resource &res : info.pass_resources_) {
     print_resource_alias(ss, res);
   }
-
+  
   ss << "\n/* Batch Resources. */\n";
   for (const shader::ShaderCreateInfo::Resource &res : info.batch_resources_) {
     print_resource(ss, res);
@@ -1148,18 +1148,71 @@ std::string VKShader::vertex_interface_declare(const shader::ShaderCreateInfo &i
   ss << "#define gl_VertexID gl_VertexIndex \n";
   ss << "#define gl_InstanceID gl_InstanceIndex \n";
   ss << "#extension GL_EXT_debug_printf : enable \n ";
+  
 
 
-
-  ss << "\n/* Inputs. */\n";
-  for (const ShaderCreateInfo::VertIn &attr : info.vertex_inputs_) {
-    ///if (VKContext::explicit_location_support &&
-    if (true &&
+  /*Scratch for uploading color in uchar4.*/
+  if (info.name_ == "gpu_shader_text") {
+    /*
+    ss << "#extension GL_EXT_shader_8bit_storage : enable\n";
+    ss << "#extension GL_EXT_shader_explicit_arithmetic_types  : enable\n";
+    ss << "#extension  GL_EXT_shader_explicit_arithmetic_types_int8  : enable\n";
+    */
+    ss << "\n/* Inputs. */\n";
+    for (const ShaderCreateInfo::VertIn& attr : info.vertex_inputs_) {
+      ///if (VKContext::explicit_location_support &&
+      if (true &&
         /* Fix issue with AMDGPU-PRO + workbench_prepass_mesh_vert.glsl being quantized. */
         GPU_type_matches(GPU_DEVICE_ATI, GPU_OS_ANY, GPU_DRIVER_OFFICIAL) == false) {
-      ss << "layout(location = " << attr.index << ") ";
+        ss << "layout(location = " << attr.index << ") ";
+      }
+      if (attr.index == 1) {
+        ss << "in  uint col_;\n";
+      }
+      else if (attr.index == 2) {
+        ss << "in  int offset;\n";
+      }
+      else if (attr.index == 3) {
+        ss << "in  ivec2 glyph_size;\n";
+      }
+      else{
+        ss << "in " << to_string(attr.type) << " " << attr.name << ";\n";
+      }
+
     }
-    ss << "in " << to_string(attr.type) << " " << attr.name << ";\n";
+    ss << "#define col unpackUnorm4x8(col_) \n";
+  }
+  else if (info.name_ == "gpu_shader_3D_flat_color") {
+
+    ss << "\n/* Inputs. */\n";
+    for (const ShaderCreateInfo::VertIn& attr : info.vertex_inputs_) {
+      ///if (VKContext::explicit_location_support &&
+      if (true &&
+        /* Fix issue with AMDGPU-PRO + workbench_prepass_mesh_vert.glsl being quantized. */
+        GPU_type_matches(GPU_DEVICE_ATI, GPU_OS_ANY, GPU_DRIVER_OFFICIAL) == false) {
+        ss << "layout(location = " << attr.index << ") ";
+      }
+      if (attr.index == 0) {
+        ss << "in  vec2 pos_;\n";
+      }
+      else {
+        ss << "in " << to_string(attr.type) << " " << attr.name << ";\n";
+      }
+
+    }
+    ss << "#define pos vec3(pos_,0) \n";
+  }
+  else {
+    ss << "\n/* Inputs. */\n";
+    for (const ShaderCreateInfo::VertIn& attr : info.vertex_inputs_) {
+      ///if (VKContext::explicit_location_support &&
+      if (true &&
+        /* Fix issue with AMDGPU-PRO + workbench_prepass_mesh_vert.glsl being quantized. */
+        GPU_type_matches(GPU_DEVICE_ATI, GPU_OS_ANY, GPU_DRIVER_OFFICIAL) == false) {
+        ss << "layout(location = " << attr.index << ") ";
+      }
+      ss << "in " << to_string(attr.type) << " " << attr.name << ";\n";
+    }
   }
   /* NOTE(D4490): Fix a bug where shader without any vertex attributes do not behave correctly. */
   if (GPU_type_matches_ex(GPU_DEVICE_APPLE, GPU_OS_MAC, GPU_DRIVER_ANY, GPU_BACKEND_OPENGL) &&
@@ -1203,18 +1256,50 @@ std::string VKShader::vertex_interface_declare(const shader::ShaderCreateInfo &i
 
   ss << "\n";
   if(true) { 
-    std::string pre_main =
-        "gl_PointSize = 10.0f; \n";
+    std::string pre_main = "";
+
 
     if ("gpu_shader_2D_image_multi_rect_color" == info.name_) {
-      post_main += "debugPrintfEXT(\"Here texCoord_interp  %v2f  \", texCoord_interp);\n\n";
+       post_main += "debugPrintfEXT(\"Here pos %v2f  texCoord_interp  %v2f  \",pos.xy,texCoord_interp);\n\n";
     }else  if ("gpu_shader_2D_widget_base" == info.name_) {
-      //post_main += "debugPrintfEXT(\"Here position   %v3f  \",parameters[widgetID * MAX_PARAM + 1].xyz);\n\n";
+      post_main +=  "debugPrintfEXT(\"Here pos    %v2f , VID  %i   butCo %f  uv  %v2f \",gl_Position.xy,gl_VertexIndex, butCo, uvInterp);\n\n";
+
     }
     else if("gpu_shader_icon" ==  info.name_) {
       post_main += "debugPrintfEXT(\"Here texCoord_interp   %v2f  \",texCoord_interp.xy);\n\n"; 
     }
+    else if ("gpu_shader_text" == info.name_) {
+      pre_main += " /* Quad expansion using instanced rendering. */ \n \
+      float x = float(gl_VertexID % 2);\n \
+      float y = float(gl_VertexID / 2);\n \
+      texCoord_interp = vec2(x,y);\n \
+      glyph_offset  = 4*gl_InstanceIndex + gl_VertexID ;\n \
+      gl_Position  = vec4(x, y,0,1);\n return;   ";
 
+      pre_main = " \
+         int size_x = textureSize(glyph, 0).r; \
+        float c = texelFetch(glyph, ivec2(0, 0), 0).r; \
+        float c1 = texelFetch(glyph, ivec2(1, 0), 0).r; \
+        float c2 = texelFetch(glyph, ivec2(2, 0), 0).r; \
+        debugPrintfEXT(\"Here  sampling  %i   glyph.R  %f  %f  %f   size_x %i \", glyph_offset,c,c1,c2,size_x);\n\n";
+      pre_main = "";
+#if 0
+      post_main += "    \
+        int size_x         = textureSize(glyph, 0).r;  \n \
+        vec2 texel_2d  = texCoord_interp * vec2(glyph_dim) + vec2(0.5);\n \
+        ivec2 texel_2d_near = ivec2(texel_2d) - 1;\n \
+        int index = glyph_offset + texel_2d_near.y * glyph_dim.x + texel_2d_near.x;\n \
+        color_flat.a  = 1.;// texelFetch(glyph, ivec2(index % size_x, index / size_x), 0).r; \n  \
+        ";
+#endif
+
+      //post_main += "debugPrintfEXT(\"Here  pos %v4f  col %v4f     glyphsize %v2i  offset  %i   \",pos,col,glyph_size,offset); \n\n";//,gl_Position.xy,ModelViewProjectionMatrix[0][0]);\n\n";
+
+
+      pre_main += "gl_PointSize = 10.0f; \n";
+    }
+
+    //post_main += "gl_Position.y *= -1.;\n\n";
     ss << main_function_wrapper(pre_main, post_main);
   }
 
@@ -1318,10 +1403,67 @@ std::string VKShader::fragment_interface_declare(const shader::ShaderCreateInfo 
   if (true) { //(pre_main.empty() == false) {
     std::string post_main ="";  ///"debugPrintfEXT(\"Here Frag texco %v2f    color %v4f \",texCoord_interp,color);";
     if ("gpu_shader_2D_image_multi_rect_color" == info.name_) {
-      post_main += "debugPrintfEXT(\"Here  texCoord %v2f finalColor  %v4f  \",texCoord_interp,finalColor);\n\n";
+        // pre_main += "fragColor = vec4(0.,0.,1.,1); return;//debugPrintfEXT(\"Here  texCoord %v2f finalColor  %v4f    \",texCoord_interp,finalColor);\n\n";
     }
     else if ("gpu_shader_icon" == info.name_) {
       pre_main +=  "vec4 fragColor_ = texture(image, texCoord_interp); \n debugPrintfEXT(\"Here  sampling  %v4f  color uniform %v4f  \",fragColor_,color);\n\n";
+    }
+    else if ("gpu_shader_text" == info.name_) {
+
+      //pre_main = "fragColor =  color_flat.rgba;return;";
+
+    }
+    else  if ("gpu_shader_2D_widget_base" == info.name_) {
+      /*TODO uv coord inverse y.*/
+#if 0
+      pre_main += " \
+        vec2 uv = uvInterp;\n \
+        bool upper_half = uv.y > outRectSize.y * 0.5; \n \
+        bool right_half = uv.x > outRectSize.x * 0.5; \n \
+        float corner_rad; \n \
+ \n \
+        /* Correct aspect ratio for 2D views not using uniform scaling. \n \
+         * uv is already in pixel space so a uniform scale should give us a ratio of 1. */ \n \
+        float ratio = (butCo != -2.0) ? (dFdy(uv.y) / dFdx(uv.x)) : 1.0; \n \
+        vec2 uv_sdf = uv; \n \
+        uv_sdf.x *= ratio; \n \
+ \n \
+        if (right_half) { \n \
+          uv_sdf.x = outRectSize.x * ratio - uv_sdf.x; \n \
+        } \n \
+        if (upper_half) { \n \
+          uv_sdf.y = outRectSize.y - uv_sdf.y; \n \
+          corner_rad = right_half ? outRoundCorners.z : outRoundCorners.w; \n \
+        } \n \
+        else { \n \
+          corner_rad = right_half ? outRoundCorners.y : outRoundCorners.x; \n \
+        } \n \
+ \n \
+        /* Fade emboss at the border. */ \n \
+        float emboss_size = upper_half ? 0.0 : min(1.0, uv_sdf.x / (corner_rad * ratio)); \n \
+ \n \
+        /* Signed distance field from the corner (in pixel). \n \
+         * inner_sdf is sharp and outer_sdf is rounded. */ \n \
+        uv_sdf -= corner_rad; \n \
+        float inner_sdf = max(0.0, min(uv_sdf.x, uv_sdf.y)); \n \
+        float outer_sdf = -length(min(uv_sdf, 0.0)); \n \
+        float sdf = inner_sdf + outer_sdf + corner_rad; \n \
+ \n \
+        /* Clamp line width to be at least 1px wide. This can happen if the projection matrix \n \
+         * has been scaled (i.e: Node editor)... */ \n \
+        float line_width = (lineWidth > 0.0) ? max(fwidth(uv.y), lineWidth) : 0.0; \n \
+ \n \
+        const float aa_radius = 0.5; \n \
+        vec3 masks; \n \
+        masks.x = smoothstep(-aa_radius, aa_radius, sdf); \n \
+        masks.y = smoothstep(-aa_radius, aa_radius, sdf - line_width); \n \
+        masks.z = smoothstep(-aa_radius, aa_radius, sdf + line_width * emboss_size); \n \
+ \n \
+        /* Compose masks together to avoid having too much alpha. */ \n \
+        masks.zx = max(vec2(0.0), masks.zx - masks.xy); \n \
+ \n \
+    debugPrintfEXT(\"Here  roundcorners  %v4f sdf %f  line width %f fragColor %v3f   \",outRoundCorners,sdf, line_width, masks); \n\n";
+#endif
     }
     
     ss << main_function_wrapper(pre_main, post_main);
@@ -1461,7 +1603,7 @@ void VKShader::unbind()
 }
 
 
-  void VKShader::append_write_descriptor(VKTexture *tex, eGPUSamplerState samp_state,uint binding)
+  void  VKShader::append_write_descriptor(VKTexture *tex, eGPUSamplerState samp_state,uint binding)
 {
     auto info = tex->get_image_info(samp_state);
   if (!tex->get_needs_update())
@@ -1483,30 +1625,36 @@ void VKShader::unbind()
     write_descs_.append(wd);
   };
 };
-  void  VKShader::append_write_descriptor(VkDescriptorSet set, void* data, VkDeviceSize size, uint binding)
+  void  VKShader::append_write_descriptor(VkDescriptorSet set, void* data, VkDeviceSize size, uint binding,bool iubo)
   {
 
-    VkWriteDescriptorSetInlineUniformBlockEXT writeDescriptorSetInlineUniformBlock{};
-    write_iub_.append(writeDescriptorSetInlineUniformBlock);
-    auto & iub = write_iub_.last();
-    iub.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT;
-    iub.dataSize = size;
-    iub.pData      = data;
-    iub.pNext     = NULL;
+    if (iubo) {
+      
+      VkWriteDescriptorSet writeDescriptorSet{};
+      write_descs_.append(writeDescriptorSet);
+      auto& desc = write_descs_.last();
+      desc.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      desc.descriptorType = VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT;
+      desc.dstSet = set;
+      desc.dstBinding = binding;
+      desc.descriptorCount = size;
 
-    VkWriteDescriptorSet writeDescriptorSet{};
-    write_descs_.append(writeDescriptorSet);
-    auto& desc = write_descs_.last();
-    desc.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    desc.descriptorType = VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT;
-    desc.dstSet = set;
-    desc.dstBinding = binding;
-    desc.descriptorCount = size;
+      VkWriteDescriptorSetInlineUniformBlockEXT writeDescriptorSetInlineUniformBlock{};
+      write_iub_.append(writeDescriptorSetInlineUniformBlock);
+      auto& iub = write_iub_.last();
+      iub.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT;
+      iub.dataSize = size;
+      iub.pData = data;
+      iub.pNext = NULL;
+      desc.pNext = &iub;
+    }
+    else {
 
-    desc.pNext = &iub;
-    
+      push_ubo->update(data);
+      push_ubo->bind(binding);
 
-  
+    }
+
    // vkUpdateDescriptorSets(VK_DEVICE, write_descs_.size(), write_descs_.data(), 0, NULL);
   };
 
@@ -1548,10 +1696,14 @@ void VKShader::uniform_float(int location, int comp_len, int array_size, const f
   ShaderInput &input = vkinterface->inputs_[location];
   
   if (input.binding >= 1000) {
-    /*inline uniform block binding. IUBB */
     int binding = input.binding - 1000;
     int currentImage = VKContext::get()->get_current_image_index();
+
+    /*inline uniform block binding. IUBB 
+
     append_write_descriptor(vkinterface->sets_vec_[1][currentImage], (void*)data, size * array_size, binding);
+    */
+    append_write_descriptor(vkinterface->sets_vec_[1][currentImage], (void*)data, size * array_size, binding,false);
   }
   else {
     BLI_assert(input.binding + size <= vkinterface->push_range_.size);
@@ -1593,6 +1745,12 @@ VKShader::~VKShader()
 {
   bool valid = true;
   VkDevice device = context_->device_get();
+
+  if (push_ubo != nullptr) {
+    delete push_ubo;
+    push_ubo = nullptr;
+  }
+
   for (auto &sh : shaders_) {
     if (sh.module != VK_NULL_HANDLE) {
       valid  = this->is_valid();

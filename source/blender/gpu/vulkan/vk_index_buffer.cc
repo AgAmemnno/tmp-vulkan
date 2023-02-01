@@ -48,7 +48,11 @@ void VKIndexBuf::bind()
   }
 
 }
+void VKIndexBuf::vk_bind(VkCommandBuffer cmd, VkDeviceSize offset ) {
 
+  vkCmdBindIndexBuffer(cmd, ibo_id_->get_vk_buffer(), offset, to_vk(index_type_));
+
+}
 void VKIndexBuf::bind_as_ssbo(uint binding)
 {
   BLI_assert(false);

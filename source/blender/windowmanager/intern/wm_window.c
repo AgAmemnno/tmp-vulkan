@@ -2557,6 +2557,9 @@ void *WM_opengl_context_create(void)
   if (G.debug & G_DEBUG_GPU) {
     glSettings.flags |= GHOST_glDebugContext;
   }
+  eGPUBackendType gpu_backend = GPU_backend_type_selection_get();
+  glSettings.context_type = wm_ghost_drawing_context_type(gpu_backend);
+
   return GHOST_CreateOpenGLContext(g_system, glSettings);
 }
 

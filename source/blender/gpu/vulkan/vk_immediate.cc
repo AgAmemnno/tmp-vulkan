@@ -9,71 +9,63 @@
 //#define VMA_IMPLEMENTATION
 #define WIN32_LEAN_AND_MEAN
 
-
+#include "vk_immediate.hh"
+#include "GPU_immediate.h"
+#include "GPU_matrix.h"
 #include "gl_debug.hh"
 #include "gpu_context_private.hh"
 #include "gpu_shader_private.hh"
 #include "gpu_vertex_format_private.h"
-#include "GPU_matrix.h"
-#include "GPU_immediate.h"
 #include "vk_context.hh"
 #include "vk_debug.hh"
-#include "vk_immediate.hh"
-#include "vk_shader.hh"
-#include "vk_state.hh"
+#include "vk_framebuffer.hh"
 #include "vk_mem_alloc.h"
 #include "vk_memory.hh"
-#include "vk_framebuffer.hh"
-
+#include "vk_shader.hh"
+#include "vk_state.hh"
 
 #define STRINGIZE(x) STRINGIZE2(x)
 #define STRINGIZE2(x) #x
 #define LINE_STRING STRINGIZE(__LINE__)
-#  define VK_CHECK2(expr) \
-    do { \
-      if ((expr) < 0) { \
-        assert(0 && #expr); \
-        throw std::runtime_error(__FILE__ "(" LINE_STRING "): VkResult( " #expr " ) < 0"); \
-      } \
-    } while (false)
+#define VK_CHECK2(expr) \
+  do { \
+    if ((expr) < 0) { \
+      assert(0 && #expr); \
+      throw std::runtime_error(__FILE__ "(" LINE_STRING "): VkResult( " #expr " ) < 0"); \
+    } \
+  } while (false)
 
 namespace blender::gpu {
 
+VKImmediate::VKImmediate(VKContext *context)
+    : context_(context){
 
-VKImmediate::VKImmediate(VKContext *context) : context_(context)
-{
+          /// VmaAllocator mem_allocator = context_->mem_allocator_get();
 
-   /// VmaAllocator mem_allocator = context_->mem_allocator_get();
-  
-    /// <summary>
-    ///   buffer.buffer_size = DEFAULT_INTERNAL_BUFFER_SIZE;
-    /*
-    glGenBuffers(1, &buffer.vbo_id);
-    glBindBuffer(GL_ARRAY_BUFFER, buffer.vbo_id);
-    glBufferData(GL_ARRAY_BUFFER, buffer.buffer_size, nullptr, GL_DYNAMIC_DRAW);
+          /// <summary>
+          ///   buffer.buffer_size = DEFAULT_INTERNAL_BUFFER_SIZE;
+          /*
+          glGenBuffers(1, &buffer.vbo_id);
+          glBindBuffer(GL_ARRAY_BUFFER, buffer.vbo_id);
+          glBufferData(GL_ARRAY_BUFFER, buffer.buffer_size, nullptr, GL_DYNAMIC_DRAW);
 
-    buffer_strict.buffer_size = DEFAULT_INTERNAL_BUFFER_SIZE;
-    glGenBuffers(1, &buffer_strict.vbo_id);
-    glBindBuffer(GL_ARRAY_BUFFER, buffer_strict.vbo_id);
-    glBufferData(GL_ARRAY_BUFFER, buffer_strict.buffer_size, nullptr, GL_DYNAMIC_DRAW);
-    */
-    /// </summary>
+          buffer_strict.buffer_size = DEFAULT_INTERNAL_BUFFER_SIZE;
+          glGenBuffers(1, &buffer_strict.vbo_id);
+          glBindBuffer(GL_ARRAY_BUFFER, buffer_strict.vbo_id);
+          glBufferData(GL_ARRAY_BUFFER, buffer_strict.buffer_size, nullptr, GL_DYNAMIC_DRAW);
+          */
+          /// </summary>
 
+          /// glGenVertexArrays(1, &vao_id_);
+          /// glBindVertexArray(vao_id_); /* Necessary for glObjectLabel. */
 
+          /// glBindBuffer(GL_ARRAY_BUFFER, 0);
+          /// glBindVertexArray(0);
 
-
-  ///glGenVertexArrays(1, &vao_id_);
-  ///glBindVertexArray(vao_id_); /* Necessary for glObjectLabel. */
-
-
-
-  ///glBindBuffer(GL_ARRAY_BUFFER, 0);
-  ///glBindVertexArray(0);
-
- // debug::object_label(GL_VERTEX_ARRAY, vao_id_, "Immediate");
- // debug::object_label(GL_BUFFER, buffer.vbo_id, "ImmediateVbo");
- // debug::object_label(GL_BUFFER, buffer_strict.vbo_id, "ImmediateVboStrict");
-  };
+          // debug::object_label(GL_VERTEX_ARRAY, vao_id_, "Immediate");
+          // debug::object_label(GL_BUFFER, buffer.vbo_id, "ImmediateVbo");
+          // debug::object_label(GL_BUFFER, buffer_strict.vbo_id, "ImmediateVboStrict");
+      };
 
 VKImmediate::~VKImmediate()
 {
@@ -116,16 +108,16 @@ static inline GLenum to_vk(GPUVertCompType type)
 }
 
 uint16_t VKImmediate::descript_vao(const ShaderInterface *interface_,
-                         const GPUVertFormat *format,
-                         uint v_first,
-                         uint v_len,
-                         const bool use_instancing)
+                                   const GPUVertFormat *format,
+                                   uint v_first,
+                                   uint v_len,
+                                   const bool use_instancing)
 {
   /// Vertex Input Information <--> OpenGL VertexArray
   vao.vertexInputBindings.resize(1);
   auto &bindingDescription = vao.vertexInputBindings[0];
   bindingDescription.binding = 0;
-  
+
   if (format->deinterleaved) {
     bindingDescription.stride = format->attrs[0].size;
   }
@@ -136,7 +128,6 @@ uint16_t VKImmediate::descript_vao(const ShaderInterface *interface_,
 
   const uint attr_len = format->attr_len;
   uint stride = format->stride;
-
 
   uint16_t enabled_attrib = 0;
   uint offset;
@@ -279,47 +270,40 @@ uint16_t VKImmediate::descript_vao(const ShaderInterface *interface_,
     }
   }
   return enabled_attrib;
-
-
-
 }
 
-void VKImmediate::update_bindings(
-                                  const uint v_first,
+void VKImmediate::update_bindings(const uint v_first,
                                   const GPUVertFormat *format,
                                   const ShaderInterface *interface_)
 {
- // glBindVertexArray(vao);
+  // glBindVertexArray(vao);
 
   descript_vao(interface_, format, v_first, 0, false);
 }
 
-
 uchar *VKImmediate::begin()
 {
-
 
   const size_t bytes_needed = vertex_buffer_size(&vertex_format, vertex_len);
   GL_CHECK_RESOURCES("Immediate");
   vkstaging_ = context_->get_buffer_manager()->Create(bytes_needed, 256);
 
   bytes_mapped_ = bytes_needed;
-  void* ptr = vkstaging_->get_host_ptr();
+  void *ptr = vkstaging_->get_host_ptr();
   BLI_assert(ptr);
   if (!vkbuffer_) {
     VKResourceOptions options;
     options.setDeviceLocal(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
     vkbuffer_ = new VKBuffer(bytes_needed, 256, options);
-  }else
-  vkbuffer_->Resize(bytes_needed,256);
+  }
+  else
+    vkbuffer_->Resize(bytes_needed, 256);
 
-  strict_vertex_len  = false;
+  strict_vertex_len = false;
   VKStateManager::set_prim_type(prim_type);
 
-  
   return (uchar *)ptr;
 }
-
 
 void VKImmediate::end()
 {
@@ -327,48 +311,47 @@ void VKImmediate::end()
 
   vkstaging_->unmap();
   if (vertex_len > 0) {
-    VkBufferCopy region_ = {0,0, vkbuffer_->get_buffer_size()};
-    context_->get_buffer_manager()->Copy(*vkbuffer_,region_);
+    VkBufferCopy region_ = {0, 0, vkbuffer_->get_buffer_size()};
+    context_->get_buffer_manager()->Copy(*vkbuffer_, region_);
 
     context_->state_manager->apply_state();
-    auto fb = static_cast<VKFrameBuffer*>(context_->active_fb);
+    auto fb = static_cast<VKFrameBuffer *>(context_->active_fb);
     context_->pipeline_state.active_shader->CreatePipeline(fb->get_render_pass());
 
     record();
-
-
   }
-
 }
 
-void VKImmediate::record(){
+void VKImmediate::record()
+{
 
-    if (vertex_len <= 0)
+  if (vertex_len <= 0)
     return;
-    VKShader *vkshader = reinterpret_cast<VKShader *>(shader);
-    current_pipe_ =     vkshader->get_pipeline();
-    BLI_assert(current_pipe_ != VK_NULL_HANDLE);
+  VKShader *vkshader = reinterpret_cast<VKShader *>(shader);
+  current_pipe_ = vkshader->get_pipeline();
+  BLI_assert(current_pipe_ != VK_NULL_HANDLE);
 
-    vkshader->update_descriptor_set();
-
+  vkshader->update_descriptor_set();
 
   auto vkinterface = (VKShaderInterface *)vkshader->interface;
   auto descN = 0;
-  for (auto& set : vkinterface->setlayouts_) {
+  for (auto &set : vkinterface->setlayouts_) {
     if (set != VK_NULL_HANDLE) {
       descN++;
-     }
+    }
   }
 
   auto vert = vkbuffer_->get_vk_buffer();
   VkDeviceSize offsets[1] = {0};
-  VKFrameBuffer* fb = static_cast<VKFrameBuffer*>(context_->active_fb);
+  VKFrameBuffer *fb = static_cast<VKFrameBuffer *>(context_->active_fb);
   int swapID = context_->get_current_image_index();
 
   vkshader->current_cmd_ = VK_NULL_HANDLE;
-  vkshader->current_cmd_  = fb->render_begin(vkshader->current_cmd_, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
- 
-  /* To know when we generate a command and start a record but don't use it. It might be better for the state manager to do it. */
+  vkshader->current_cmd_ = fb->render_begin(vkshader->current_cmd_,
+                                            VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+
+  /* To know when we generate a command and start a record but don't use it. It might be better for
+   * the state manager to do it. */
   fb->set_dirty_render(true);
   vkCmdBindPipeline(vkshader->current_cmd_, VK_PIPELINE_BIND_POINT_GRAPHICS, current_pipe_);
 
@@ -376,11 +359,11 @@ void VKImmediate::record(){
 
   if (vkinterface->push_range_.size > 0) {
     vkCmdPushConstants(vkshader->current_cmd_,
-                        vkshader->current_layout_,
-                        vkinterface->push_range_.stageFlags,
-                        vkinterface->push_range_.offset,
-                        vkinterface->push_range_.size,
-                        vkinterface->push_cache_);
+                       vkshader->current_layout_,
+                       vkinterface->push_range_.stageFlags,
+                       vkinterface->push_range_.offset,
+                       vkinterface->push_range_.size,
+                       vkinterface->push_cache_);
   }
   if (descN == 1) {
     vkCmdBindDescriptorSets(vkshader->current_cmd_,
@@ -395,16 +378,19 @@ void VKImmediate::record(){
   else if (descN != 0)
     BLI_assert_msg(false, "Descriptor Set Number is only 0 for now.");
 
-
-
   vkCmdBindVertexBuffers(vkshader->current_cmd_, 0, 1, &vert, offsets);
   vkCmdDraw(vkshader->current_cmd_, vertex_len, 1, 0, 0);
 
   fb->render_end();
-
-  };
-
-
+  if (false)
+  {
+    static int cnt = 1000;
+    std::string filename = "vk_frame_" + std::to_string(fb->get_height()) +
+                           std::to_string(fb->get_width()) + "No" + std::to_string(cnt) + ".ppm";
+    fb->save_current_frame(filename.c_str());
+    cnt++;
+  }
+};
 
 /** \} */
 

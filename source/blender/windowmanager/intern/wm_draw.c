@@ -927,7 +927,6 @@ static void wm_draw_window_offscreen(bContext *C, wmWindow *win, bool stereo)
 
       CTX_wm_region_set(C, region);
       bool use_viewport = WM_region_use_viewport(area, region);
-
       GPU_debug_group_begin(use_viewport ? "Viewport" : "ARegion");
 
       if (stereo && wm_draw_region_stereo_set(bmain, area, region, STEREO_LEFT_ID)) {
@@ -969,7 +968,12 @@ static void wm_draw_window_offscreen(bContext *C, wmWindow *win, bool stereo)
     CTX_wm_area_set(C, NULL);
 
     GPU_debug_group_end();
+    if (area->spacetype == SPACE_OUTLINER) {
+      WM_exit(C);
+    }
   }
+
+
 
   /* Draw menus into their own frame-buffer. */
   LISTBASE_FOREACH (ARegion *, region, &screen->regionbase) {
@@ -1122,6 +1126,8 @@ static void wm_draw_window(bContext *C, wmWindow *win)
   /* Draw area regions into their own frame-buffer. This way we can redraw
    * the areas that need it, and blit the rest from existing frame-buffers. */
   wm_draw_window_offscreen(C, win, stereo);
+  GPU_context_end_frame(win->gpuctx);
+  WM_exit(C);
 
   /* Now we draw into the window frame-buffer, in full window coordinates. */
   if (!stereo) {

@@ -28,13 +28,11 @@
 #include <vulkan/vulkan.h>
 #define WITH_VULKAN_SHADER_COMPILATION
 
-
 #include "gpu_shader_private.hh"
 
-
 #include "vk_context.hh"
-#include "vk_shader_interface.hh"
 #include "vk_layout.hh"
+#include "vk_shader_interface.hh"
 #include <shaderc/shaderc.hpp>
 
 #if VK_SHADER_TRANSLATION_DEBUG_OUTPUT
@@ -46,15 +44,14 @@
 namespace blender {
 namespace gpu {
 
-  class VKUniformBuf;
+class VKUniformBuf;
 
-  enum class VKShaderStageType {
+enum class VKShaderStageType {
   VertexShader,
   GeometryShader,
   FragmentShader,
   ComputeShader,
 };
-
 
 std::ostream &operator<<(std::ostream &os, const VKShaderStageType &stage);
 
@@ -62,8 +59,6 @@ std::ostream &operator<<(std::ostream &os, const VKShaderStageType &stage);
  * Implementation of shader compilation and uniforms handling using Vulkan.
  **/
 class VKShader : public Shader {
-
-
 
  private:
   VKContext *context_ = nullptr;
@@ -82,7 +77,7 @@ class VKShader : public Shader {
   bool transform_feedback_active_ = false;
   GPUVertBuf *transform_feedback_vertbuf_ = nullptr;
 
-  VkPipeline                                                           pipe = VK_NULL_HANDLE;
+  VkPipeline pipe = VK_NULL_HANDLE;
 
   /** True if any shader failed to compile. */
   bool compilation_failed_ = false;
@@ -91,22 +86,19 @@ class VKShader : public Shader {
   /// This compiler flag affects pipeline layout.
   /// Whether to include unused variables in the layout ? .. etc
   /// </summary>
-  shaderc_optimization_level m_shadercOptimizationLevel = shaderc_optimization_level_zero;//shaderc_optimization_level_performance;
-
+  shaderc_optimization_level m_shadercOptimizationLevel =
+      shaderc_optimization_level_zero;  // shaderc_optimization_level_performance;
 
  public:
-
-
   VKShader(const char *name);
-  VKShader(
-           VKShaderInterface *interface,
+  VKShader(VKShaderInterface *interface,
            const char *name,
            std::string input_vertex_source,
            std::string input_fragment_source,
-           std::string&& vert_function_name,
-           std::string&& frag_function_name);
+           std::string &&vert_function_name,
+           std::string &&frag_function_name);
   ~VKShader();
-  bool getShaderModule(ShaderModule & sm,int i)
+  bool getShaderModule(ShaderModule &sm, int i)
   {
     if (shaders_[i].module == VK_NULL_HANDLE)
       return false;
@@ -115,7 +107,8 @@ class VKShader : public Shader {
     return true;
   }
 
-  void set_optimization_level(shaderc_optimization_level level){
+  void set_optimization_level(shaderc_optimization_level level)
+  {
     m_shadercOptimizationLevel = level;
   };
 
@@ -155,67 +148,59 @@ class VKShader : public Shader {
   void bind(void) override;
   void unbind(void) override;
 
-
-  void append_write_descriptor(VKTexture *tex,eGPUSamplerState samp_state,uint binding);
-  void append_write_descriptor(VkDescriptorSet set, void* data, VkDeviceSize size, uint binding,  bool iubo);
-  template<typename T >
-  void  append_write_descriptor(uint setid, uint binding, VkDescriptorType type,T& info)
+  void append_write_descriptor(VKTexture *tex, eGPUSamplerState samp_state, uint binding);
+  void append_write_descriptor(
+      VkDescriptorSet set, void *data, VkDeviceSize size, uint binding, bool iubo);
+  template<typename T>
+  void append_write_descriptor(uint setid, uint binding, VkDescriptorType type, T &info)
   {
 
     int swapID = context_->get_current_image_index();
-    auto vkinterface = (VKShaderInterface*)(interface);
+    auto vkinterface = (VKShaderInterface *)(interface);
     auto Set = vkinterface->sets_vec_[setid][swapID];
-
 
     VkWriteDescriptorSet writeDescriptorSet{};
     write_descs_.append(writeDescriptorSet);
-    auto& desc = write_descs_.last();
+    auto &desc = write_descs_.last();
     desc.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     desc.descriptorType = type;
-    
 
-    switch (type)
-    {
-    case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-    case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
-    case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
-      desc.pBufferInfo = &info;
-      break;
-    /*TODO :: TEXEL_BUFFER*/
-    case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
-    case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
-      BLI_assert(false);
-      break;
+    switch (type) {
+      case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+      case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+      case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+      case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+      case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+        desc.pBufferInfo = &info;
+        break;
+      /*TODO :: TEXEL_BUFFER*/
+      case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+      case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+        BLI_assert(false);
+        break;
 
-    case VK_DESCRIPTOR_TYPE_SAMPLER:
-    case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-    case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-    case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-    case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT:
-    case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
-    case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV:
-    case VK_DESCRIPTOR_TYPE_MUTABLE_VALVE:
-    case VK_DESCRIPTOR_TYPE_MAX_ENUM:
-    default:
-      BLI_assert(false);
-      break;
+      case VK_DESCRIPTOR_TYPE_SAMPLER:
+      case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+      case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+      case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+      case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT:
+      case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
+      case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV:
+      case VK_DESCRIPTOR_TYPE_MUTABLE_VALVE:
+      case VK_DESCRIPTOR_TYPE_MAX_ENUM:
+      default:
+        BLI_assert(false);
+        break;
     };
-
-
 
     desc.dstSet = Set;
     desc.dstBinding = binding;
     desc.descriptorCount = 1;
     desc.pNext = NULL;
 
-
-
     // vkUpdateDescriptorSets(VK_DEVICE, write_descs_.size(), write_descs_.data(), 0, NULL);
   };
   bool update_descriptor_set();
-
 
   void uniform_float(int location, int comp_len, int array_size, const float *data) override;
   void uniform_int(int location, int comp_len, int array_size, const int *data) override;
@@ -225,17 +210,15 @@ class VKShader : public Shader {
     return -1;
   }
 
-
   void set_interface(VKShaderInterface *interface);
   VkPipeline CreatePipeline(VkRenderPass renderpass);
-  
 
   VkCommandBuffer current_cmd_ = VK_NULL_HANDLE;
   VkPipelineLayout current_layout_ = VK_NULL_HANDLE;
   Vector<VkWriteDescriptorSet> write_descs_;
-  Vector<VkWriteDescriptorSetInlineUniformBlockEXT>  write_iub_;
-  uint16_t                                                                           attr_mask_unbound_;
-  VKUniformBuf* push_ubo = nullptr;
+  Vector<VkWriteDescriptorSetInlineUniformBlockEXT> write_iub_;
+  uint16_t attr_mask_unbound_;
+  VKUniformBuf *push_ubo = nullptr;
 
  private:
   bool is_valid_ = false;
@@ -258,4 +241,3 @@ class VKLogParser : public GPULogParser {
 
 }  // namespace gpu
 }  // namespace blender
-

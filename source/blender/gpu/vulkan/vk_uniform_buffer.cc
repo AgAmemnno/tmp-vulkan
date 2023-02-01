@@ -27,14 +27,13 @@
 
 #include "gpu_uniform_buffer_private.hh"
 
-#include "vk_context.hh"
 #include "vk_backend.hh"
+#include "vk_context.hh"
 #include "vk_memory.hh"
-#include "vk_texture.hh"
 #include "vk_shader.hh"
+#include "vk_texture.hh"
 
 #include "vk_uniform_buffer.hh"
-
 
 namespace blender::gpu {
 
@@ -46,14 +45,14 @@ VKUniformBuf::VKUniformBuf(size_t size, const char *name) : UniformBuf(size, nam
 {
   /* Do not create ubo VK buffer here to allow allocation from any thread. */
   BLI_assert(size <= VKContext::max_ubo_size);
-
 }
 
 VKUniformBuf::~VKUniformBuf()
 {
+  printf(" UBO ========================================= destroy      %llu ",
+         ubo->get_buffer_size());
   VKContext::get()->buf_free(ubo);
 }
-
 
 /** \} */
 
@@ -65,17 +64,13 @@ void VKUniformBuf::init()
 {
   BLI_assert(VKContext::get());
 
-
   VKResourceOptions options;
-  options.setHostVisible(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT );
-  ubo = new VKBuffer(size_in_bytes_,
-    VKStagingBufferManager::vk_staging_buffer_min_alignment,
-    options
-  );
+  options.setHostVisible(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+  ubo = new VKBuffer(
+      size_in_bytes_, VKStagingBufferManager::vk_staging_buffer_min_alignment, options);
 
-  ubo_id_ =(uint64_t)(ubo);
+  ubo_id_ = (uint64_t)(ubo);
   /* TODO::  #debug::object_label(VK_UNIFORM_BUFFER, ubo_id_, name_);*/
-
 }
 
 void VKUniformBuf::update(const void *data)
@@ -84,19 +79,17 @@ void VKUniformBuf::update(const void *data)
     this->init();
   }
 
-  ubo->Copy((void*)data, size_in_bytes_);
-
+  ubo->Copy((void *)data, size_in_bytes_);
 }
 
 void VKUniformBuf::clear_to_zero()
 {
 
   /*When random access occurs, do memory barriers solve it? need to verify.*/
-  if (ubo  == nullptr) {
+  if (ubo == nullptr) {
     this->init();
   }
   ubo->Fill(0);
-
 }
 
 /** \} */
@@ -119,8 +112,7 @@ void VKUniformBuf::bind(int slot)
     return;
   }
 
-
-  if (ubo== nullptr) {
+  if (ubo == nullptr) {
     this->init();
   }
 
@@ -130,11 +122,11 @@ void VKUniformBuf::bind(int slot)
   }
 
   slot_ = slot;
-  info.buffer = ubo->get_vk_buffer();  
+  info.buffer = ubo->get_vk_buffer();
   info.offset = 0;
   info.range = VK_WHOLE_SIZE;
-  VKShader*  shader = VKContext::get()->pipeline_state.active_shader;
-  shader->append_write_descriptor(0, slot_, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, info);
+  VKShader *shader = VKContext::get()->pipeline_state.active_shader;
+  shader->append_write_descriptor(setID, slot_, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, info);
 
 #if 0
   BLI_assert(slot < 16);
@@ -147,7 +139,7 @@ void VKUniformBuf::bind_as_ssbo(int slot)
 
   /*NIL*/
   BLI_assert(false);
-  #if 0
+#if 0
   if (ubo_id_ == 0) {
     this->init();
   }
@@ -157,7 +149,7 @@ void VKUniformBuf::bind_as_ssbo(int slot)
   }
 
   glBindBufferBase(VK_SHADER_STORAGE_BUFFER, slot, ubo_id_);
-  #endif
+#endif
 }
 
 void VKUniformBuf::unbind()

@@ -257,7 +257,6 @@ namespace blender::gpu {
 
 
 
-
   void VKBatch::bind(int i_first)
   {
     VKContext::get()->state_manager->apply_state();
@@ -296,8 +295,10 @@ namespace blender::gpu {
 
     auto fb_ = static_cast<VKFrameBuffer*>(context_->active_fb);
     VkCommandBuffer cmd = fb_->render_begin(VK_NULL_HANDLE, VK_COMMAND_BUFFER_LEVEL_PRIMARY, (VkClearValue*)nullptr, false);
-    if (cnt == 110) {
-      printf("BP");
+    if (cnt == 109) {
+      printf(
+          "########################This is before we start drawing the "
+          "view3D.#######################");
     }
     this->bind(i_first);
 
@@ -384,15 +385,30 @@ namespace blender::gpu {
 
     /*Test by presenting immediately.*/
 #if 1
-   
-    std::string filename = "vk_frame_" + std::to_string(fb_->get_height()) + std::to_string(fb_->get_width()) + "No" + std::to_string(cnt) +".ppm";
+  bool save = false;
+  switch (cnt){
+    case 28:
+    case 109:
+    case 22:
+    case 44:
+    case 24:
+    case 13:
+    case 103:
+      save = true;
+      break;
+    default:
+      break;
+  }
+
+  if (save) {
+    std::string filename = "vk_frame_" + std::to_string(fb_->get_height()) +
+                           std::to_string(fb_->get_width()) + "No" + std::to_string(cnt) + ".ppm";
     fb_->save_current_frame(filename.c_str());
+  }
 
     cnt++;
-    if (cnt == 20) {
-      printf("BP");
-    }
-    if(cnt == -14)
+
+    if(cnt == -1)
     {
       VKFrameBuffer* swfb = static_cast<VKFrameBuffer*> (context_->back_left);
      
@@ -406,8 +422,8 @@ namespace blender::gpu {
 #endif
 
     VKContext::get()->active_fb = fb_;
-
-};
+    
+  };
 
   void VKBatch::draw_indirect(GPUStorageBuf* /*indirect_buf*/, intptr_t /*offset*/)
   {

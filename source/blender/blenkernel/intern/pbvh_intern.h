@@ -15,7 +15,6 @@ extern "C" {
 struct MLoop;
 struct MLoopTri;
 struct MPoly;
-struct MVert;
 
 /* Axis-aligned bounding box */
 typedef struct {
@@ -56,7 +55,7 @@ struct PBVHNode {
   int *prim_indices;
   unsigned int totprim; /* Number of primitives inside prim_indices. */
 
-  /* Array of indices into the mesh's MVert array. Contains the
+  /* Array of indices into the mesh's vertex array. Contains the
    * indices of all vertices used by faces that are within this
    * node's bounding box.
    *
@@ -98,7 +97,7 @@ struct PBVHNode {
    * marking various updates that need to be applied. */
   PBVHNodeFlags flag : 32;
 
-  /* Used for raycasting: how close bb is to the ray point. */
+  /* Used for ray-casting: how close the bounding-box is to the ray point. */
   float tmin;
 
   /* Scalar displacements for sculpt mode's layer brush. */
@@ -151,6 +150,8 @@ struct PBVH {
   int faces_num; /* Do not use directly, use BKE_pbvh_num_faces. */
 
   int leaf_limit;
+  int pixel_leaf_limit;
+  int depth_limit;
 
   /* Mesh data */
   struct Mesh *mesh;
@@ -158,7 +159,7 @@ struct PBVH {
   /* NOTE: Normals are not `const` because they can be updated for drawing by sculpt code. */
   float (*vert_normals)[3];
   bool *hide_vert;
-  struct MVert *verts;
+  float (*vert_positions)[3];
   const struct MPoly *mpoly;
   bool *hide_poly;
   /** Material indices. Only valid for polygon meshes. */

@@ -135,7 +135,7 @@ class GHOST_Context : public GHOST_IContext {
     return 0;
   }
 
-    /**
+  /**
    * Gets the Vulkan context related resource handles.
    * \return  A boolean success indicator.
    */
@@ -161,7 +161,6 @@ class GHOST_Context : public GHOST_IContext {
   {
     return GHOST_kFailure;
   }
-
 
  protected:
   bool m_stereoVisual;

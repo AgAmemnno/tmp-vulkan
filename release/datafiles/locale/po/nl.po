@@ -1,9 +1,9 @@
 
 msgid ""
 msgstr ""
-"Project-Id-Version: Blender 3.5.0 Alpha (b'09ba00974f8f')\n"
+"Project-Id-Version: Blender 3.5.0 Alpha (b'90e940686692')\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-01-01 00:00:00\n"
+"POT-Creation-Date: 2023-01-30 08:45:14\n"
 "PO-Revision-Date: 2021-12-05 20:05+0100\n"
 "Language: nl\n"
 "MIME-Version: 1.0\n"
@@ -112,6 +112,10 @@ msgstr "Foutmelding"
 
 msgid "Message"
 msgstr "Bericht"
+
+
+msgid "Full"
+msgstr "Volledig"
 
 
 msgid "Animation Data"
@@ -596,10 +600,6 @@ msgstr "Kinderen"
 
 msgid "Selectable"
 msgstr "Selecteerbaar"
-
-
-msgid "Full"
-msgstr "Volledig"
 
 
 msgid "Layers"
@@ -2189,6 +2189,10 @@ msgid "Underline Position"
 msgstr "Positie Onderstreping"
 
 
+msgid "Normals"
+msgstr "Normalen"
+
+
 msgid "Active Texture"
 msgstr "Actieve Textuur"
 
@@ -2816,10 +2820,6 @@ msgstr "Opslaan & Laden"
 
 msgid "Names"
 msgstr "Namen"
-
-
-msgid "Normals"
-msgstr "Normalen"
 
 
 msgid "Select Similar"
@@ -7660,11 +7660,6 @@ msgstr "Tekenen:"
 msgctxt "Operator"
 msgid "Delete Loose Points"
 msgstr "Verwijder Losse Punten"
-
-
-msgctxt "Operator"
-msgid "Delete Duplicated Frames"
-msgstr "Verwijder Gedupliceerde Frames"
 
 
 msgctxt "Operator"

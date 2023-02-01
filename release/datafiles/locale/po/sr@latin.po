@@ -1,9 +1,9 @@
 
 msgid ""
 msgstr ""
-"Project-Id-Version: Blender 3.5.0 Alpha (b'09ba00974f8f')\n"
+"Project-Id-Version: Blender 3.5.0 Alpha (b'90e940686692')\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-01-01 00:00:00\n"
+"POT-Creation-Date: 2023-01-30 08:45:14\n"
 "PO-Revision-Date: 2012-09-07 22:32+0100\n"
 "Last-Translator: Nikola Radovanovic <cobisimo@gmail.com>\n"
 "Language-Team: Nikola Radovanovic\n"
@@ -197,6 +197,14 @@ msgstr "Vrsta izbora boje"
 
 msgid "Device to use for computation (rendering with Cycles)"
 msgstr "Uređaj korišćen za rendering"
+
+
+msgid "Off"
+msgstr "Isključeno"
+
+
+msgid "Full"
+msgstr "Kompletno"
 
 
 msgid "Fribidi Library"
@@ -1141,10 +1149,6 @@ msgstr "Može se izabrati kost"
 
 msgid "Inherit Scale"
 msgstr "Nasledi uvećanje"
-
-
-msgid "Full"
-msgstr "Kompletno"
 
 
 msgid "Layers"
@@ -2714,10 +2718,6 @@ msgstr "Koristi mete"
 
 msgid "Face Cull"
 msgstr "Odabir stranica"
-
-
-msgid "Off"
-msgstr "Isključeno"
 
 
 msgid "Front"
@@ -5065,6 +5065,14 @@ msgid "Relative Offset"
 msgstr "Relativno rastojanje"
 
 
+msgid "Speed Factor"
+msgstr "Faktor brzine"
+
+
+msgid "Delay"
+msgstr "Kašnjenje"
+
+
 msgid "Transition"
 msgstr "Prelaz"
 
@@ -6100,6 +6108,10 @@ msgstr "Brza izmena"
 
 msgid "Don't fill polygons while editing"
 msgstr "Ne popunjavaj poligone prilikom uređivanja"
+
+
+msgid "Normals"
+msgstr "Normale"
 
 
 msgid "Freestyle Line Style"
@@ -9355,6 +9367,10 @@ msgid "Matte"
 msgstr "Mat"
 
 
+msgid "Math"
+msgstr "Matematika"
+
+
 msgid "Attribute"
 msgstr "Atribut"
 
@@ -9473,10 +9489,6 @@ msgstr "Rolna kostiju"
 
 msgid "Special Characters"
 msgstr "Specijalni znaci"
-
-
-msgid "Normals"
-msgstr "Normale"
 
 
 msgid "Mesh Select Mode"
@@ -11588,10 +11600,6 @@ msgstr "Koristi informacije umekšavanja sa maske"
 
 msgid "Motion Blur"
 msgstr "Zamućenje pokreta"
-
-
-msgid "Math"
-msgstr "Matematika"
 
 
 msgid "Movie Distortion"
@@ -13821,6 +13829,11 @@ msgid "Reset Original Length"
 msgstr "Vrati originalnu dužinu"
 
 
+msgctxt "Operator"
+msgid "Select Random"
+msgstr "Izaberi nasumično"
+
+
 msgid "Cyclic U"
 msgstr "Ciklično U"
 
@@ -14012,11 +14025,6 @@ msgstr "Teksture stranice"
 msgctxt "Operator"
 msgid "Select Previous"
 msgstr "Izaberi prethodno"
-
-
-msgctxt "Operator"
-msgid "Select Random"
-msgstr "Izaberi nasumično"
 
 
 msgid "Randomly select some control points"
@@ -16719,10 +16727,6 @@ msgid "Copies selected nodes to the clipboard"
 msgstr "Ubacuje izabrani tekst u ostavu"
 
 
-msgid "Delete selected nodes"
-msgstr "Izbriši izabrane čvorove"
-
-
 msgctxt "Operator"
 msgid "Detach Nodes"
 msgstr "Odvoji čvorove"
@@ -16860,10 +16864,6 @@ msgstr "Poveži čvorove"
 
 msgid "Use the mouse to create a link between two nodes"
 msgstr "Koristi ugao između dve kosti"
-
-
-msgid "Delay"
-msgstr "Kašnjenje"
 
 
 msgid "Detach"
@@ -20805,6 +20805,10 @@ msgid "UV Maps"
 msgstr "UV Mape"
 
 
+msgid "Textures Directory"
+msgstr "Direktorijum sa teksturama"
+
+
 msgctxt "Operator"
 msgid "New World"
 msgstr "Novi svet"
@@ -21856,10 +21860,6 @@ msgstr "Osnovni direktorijum sa zvucima"
 
 msgid "The directory for storing temporary save files"
 msgstr "Direktorijum za čuvanje privremenih datoteka"
-
-
-msgid "Textures Directory"
-msgstr "Direktorijum sa teksturama"
 
 
 msgid "The default directory to search for textures"
@@ -23062,10 +23062,6 @@ msgid "Wipe direction"
 msgstr "Smer brisanja"
 
 
-msgid "Speed Factor"
-msgstr "Faktor brzine"
-
-
 msgid "Mask Sequence"
 msgstr "Meta sekvenca"
 
@@ -23534,10 +23530,6 @@ msgstr "Automatski normalizuje krivu pri svakoj izmeni"
 
 msgid "Use Normalization"
 msgstr "Koristi normalizaciju"
-
-
-msgid "Color and Alpha"
-msgstr "Boja i providnost"
 
 
 msgid "Z-Buffer"

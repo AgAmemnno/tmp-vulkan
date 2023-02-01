@@ -9,7 +9,6 @@
 
 #pragma once
 
-
 #include "GPU_batch.h"
 #include "GPU_common.h"
 #include "GPU_platform.h"

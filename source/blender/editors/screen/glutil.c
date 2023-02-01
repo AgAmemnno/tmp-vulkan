@@ -26,6 +26,7 @@
 #include "GPU_texture.h"
 
 #ifdef __APPLE__
+#  include "GPU_context.h"
 #  include "GPU_state.h"
 #endif
 
@@ -36,7 +37,7 @@
 static void immDrawPixelsTexSetupAttributes(IMMDrawPixelsTexState *state)
 {
   GPUVertFormat *vert_format = immVertexFormat();
-  state->pos = GPU_vertformat_attr_add(vert_format, "pos", GPU_COMP_F32, state->dim, GPU_FETCH_FLOAT);
+  state->pos = GPU_vertformat_attr_add(vert_format, "pos", GPU_COMP_F32, 2, GPU_FETCH_FLOAT);
   state->texco = GPU_vertformat_attr_add(
       vert_format, "texCoord", GPU_COMP_F32, 2, GPU_FETCH_FLOAT);
 }
@@ -44,11 +45,6 @@ static void immDrawPixelsTexSetupAttributes(IMMDrawPixelsTexState *state)
 IMMDrawPixelsTexState immDrawPixelsTexSetup(int builtin)
 {
   IMMDrawPixelsTexState state;
-  if (builtin == GPU_SHADER_3D_IMAGE_COLOR) {
-      state.dim = 3;
-  }
-  else
-      state.dim = 2;
   immDrawPixelsTexSetupAttributes(&state);
 
   state.shader = GPU_shader_get_builtin_shader(builtin);
@@ -112,28 +108,16 @@ void immDrawPixelsTexScaledFullSize(const IMMDrawPixelsTexState *state,
 
   immBegin(GPU_PRIM_TRI_FAN, 4);
   immAttr2f(texco, 0.0f, 0.0f);
-  if(state->dim==3)
-      immVertex3f(pos, x, y,0);
-  else
-      immVertex2f(pos, x, y);
+  immVertex2f(pos, x, y);
 
   immAttr2f(texco, 1.0f, 0.0f);
-  if (state->dim == 3)
-        immVertex3f(pos, x + draw_width, y,0);
-  else  immVertex2f(pos, x + draw_width, y);
-
+  immVertex2f(pos, x + draw_width, y);
 
   immAttr2f(texco, 1.0f, 1.0f);
-  if (state->dim == 3)
-      immVertex3f(pos, x + draw_width, y + draw_height,0);
-  else
   immVertex2f(pos, x + draw_width, y + draw_height);
 
   immAttr2f(texco, 0.0f, 1.0f);
-  if (state->dim == 3)
-      immVertex3f(pos, x, y + draw_height,0);
-  else
-      immVertex2f(pos, x, y + draw_height);
+  immVertex2f(pos, x, y + draw_height);
   immEnd();
 
   if (state->do_shader_unbind) {
@@ -298,7 +282,9 @@ void immDrawPixelsTexTiled_scaling_clipping(IMMDrawPixelsTexState *state,
        * This doesn't seem to be too slow,
        * but still would be nice to have fast and nice solution. */
 #ifdef __APPLE__
-      GPU_flush();
+      if (GPU_type_matches_ex(GPU_DEVICE_ANY, GPU_OS_MAC, GPU_DRIVER_ANY, GPU_BACKEND_OPENGL)) {
+        GPU_flush();
+      }
 #endif
     }
   }

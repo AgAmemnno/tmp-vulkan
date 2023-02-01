@@ -58,10 +58,16 @@ static void node_declare(NodeDeclarationBuilder &b)
       .supports_field()
       .description(N_("Relative mix weight of neighboring elements"));
 
-  b.add_output<decl::Float>(N_("Value"), "Value_Float").field_source().dependent_field();
-  b.add_output<decl::Int>(N_("Value"), "Value_Int").field_source().dependent_field();
-  b.add_output<decl::Vector>(N_("Value"), "Value_Vector").field_source().dependent_field();
-  b.add_output<decl::Color>(N_("Value"), "Value_Color").field_source().dependent_field();
+  b.add_output<decl::Float>(N_("Value"), "Value_Float")
+      .field_source_reference_all()
+      .dependent_field();
+  b.add_output<decl::Int>(N_("Value"), "Value_Int").field_source_reference_all().dependent_field();
+  b.add_output<decl::Vector>(N_("Value"), "Value_Vector")
+      .field_source_reference_all()
+      .dependent_field();
+  b.add_output<decl::Color>(N_("Value"), "Value_Color")
+      .field_source_reference_all()
+      .dependent_field();
 }
 
 static void node_layout(uiLayout *layout, bContext * /*C*/, PointerRNA *ptr)
@@ -76,19 +82,32 @@ static void node_init(bNodeTree * /*tree*/, bNode *node)
 
 static void node_gather_link_searches(GatherLinkSearchOpParams &params)
 {
-  const NodeDeclaration &declaration = *params.node_type().fixed_declaration;
+  const bNodeType &node_type = params.node_type();
+  const NodeDeclaration &declaration = *node_type.fixed_declaration;
+
+  /* Weight and Iterations inputs don't change based on the data type. */
   search_link_ops_for_declarations(params, declaration.inputs.as_span().take_back(2));
 
-  const bNodeType &node_type = params.node_type();
-  const std::optional<eCustomDataType> type = node_data_type_to_custom_data_type(
-      (eNodeSocketDatatype)params.other_socket().type);
-  if (type && *type != CD_PROP_STRING) {
-    params.add_item(IFACE_("Value"), [node_type, type](LinkSearchOpParams &params) {
-      bNode &node = params.add_node(node_type);
-      node.custom1 = *type;
-      params.update_and_connect_available_socket(node, "Value");
-    });
+  const eNodeSocketDatatype other_socket_type = static_cast<eNodeSocketDatatype>(
+      params.other_socket().type);
+  const std::optional<eCustomDataType> new_node_type = node_data_type_to_custom_data_type(
+      other_socket_type);
+  if (!new_node_type.has_value()) {
+    return;
   }
+  eCustomDataType fixed_data_type = *new_node_type;
+  if (fixed_data_type == CD_PROP_STRING) {
+    return;
+  }
+  if (fixed_data_type == CD_PROP_BOOL) {
+    /* This node does not support boolean sockets, use integer instead. */
+    fixed_data_type = CD_PROP_INT32;
+  }
+  params.add_item(IFACE_("Value"), [node_type, fixed_data_type](LinkSearchOpParams &params) {
+    bNode &node = params.add_node(node_type);
+    node.custom1 = fixed_data_type;
+    params.update_and_connect_available_socket(node, "Value");
+  });
 }
 
 static void node_update(bNodeTree *ntree, bNode *node)
@@ -298,13 +317,14 @@ static void blur_on_curve_exec(const bke::CurvesGeometry &curves,
   MutableSpan<T> src = main_buffer;
   MutableSpan<T> dst = tmp_buffer;
 
+  const OffsetIndices points_by_curve = curves.points_by_curve();
   const VArray<bool> cyclic = curves.cyclic();
 
   for ([[maybe_unused]] const int iteration : IndexRange(iterations)) {
     attribute_math::DefaultMixer<T> mixer{dst, IndexMask(0)};
     threading::parallel_for(curves.curves_range(), 256, [&](const IndexRange range) {
       for (const int curve_i : range) {
-        const IndexRange points = curves.points_for_curve(curve_i);
+        const IndexRange points = points_by_curve[curve_i];
         if (points.size() == 1) {
           /* No mixing possible. */
           const int point_i = points[0];
@@ -341,7 +361,7 @@ static void blur_on_curve_exec(const bke::CurvesGeometry &curves,
           mixer.mix_in(last_i, src[last_i - 1], last_neighbor_weight);
         }
       }
-      mixer.finalize(curves.points_for_curves(range));
+      mixer.finalize(points_by_curve[range]);
     });
     std::swap(src, dst);
   }
@@ -432,6 +452,12 @@ class BlurAttributeFieldInput final : public bke::GeometryFieldInput {
     }
 
     return GVArray::ForGArray(std::move(main_buffer));
+  }
+
+  void for_each_field_input_recursive(FunctionRef<void(const FieldInput &)> fn) const override
+  {
+    weight_field_.node().for_each_field_input_recursive(fn);
+    value_field_.node().for_each_field_input_recursive(fn);
   }
 
   uint64_t hash() const override

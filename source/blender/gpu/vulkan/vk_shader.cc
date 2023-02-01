@@ -1516,7 +1516,7 @@ bool VKShader::update_descriptor_set()
   auto size  = write_descs_.size();
   if (size > 0) {
     for (auto& desc : write_descs_) {
-      printf("  Set %llx    binding %d    type  %d    \n\n"  ,desc.dstSet,desc.dstBinding, (int)desc.descriptorType);
+      printf("  Set %llx    binding %d    type  %d    \n\n"  ,(uintptr_t)desc.dstSet,desc.dstBinding, (int)desc.descriptorType);
     }
     vkUpdateDescriptorSets(VK_DEVICE, write_descs_.size(), write_descs_.data(), 0, NULL);
     write_descs_.clear();

@@ -177,7 +177,7 @@ namespace blender::draw {
     GPUTexture* texture)
   {
 
-    const IconTextOverlay* text_overlay = nullptr;
+    //const IconTextOverlay* text_overlay = nullptr;
 
     /* We need to flush widget base first to ensure correct ordering. */
     UI_widgetbase_draw_cache_flush();
@@ -253,14 +253,12 @@ namespace blender::draw {
   float SX[4] = { 0, 256, 0, 256 };
   float SY[4] = { 0, 0, 256,256 };
   int cnt = 0;
-  float aspect = 0.8;
+ // float aspect = 0.8;
   const int draw_size = 16;
   GPU_viewport(0, 0, region.winx, region.winy);
   const uchar mono_color[4] = { 217,217 ,217, 255 };
   const bool mono_border = false;
-  const IconTextOverlay* text_overlay = nullptr;
-  float desaturate = 0.f;
-  bool BATCH = true;
+
   /* A test to render while toggling the queue. */
   for (int iconId = 780/*16*/; iconId < BIFICONID_LAST; iconId++) {
 

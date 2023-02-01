@@ -550,7 +550,9 @@ function(setup_platform_linker_libs
   endif()
 
   if(WIN32 AND NOT UNIX)
-    target_link_libraries(${target} ${PTHREADS_LIBRARIES})
+    if(DEFINED PTHREADS_LIBRARIES)
+      target_link_libraries(${target} ${PTHREADS_LIBRARIES})
+    endif()
   endif()
 
   # target_link_libraries(${target} ${PLATFORM_LINKLIBS} ${CMAKE_DL_LIBS})
@@ -1115,7 +1117,7 @@ function(find_python_package
     # endif()
     # Not set, so initialize.
   else()
-   string(REPLACE "." ";" _PY_VER_SPLIT "${PYTHON_VERSION}")
+    string(REPLACE "." ";" _PY_VER_SPLIT "${PYTHON_VERSION}")
     list(GET _PY_VER_SPLIT 0 _PY_VER_MAJOR)
 
     # re-cache
@@ -1209,43 +1211,6 @@ function(print_all_vars)
   endforeach()
 endfunction()
 
-# Print a list of all cached variables with values containing `contents`.
-function(print_cached_vars_containing_value
-  contents
-  msg_header
-  msg_footer
-  )
-  set(_list_info)
-  set(_found)
-  get_cmake_property(_vars VARIABLES)
-  foreach(_var ${_vars})
-    if(DEFINED CACHE{${_var}})
-      # Skip "_" prefixed variables, these are used for internal book-keeping,
-      # not under user control.
-      string(FIND "${_var}" "_" _found)
-      if(NOT (_found EQUAL 0))
-        string(FIND "${${_var}}" "${contents}" _found)
-        if(NOT (_found EQUAL -1))
-          if(_found)
-            list(APPEND _list_info "${_var}=${${_var}}")
-          endif()
-        endif()
-      endif()
-    endif()
-  endforeach()
-  unset(_var)
-  unset(_vars)
-  unset(_found)
-  if(_list_info)
-    message(${msg_header})
-    foreach(_var ${_list_info})
-      message(" * ${_var}")
-    endforeach()
-    message(${msg_footer})
-  endif()
-  unset(_list_info)
-endfunction()
-
 macro(openmp_delayload
   projectname
   )
@@ -1299,7 +1264,7 @@ endmacro()
 
 # Utility to gather and install precompiled shared libraries.
 macro(add_bundled_libraries library_dir)
-  if(EXISTS ${LIBDIR})
+  if(DEFINED LIBDIR)
     set(_library_dir ${LIBDIR}/${library_dir})
     if(WIN32)
       file(GLOB _all_library_versions ${_library_dir}/*\.dll)
@@ -1312,7 +1277,7 @@ macro(add_bundled_libraries library_dir)
     list(APPEND PLATFORM_BUNDLED_LIBRARY_DIRS ${_library_dir})
     unset(_all_library_versions)
     unset(_library_dir)
- endif()
+  endif()
 endmacro()
 
 macro(windows_install_shared_manifest)

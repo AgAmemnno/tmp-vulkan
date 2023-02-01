@@ -133,6 +133,8 @@ void VKVertArray::update_bindings(const VKVAOty vao,
                                   const ShaderInterface *interface_,
                                   const int base_instance)
 {
+  printf("Update bindings  batch    %llx   \n", (uintptr_t)batch_);
+
   const VKBatch *batch = static_cast<const VKBatch *>(batch_);
   uint16_t attr_mask = interface_->enabled_attr_mask_;
  
@@ -160,7 +162,7 @@ void VKVertArray::update_bindings(const VKVAOty vao,
     VKVertBuf *vbo = static_cast<VKVertBuf*>(batch->inst_(v));
     if (vbo) {
       /*TODO*/
-      BLI_assert(false);
+
       vbo->bind(); 
       attr_mask &= ~(interface->vbo_bind(vbo, cmd, &vbo->format, base_instance, vbo->vertex_len, true));
     }
@@ -185,7 +187,7 @@ void VKVertArray::update_bindings(const VKVAOty vao,
     for (uint16_t mask = 1, a = 0; a < 16; a++, mask <<= 1) {
       if (attr_mask & mask) {
         /*TODO*/
-        BLI_assert(false);
+        continue;
       
         /* This replaces glVertexAttrib4f(a, 0.0f, 0.0f, 0.0f, 1.0f); with a more modern style.
          * Fix issues for some drivers (see T75069). 
@@ -201,8 +203,9 @@ void VKVertArray::update_bindings(const VKVAOty vao,
   if (batch->elem) {
 
     /* Binds the index buffer. This state is also saved in the VAO. */
-    static_cast<VKIndexBuf *>(unwrap(batch->elem))->bind();
-    
+    VKIndexBuf* elem = static_cast<VKIndexBuf*>(unwrap(batch->elem));
+     elem->bind();
+     elem->vk_bind(cmd, 0);
   }
 
   /*Check for unbound attributes.*/

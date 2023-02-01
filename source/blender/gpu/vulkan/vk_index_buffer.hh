@@ -16,9 +16,9 @@ namespace blender::gpu {
 class VKBuffer;
 
 class VKIndexBuf : public IndexBuf {
-  friend class GLBatch;
-  friend class GLDrawList;
-  friend class GLShader; /* For compute shaders. */
+  friend class VKBatch;
+  friend class VKDrawList;
+  friend class VKShader; /* For compute shaders. */
  private:
   VKBuffer* ibo_id_ = nullptr;
 
@@ -45,6 +45,7 @@ class VKIndexBuf : public IndexBuf {
   const uint32_t *read() const override;
   void upload_data() override;
   void update_sub(uint start, uint len, const void *data) override;
+  void vk_bind(VkCommandBuffer cmd, VkDeviceSize offset= 0);
 
  private:
    bool is_active() const;

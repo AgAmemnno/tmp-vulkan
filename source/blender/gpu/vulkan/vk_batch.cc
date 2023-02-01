@@ -11,6 +11,7 @@
 #include "vk_state.hh"
 #include "vk_framebuffer.hh"
 #include "vk_vertex_array.hh"
+#include "vk_index_buffer.hh"
 
 namespace blender::gpu {
   /* -------------------------------------------------------------------- */
@@ -229,21 +230,25 @@ namespace blender::gpu {
     VKShaderInterface* interface = static_cast<VKShaderInterface*>(shader->interface);
     if (interface_ != interface) {
       interface_ = interface;
-      vao_id_ = this->lookup(interface_);
+    };
 
-      if (vao_id_ == nullptr) {
-        /* Cache miss, create a new VAO. */
-        VKResourceOptions options;
-        options.setDeviceLocal(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+    vao_id_ = this->lookup(interface_);
+
+    if (vao_id_ == nullptr) {
+      /* Cache miss, create a new VAO. */
+      VKResourceOptions options;
+      options.setDeviceLocal(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
        
-        vao_id_ = new VKVAOty_impl(0, 256, options);
+      vao_id_ = new VKVAOty_impl(0, 256, options);
         
-        /*#glGenVertexArrays(1, &vao_id_);*/
-        this->insert(interface_, vao_id_);
+      /*#glGenVertexArrays(1, &vao_id_);*/
+      this->insert(interface_, vao_id_);
 
-        VKVertArray::update_bindings(vao_id_, batch, interface_, 0);
-      }
+       
     }
+
+    BLI_assert(vao_id_);
+    VKVertArray::update_bindings(vao_id_, batch, interface_, 0);
 
     return vao_id_;
   }
@@ -287,11 +292,13 @@ namespace blender::gpu {
 
     auto context_ = VKContext::get();
     
-    VKStateManager::set_prim_type(prim_type);
+    static int cnt = 0;
 
     auto fb_ = static_cast<VKFrameBuffer*>(context_->active_fb);
     VkCommandBuffer cmd = fb_->render_begin(VK_NULL_HANDLE, VK_COMMAND_BUFFER_LEVEL_PRIMARY, (VkClearValue*)nullptr, false);
-
+    if (cnt == 110) {
+      printf("BP");
+    }
     this->bind(i_first);
 
 
@@ -307,6 +314,9 @@ namespace blender::gpu {
 
     auto image_index = context_->get_current_image_index();
 
+
+    /*Here, setting prim_type without fail means that there is a premise that the topology type will be handled dynamically.*/
+    VKStateManager::set_prim_type(prim_type);
     VKShader* vkshader = reinterpret_cast<VKShader*>(shader);
     vkshader->CreatePipeline(fb_->get_render_pass());
 
@@ -342,34 +352,57 @@ namespace blender::gpu {
         vkinterface->push_cache_);
     }
 
-    vkCmdBindDescriptorSets(cmd,
-      VK_PIPELINE_BIND_POINT_GRAPHICS,
-      vkshader->current_layout_,
-      0,
-      descN,
-      Sets.data(),
-      0,
-      NULL);
+    if (descN > 0) {
+      vkCmdBindDescriptorSets(cmd,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        vkshader->current_layout_,
+        0,
+        descN,
+        Sets.data(),
+        0,
+        NULL);
+    }
 
-    vkCmdDraw(cmd, v_count, i_count, v_first, i_first);
+
+
+    if (elem) {
+
+      const VKIndexBuf* el =static_cast<VKIndexBuf*>(elem_());
+      auto idx_count = el->index_len_get();
+      auto idx_first = el->index_base_;
+      vkCmdDrawIndexed(cmd, idx_count, i_count, idx_first , v_first, i_first);
+      
+    }
+    else {
+      vkCmdDraw(cmd, v_count, i_count, v_first, i_first);
+    }
     fb_->is_dirty_render_ = true;
 
 
     fb_->render_end();
+   
 
     /*Test by presenting immediately.*/
 #if 1
-    static int cnt = 0;
+   
+    std::string filename = "vk_frame_" + std::to_string(fb_->get_height()) + std::to_string(fb_->get_width()) + "No" + std::to_string(cnt) +".ppm";
+    fb_->save_current_frame(filename.c_str());
+
     cnt++;
-    if(cnt == 13)
+    if (cnt == 20) {
+      printf("BP");
+    }
+    if(cnt == -14)
     {
       VKFrameBuffer* swfb = static_cast<VKFrameBuffer*> (context_->back_left);
-      swfb->append_wait_semaphore(fb_->get_signal());
+     
       swfb->render_begin(VK_NULL_HANDLE, VK_COMMAND_BUFFER_LEVEL_PRIMARY, nullptr, true);
+      swfb->append_wait_semaphore(fb_->get_signal());
       fb_->blit_to(GPU_COLOR_BIT, 0, swfb, 0, 0, 0);
       swfb->render_end();
     
     };
+
 #endif
 
     VKContext::get()->active_fb = fb_;

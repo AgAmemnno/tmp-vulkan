@@ -18,8 +18,10 @@ WIP
 BUILD & TEST
 -------
 | Windows only, some early development, so be careful.
-| Blender.exe cannot be executed as it is an unofficial source for developing prototypes.
-**Since it is difficult to debug the source with window using gtest, bf_draw_testing.exe is generated for testing.**
+| Draw with vulkan before drawing view3D. Some ppm files will be generated under the creator folder inside the build directory.
+| Snapshots taken from the offscreen framebuffer.
+https://github.com/AgAmemnno/tmp-vulkan/tree/master/tests/ppm
+
 **You can debug with the solution.**
 **A custom configuration can be found below.**
 https://github.com/AgAmemnno/tmp-vulkan/blob/master/build_files/cmake/config/blender_dev_vulkan.cmake

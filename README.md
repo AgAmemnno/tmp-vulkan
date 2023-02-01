@@ -37,7 +37,7 @@ https://github.com/AgAmemnno/tmp-vulkan/blob/master/build_files/cmake/config/ble
 | $cd tmp-vulkan  
 | $make update
 | $make debug dev_vulkan builddir build-tmp 
-
+blender.exe --debug-gpu --gpu-backend vulkan --debug-value -7777 
 
 -------
 License

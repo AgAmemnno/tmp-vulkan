@@ -102,7 +102,7 @@ struct DensityAddOperationExecutor {
     self_ = &self;
     curves_ob_orig_ = CTX_data_active_object(&C);
     curves_id_orig_ = static_cast<Curves *>(curves_ob_orig_->data);
-    curves_orig_ = &CurvesGeometry::wrap(curves_id_orig_->geometry);
+    curves_orig_ = &curves_id_orig_->geometry.wrap();
 
     if (stroke_extension.is_first) {
       self_->original_curve_num_ = curves_orig_->curves_num();
@@ -286,6 +286,13 @@ struct DensityAddOperationExecutor {
 
     const geometry::AddCurvesOnMeshOutputs add_outputs = geometry::add_curves_on_mesh(
         *curves_orig_, add_inputs);
+    bke::MutableAttributeAccessor attributes = curves_orig_->attributes_for_write();
+    if (bke::GSpanAttributeWriter selection = attributes.lookup_for_write_span(".selection")) {
+      curves::fill_selection_true(selection.span.slice(selection.domain == ATTR_DOMAIN_POINT ?
+                                                           add_outputs.new_points_range :
+                                                           add_outputs.new_curves_range));
+      selection.finish();
+    }
 
     if (add_outputs.uv_error) {
       report_invalid_uv_map(stroke_extension.reports);
@@ -533,7 +540,7 @@ struct DensitySubtractOperationExecutor {
     object_ = CTX_data_active_object(&C);
 
     curves_id_ = static_cast<Curves *>(object_->data);
-    curves_ = &CurvesGeometry::wrap(curves_id_->geometry);
+    curves_ = &curves_id_->geometry.wrap();
     if (curves_->curves_num() == 0) {
       return;
     }
@@ -562,7 +569,7 @@ struct DensitySubtractOperationExecutor {
 
     minimum_distance_ = brush_->curves_sculpt_settings->minimum_distance;
 
-    curve_selection_ = retrieve_selected_curves(*curves_id_, selected_curve_indices_);
+    curve_selection_ = curves::retrieve_selected_curves(*curves_id_, selected_curve_indices_);
 
     transforms_ = CurvesSurfaceTransforms(*object_, curves_id_->surface);
     const eBrushFalloffShape falloff_shape = static_cast<eBrushFalloffShape>(
@@ -827,7 +834,7 @@ static bool use_add_density_mode(const BrushStrokeMode brush_mode,
   if (surface_ob_eval == nullptr) {
     return true;
   }
-  const CurvesGeometry &curves = CurvesGeometry::wrap(curves_id_orig.geometry);
+  const CurvesGeometry &curves = curves_id_orig.geometry.wrap();
   if (curves.curves_num() <= 1) {
     return true;
   }

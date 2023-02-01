@@ -1,9 +1,9 @@
 
 msgid ""
 msgstr ""
-"Project-Id-Version: Blender 3.5.0 Alpha (b'09ba00974f8f')\n"
+"Project-Id-Version: Blender 3.5.0 Alpha (b'90e940686692')\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-01-01 00:00:00\n"
+"POT-Creation-Date: 2023-01-30 08:45:14\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Arvid Rudling <arvid.r@gmail.com>\n"
 "Language-Team: \n"
@@ -47,6 +47,10 @@ msgstr "Lås"
 
 msgid "Select"
 msgstr "Markera"
+
+
+msgid "Off"
+msgstr "Av"
 
 
 msgid "Add"
@@ -481,10 +485,6 @@ msgid "Uniform"
 msgstr "Enhetlig"
 
 
-msgid "Off"
-msgstr "Av"
-
-
 msgid "Front"
 msgstr "Fram"
 
@@ -849,6 +849,10 @@ msgid "Steps"
 msgstr "Steg"
 
 
+msgid "Start Offset"
+msgstr "Startförskjutning"
+
+
 msgid "Subdivisions"
 msgstr "Uppdelningar"
 
@@ -943,6 +947,10 @@ msgstr "Kapitäler"
 
 msgid "Fast Editing"
 msgstr "Snabbredigera"
+
+
+msgid "Normals"
+msgstr "Normaler"
 
 
 msgid "Min"
@@ -1299,10 +1307,6 @@ msgstr "Förinställningar"
 
 msgid "Names"
 msgstr "Namn"
-
-
-msgid "Normals"
-msgstr "Normaler"
 
 
 msgid "Metaball"
@@ -2352,10 +2356,6 @@ msgid "Vectorscope Opacity"
 msgstr "Genomskinlighet för vektroskop"
 
 
-msgid "Start Offset"
-msgstr "Startförskjutning"
-
-
 msgid "Camera Override"
 msgstr "Åsidosätt kamera"
 
@@ -2414,10 +2414,6 @@ msgstr "Synka markörer"
 
 msgid "Space Image Editor"
 msgstr "Redigerare för rumsbild"
-
-
-msgid "Color and Alpha"
-msgstr "Färg och alfa"
 
 
 msgid "Z-Buffer"

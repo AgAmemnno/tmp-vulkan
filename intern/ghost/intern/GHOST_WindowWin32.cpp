@@ -18,6 +18,7 @@
 #ifdef WITH_VULKAN_BACKEND
 #  include "GHOST_ContextVK.h"
 #endif
+
 #include <Dwmapi.h>
 
 #include <assert.h>
@@ -579,7 +580,6 @@ GHOST_TSuccess GHOST_WindowWin32::invalidate()
 }
 
 GHOST_Context *GHOST_WindowWin32::newDrawingContext(GHOST_TDrawingContextType type)
-
 {
   if (type == GHOST_kDrawingContextTypeOpenGL) {
     GHOST_Context *context;
@@ -634,10 +634,11 @@ GHOST_Context *GHOST_WindowWin32::newDrawingContext(GHOST_TDrawingContextType ty
 
     return context;
   }
+
 #ifdef WITH_VULKAN_BACKEND
   else if (type == GHOST_kDrawingContextTypeVulkan) {
     GHOST_Context *context = new GHOST_ContextVK(
-        false, m_hWnd, 1, 0, m_debug_context,VULKAN_DEBUG_UTILS);
+        false, m_hWnd, 1, 0, m_debug_context, VULKAN_DEBUG_UTILS);
 
     if (context->initializeDrawingContext()) {
       return context;
@@ -647,6 +648,7 @@ GHOST_Context *GHOST_WindowWin32::newDrawingContext(GHOST_TDrawingContextType ty
     }
   }
 #endif
+
   return NULL;
 }
 

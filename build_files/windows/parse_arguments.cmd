@@ -2,7 +2,6 @@ set BUILD_DIR=%BLENDER_DIR%..\build_windows
 set BUILD_TYPE=Release
 :argv_loop
 if NOT "%1" == "" (
-
 	REM Help Message
 	if "%1" == "help" (
 		set SHOW_HELP=1
@@ -43,8 +42,6 @@ if NOT "%1" == "" (
 		set TARGET=Release
 	) else if "%1" == "developer" (
 		set BUILD_CMAKE_ARGS=%BUILD_CMAKE_ARGS% -C"%BLENDER_DIR%\build_files\cmake\config\blender_developer.cmake"
-	) else if "%1" == "dev_vulkan" (
-		set BUILD_CMAKE_ARGS=%BUILD_CMAKE_ARGS% -C"%BLENDER_DIR%\build_files\cmake\config\blender_dev_vulkan.cmake"
 	) else if "%1" == "asan" (
 		set WITH_ASAN=1
 	) else if "%1" == "x86" ( 
@@ -115,6 +112,8 @@ if NOT "%1" == "" (
 	) else if "%1" == "svnfix" (
 		set SVN_FIX=1
 		goto EOF
+	) else if "%1" == "dev_vulkan" (
+		set BUILD_CMAKE_ARGS=%BUILD_CMAKE_ARGS% -C"%BLENDER_DIR%\build_files\cmake\config\blender_dev_vulkan.cmake"
 	) else (
 		echo Command "%1" unknown, aborting!
 		goto ERR

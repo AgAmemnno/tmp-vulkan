@@ -222,7 +222,7 @@ class Menu(BaseFakeUI):
             self, searchpaths, operator, *,
             props_default=None, prop_filepath="filepath",
             filter_ext=None, filter_path=None, display_name=None,
-            add_operator=None
+            add_operator=None,
     ):
         pass
 
@@ -351,10 +351,10 @@ def fake_helper():
 def fake_runtime():
     """Only call this before `draw()` functions."""
 
-    # Misc Subclasses
+    # Misc Sub-classes
     bpy.types.EffectSequence = type("EffectSequence", (), {})
 
-    # Operator Subclases
+    # Operator Sub-classes.
     bpy.types.WM_OT_doc_view = type("WM_OT_doc_view", (), {"_prefix": ""})
 
     bpy.data = module_add("bpy.data")

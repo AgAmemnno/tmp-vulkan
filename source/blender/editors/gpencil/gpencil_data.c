@@ -247,6 +247,7 @@ static int gpencil_layer_add_exec(bContext *C, wmOperator *op)
                       ID_RECALC_TRANSFORM | ID_RECALC_GEOMETRY | ID_RECALC_COPY_ON_WRITE);
   }
   WM_event_add_notifier(C, NC_GPENCIL | ND_DATA | NA_EDITED, NULL);
+  WM_event_add_notifier(C, NC_GPENCIL | ND_DATA | NA_SELECTED, NULL);
 
   return OPERATOR_FINISHED;
 }
@@ -881,7 +882,7 @@ void GPENCIL_OT_frame_clean_loose(wmOperatorType *ot)
               INT_MAX);
 }
 
-/* ********************* Clean Duplicated Frames ************************** */
+/* ********************* Clean Duplicate Frames ************************** */
 static bool gpencil_frame_is_equal(const bGPDframe *gpf_a, const bGPDframe *gpf_b)
 {
   if ((gpf_a == NULL) || (gpf_b == NULL)) {
@@ -1015,9 +1016,9 @@ void GPENCIL_OT_frame_clean_duplicate(wmOperatorType *ot)
   };
 
   /* identifiers */
-  ot->name = "Clean Duplicated Frames";
+  ot->name = "Clean Duplicate Frames";
   ot->idname = "GPENCIL_OT_frame_clean_duplicate";
-  ot->description = "Remove any duplicated frame";
+  ot->description = "Remove duplicate keyframes";
 
   /* callbacks */
   ot->exec = gpencil_frame_clean_duplicate_exec;

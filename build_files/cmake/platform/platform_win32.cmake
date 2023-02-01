@@ -145,6 +145,7 @@ set(BUNDLECRT "${BUNDLECRT}<dependency><dependentAssembly><assemblyIdentity type
 configure_file(${CMAKE_SOURCE_DIR}/release/windows/manifest/blender.exe.manifest.in ${CMAKE_CURRENT_BINARY_DIR}/blender.exe.manifest @ONLY)
 configure_file(${CMAKE_SOURCE_DIR}/release/windows/manifest/blender.exe.manifest.in ${CMAKE_CURRENT_BINARY_DIR}/bf_draw_testing.exe.manifest @ONLY)
 
+
 remove_cc_flag("/MDd" "/MD" "/Zi")
 
 if(MSVC_CLANG) # Clangs version of cl doesn't support all flags
@@ -981,30 +982,32 @@ if(WITH_HARU)
 endif()
 
 if(WITH_VULKAN_BACKEND)
-  if(EXISTS ${LIBDIR}/shaderc)
-    set(Shaderc_FOUND On)
-    set(Shaderc_ROOT_DIR ${LIBDIR}/shaderc)
-    set(Shaderc_INCLUDE_DIR ${LIBDIR}/shaderc/include)
-    set(Shaderc_INCLUDE_DIRS ${Shaderc_INCLUDE_DIR})
-    set(Shaderc_LIBRARY ${LIBDIR}/shaderc/Lib/shaderc_shared.lib)
-    set(Shaderc_LIBRARIES ${Shaderc_LIBRARY})
-  else()
-    message(ERROR "shaderc was not found, disabling WITH_VULKAN_BACKEND")
-  endif()
 
   if(EXISTS ${LIBDIR}/vulkan)
     set(VULKAN_FOUND On)
     set(VULKAN_ROOT_DIR ${LIBDIR}/vulkan)
     set(VULKAN_INCLUDE_DIR ${VULKAN_ROOT_DIR}/include)
-    set(VULKAN_INCLUDE_DIRS ${VULKAN_INCLUDE_DIR} ${Shaderc_INCLUDE_DIRS})
+    set(VULKAN_INCLUDE_DIRS ${VULKAN_INCLUDE_DIR})
     set(VULKAN_LIBRARY ${VULKAN_ROOT_DIR}/lib/vulkan-1.lib)
-    set(VULKAN_LIBRARIES ${VULKAN_LIBRARY} ${Shaderc_LIBRARIES})
+    set(VULKAN_LIBRARIES ${VULKAN_LIBRARY})
   else()
     message(WARNING "Vulkan SDK was not found, disabling WITH_VULKAN_BACKEND")
     set(WITH_VULKAN_BACKEND OFF)
   endif()
-endif()
 
+  if(EXISTS ${LIBDIR}/shaderc)
+    set(SHADERC_FOUND On)
+    set(SHADERC_ROOT_DIR ${LIBDIR}/shaderc)
+    set(SHADERC_INCLUDE_DIR ${LIBDIR}/shaderc/include)
+    set(SHADERC_INCLUDE_DIRS ${SHADERC_INCLUDE_DIR})
+    set(SHADERC_LIBRARY ${LIBDIR}/shaderc/Lib/shaderc_shared.lib)
+    set(SHADERC_LIBRARIES ${SHADERC_LIBRARY})
+  else()
+    message(ERROR "shaderc was not found, disabling WITH_VULKAN_BACKEND")
+  endif()
+
+
+endif()
 
 if(WITH_CYCLES AND WITH_CYCLES_PATH_GUIDING)
   find_package(openpgl QUIET)

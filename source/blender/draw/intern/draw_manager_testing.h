@@ -15,11 +15,9 @@
 extern "C" {
 #endif
 
-#if defined(WITH_OPENGL_DRAW_TESTS) || defined(WITH_VULKAN_DRAW_TESTS)
+#ifdef WITH_OPENGL_DRAW_TESTS
 void DRW_draw_state_init_gtests(eGPUShaderConfig sh_cfg);
 #endif
-
-
 
 #ifdef __cplusplus
 }

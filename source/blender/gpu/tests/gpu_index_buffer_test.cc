@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: Apache-2.0 */
-#ifdef TEST_OFF
+
 #include "testing/testing.h"
 
 #include "MEM_guardedalloc.h"
@@ -47,4 +47,3 @@ static void test_gpu_index_buffer_subbuilders()
 GPU_TEST(gpu_index_buffer_subbuilders)
 
 }  // namespace blender::gpu::tests
-#endif

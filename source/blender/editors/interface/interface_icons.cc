@@ -837,7 +837,7 @@ static ImBuf *create_mono_icon_with_border(ImBuf *buf,
           blend_color_interpolate_float(dest_rgba, orig_rgba, border_rgba, 1.0 - orig_rgba[3]);
           linearrgb_to_srgb_v4(dest_srgb, dest_rgba);
 
-          const uint alpha_mask = (uint)(dest_srgb[3] * 255) << 24;
+          const uint alpha_mask = uint(dest_srgb[3] * 255) << 24;
           const uint cpack = rgb_to_cpack(dest_srgb[0], dest_srgb[1], dest_srgb[2]) | alpha_mask;
           result->rect[offset_write] = cpack;
         }
@@ -1549,11 +1549,11 @@ static void icon_draw_rect(float x,
     /* preserve aspect ratio and center */
     if (rw > rh) {
       draw_w = w;
-      draw_h = (int)((float(rh) / float(rw)) * float(w));
+      draw_h = int((float(rh) / float(rw)) * float(w));
       draw_y += (h - draw_h) / 2;
     }
     else if (rw < rh) {
-      draw_w = (int)((float(rw) / float(rh)) * float(h));
+      draw_w = int((float(rw) / float(rh)) * float(h));
       draw_h = h;
       draw_x += (w - draw_w) / 2;
     }
@@ -1630,7 +1630,6 @@ static void icon_draw_cache_texture_flush_ex(GPUTexture *texture,
 
   GPUBatch *quad = GPU_batch_preset_quad();
   GPU_batch_set_shader(quad, shader);
-
   GPU_batch_draw_instanced(quad, texture_draw_calls->calls);
 
   GPU_texture_unbind(texture);
@@ -1773,7 +1772,7 @@ static void icon_draw_texture(float x,
                       sizeof(text_overlay->text),
                       text_color,
                       &params);
-    text_width = (float)UI_fontstyle_string_width(&fstyle_small, text_overlay->text) / UI_UNIT_X /
+    text_width = float(UI_fontstyle_string_width(&fstyle_small, text_overlay->text)) / UI_UNIT_X /
                  zoom_factor;
   }
 
@@ -1812,7 +1811,7 @@ static void icon_draw_texture(float x,
     GPU_shader_uniform_vector(shader, color_loc, 4, 1, color);
   }
 
-  const float tex_color[4] = { 0.,0.,1.,1. };/// {x1, y1, x2, y2};
+  const float tex_color[4] = {x1, y1, x2, y2};
   const float geom_color[4] = {x, y, x + w, y + h};
 
   GPU_shader_uniform_vector(shader, rect_tex_loc, 4, 1, tex_color);
@@ -1869,7 +1868,7 @@ static void icon_draw_size(float x,
   }
 
   /* scale width and height according to aspect */
-  int w = (int)(fdraw_size / aspect + 0.5f);
+  int w = int(fdraw_size / aspect + 0.5f);
   int h = int(fdraw_size / aspect + 0.5f);
 
   DrawInfo *di = icon_ensure_drawinfo(icon);
@@ -2509,7 +2508,7 @@ void UI_icon_draw_preview(float x, float y, int icon_id, float aspect, float alp
                  icon_id,
                  aspect,
                  alpha,
-    ICON_SIZE_ICON,
+                 ICON_SIZE_PREVIEW,
                  size,
                  false,
                  nullptr,

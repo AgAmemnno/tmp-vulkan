@@ -1,9 +1,9 @@
 
 msgid ""
 msgstr ""
-"Project-Id-Version: Blender 3.5.0 Alpha (b'09ba00974f8f')\n"
+"Project-Id-Version: Blender 3.5.0 Alpha (b'90e940686692')\n"
 "Report-Msgid-Bugs-To: Leandro Paganelli <leandrobp@fastmail.com>\n"
-"POT-Creation-Date: 2020-01-01 00:00:00\n"
+"POT-Creation-Date: 2023-01-30 08:45:14\n"
 "PO-Revision-Date: 2022-03-21 19:03-0300\n"
 "Last-Translator: Leandro Paganelli <leandrobp@fastmail.com>\n"
 "Language-Team: Leandro Paganelli, Ivan Paulos Tomé, Dalai Felinto, Bruno Gonçalves Pirajá, Samuel Arataca, Daniel Tavares, Moraes Junior <ivan.paulos.tome@yandex.com>\n"
@@ -269,6 +269,14 @@ msgstr "Tipo de dispositivo de computação"
 
 msgid "Device to use for computation (rendering with Cycles)"
 msgstr "Dispositivo a ser usado para computação (renderização usando Cycles)."
+
+
+msgid "Off"
+msgstr "Desligar"
+
+
+msgid "Full"
+msgstr "Completo"
 
 
 msgid "Fribidi Library"
@@ -2493,10 +2501,6 @@ msgstr "Osso está apto a ser selecionado."
 
 msgid "Inherit Scale"
 msgstr "Herdar escala"
-
-
-msgid "Full"
-msgstr "Completo"
 
 
 msgid "Layers"
@@ -5666,10 +5670,6 @@ msgstr "Refugar face"
 
 msgid "Stop vertices from projecting to a face on the target when facing towards/away"
 msgstr "Faz com que os vértices parem de ser projetados em uma face do alvo quando estiverem faceando na direção do alvo ou para longe dele."
-
-
-msgid "Off"
-msgstr "Desligar"
 
 
 msgid "No culling"
@@ -11293,6 +11293,18 @@ msgid "Time Alignment"
 msgstr "Alinhamento de Tempo"
 
 
+msgid "Speed Factor"
+msgstr "Fator de velocidade"
+
+
+msgid "Delay"
+msgstr "Atraso"
+
+
+msgid "Timing"
+msgstr "Temporização"
+
+
 msgid "Transition"
 msgstr "Transição"
 
@@ -11457,6 +11469,10 @@ msgstr "Fator de Espessura"
 
 msgid "Steps"
 msgstr "Passos"
+
+
+msgid "Start Offset"
+msgstr "Deslocamento inicial"
 
 
 msgid "Uniform Opacity"
@@ -13494,6 +13510,10 @@ msgstr "Edição rápida"
 
 msgid "Don't fill polygons while editing"
 msgstr "Não preenche os polígonos durante a edição."
+
+
+msgid "Normals"
+msgstr "Normais"
 
 
 msgid "Freestyle Line Style"
@@ -22340,6 +22360,10 @@ msgid "Text"
 msgstr "Texto"
 
 
+msgid "Math"
+msgstr "Matemática"
+
+
 msgid "Attribute"
 msgstr "Atributo"
 
@@ -22469,10 +22493,6 @@ msgid "KeyPresets"
 msgstr "Predefinições de chave"
 
 
-msgid "Angle Control"
-msgstr "Controle angular"
-
-
 msgid "Disable Bone Options"
 msgstr "Desabilitar as opções de ossos"
 
@@ -22507,10 +22527,6 @@ msgstr "Menu de Contexto do Texto"
 
 msgid "Face Data"
 msgstr "Dados das faces"
-
-
-msgid "Normals"
-msgstr "Normais"
 
 
 msgid "Select All by Trait"
@@ -22667,10 +22683,6 @@ msgstr "Índice desta aresta."
 
 msgid "Loose"
 msgstr "Soltos(as)"
-
-
-msgid "Sharp edge for the Edge Split modifier"
-msgstr "Arestas ressaltadas para o modificador \"Dividir arestas\"."
 
 
 msgid "Freestyle Edge Mark"
@@ -24875,10 +24887,6 @@ msgstr "Modificador - Edição de normais"
 
 msgid "Modifier affecting/generating custom normals"
 msgstr "Modificador para afetar ou gerar normais personalizadas."
-
-
-msgid "How much of generated normals to mix with exiting ones"
-msgstr "Define quanto das normais geradas será misturado com as existentes."
 
 
 msgid "Maximum angle between old and new normals"
@@ -27565,20 +27573,8 @@ msgid "Collection of NLA strip F-Curves"
 msgstr "Coleção de curvas-f de faixas de animação não linear."
 
 
-msgid "Nla Strips"
-msgstr "Faixas de animação não linear"
-
-
-msgid "Collection of Nla Strips"
-msgstr "Coleção de faixas de animação não linear."
-
-
 msgid "NLA Track"
 msgstr "Trilha de animação não linear"
-
-
-msgid "A animation layer containing Actions referenced as NLA strips"
-msgstr "Uma camada de animação contendo ações referenciadas como faixas de animação não linear."
 
 
 msgid "NLA Track is active"
@@ -28918,10 +28914,6 @@ msgid "Use multi-sampled motion blur of the mask"
 msgstr "Usa o desfoque de movimento por múltiplas amostragens para a máscara."
 
 
-msgid "Math"
-msgstr "Matemática"
-
-
 msgid "A + B"
 msgstr "A + B"
 
@@ -30225,10 +30217,6 @@ msgstr "Vetor de mapa de deslocamento no espaço do objeto."
 
 msgid "World space vector displacement mapping"
 msgstr "Vetor de mapa de deslocamento no espaço do ambiente."
-
-
-msgid "Vector Math"
-msgstr "Matemática vetorial"
 
 
 msgid "Cross Product"
@@ -32726,6 +32714,15 @@ msgstr "Inclui o comprimento focal dentro da predefinição."
 
 
 msgctxt "Operator"
+msgid "Add Safe Area Preset"
+msgstr "Adicionar predefinição de áreas de segurança"
+
+
+msgid "Add or remove a Safe Areas Preset"
+msgstr "Permite adicionar ou remover uma predefinição de áreas de segurança."
+
+
+msgctxt "Operator"
 msgid "Add Marker"
 msgstr "Adicionar marcador"
 
@@ -34138,6 +34135,15 @@ msgid "Reset original length of bone for Stretch To Constraint"
 msgstr "Redefine o comprimento original do osso para a restrição \"Esticar para\"."
 
 
+msgid "(De)select all control points"
+msgstr "(De)seleciona todos os pontos de controle."
+
+
+msgctxt "Operator"
+msgid "Select Random"
+msgstr "Selecionar aleatoriamente"
+
+
 msgctxt "Operator"
 msgid "Toggle Cyclic"
 msgstr "Alternar cíclico(a)"
@@ -34429,10 +34435,6 @@ msgid "Reveal hidden control points"
 msgstr "Revela os pontos de controle ocultados"
 
 
-msgid "(De)select all control points"
-msgstr "(De)seleciona todos os pontos de controle."
-
-
 msgid "Select all control points linked to already selected ones"
 msgstr "Seleciona todos os pontos de controle conectados aos já selecionados."
 
@@ -34462,11 +34464,6 @@ msgstr "Selecionar anterior"
 
 msgid "Select control points preceding already selected ones along the curves"
 msgstr "Seleciona os pontos de controle que precedem os já selecionados ao longo das curvas."
-
-
-msgctxt "Operator"
-msgid "Select Random"
-msgstr "Selecionar aleatoriamente"
 
 
 msgid "Randomly select some control points"
@@ -36549,11 +36546,6 @@ msgstr "Extrudar Pontos do Traço"
 msgctxt "Operator"
 msgid "Grease Pencil Fill"
 msgstr "Preenchimento do Lápis de Cera"
-
-
-msgctxt "Operator"
-msgid "Clean Duplicated Frames"
-msgstr "Limpar Quadros Duplicados"
 
 
 msgctxt "Operator"
@@ -41702,17 +41694,9 @@ msgid "Toggle collapsed nodes and hide unused sockets"
 msgstr "Alterna os nós encolhidos e oculta os conectores não usados."
 
 
-msgid "Delete selected nodes"
-msgstr "Apaga os nós selecionados."
-
-
 msgctxt "Operator"
 msgid "Delete with Reconnect"
 msgstr "Apagar com reconexão"
-
-
-msgid "Delete nodes; will reconnect nodes as if deletion was muted"
-msgstr "Apaga os nós e os reconecta como se o fato de tê-los apagado os tornasse mudos."
 
 
 msgctxt "Operator"
@@ -41880,10 +41864,6 @@ msgid "Use the mouse to create a link between two nodes"
 msgstr "Permite usar o mouse para criar uma conexão entre dois nós."
 
 
-msgid "Delay"
-msgstr "Atraso"
-
-
 msgid "Detach"
 msgstr "Desvincular"
 
@@ -41954,10 +41934,6 @@ msgid "Toggle Node Mute"
 msgstr "Alternar entre mudo ou funcional"
 
 
-msgid "Toggle muting of the nodes"
-msgstr "Alterna a opção de tornar os nós mudos ou funcionais."
-
-
 msgctxt "Operator"
 msgid "Assign New Geometry Node Group"
 msgstr "Atribuir Novo Grupo de Nós Geométricos"
@@ -42023,10 +41999,6 @@ msgstr "Move a entrada ativa de um nó de saída de arquivo acima ou abaixo na l
 msgctxt "Operator"
 msgid "Remove File Node Socket"
 msgstr "Remover conector de nó de arquivo"
-
-
-msgid "Remove active input from a file output node"
-msgstr "Remove a entrada ativa partindo do arquivo de nó de saída."
 
 
 msgid "Attach selected nodes"
@@ -42165,10 +42137,6 @@ msgid "Add Node Tree Interface Socket"
 msgstr "Adicionar interface de conector de árvore de nós"
 
 
-msgid "Add an input or output socket to the current node tree"
-msgstr "Adiciona um conector de entrada ou saída a árvore de nós atual."
-
-
 msgid "Socket Type"
 msgstr "Tipo de conexão"
 
@@ -42178,17 +42146,9 @@ msgid "Move Node Tree Socket"
 msgstr "Mover conector de árvore de nó"
 
 
-msgid "Move a socket up or down in the current node tree's sockets stack"
-msgstr "Move um conector acima ou abaixo dentro da pilha de conectores da árvore atual de nós."
-
-
 msgctxt "Operator"
 msgid "Remove Node Tree Interface Socket"
 msgstr "Remover interface de conector de árvore de nó"
-
-
-msgid "Remove an input or output socket to the current node tree"
-msgstr "Remove um conector de entrada ou saída para a árvore atual de nós."
 
 
 msgid "Resize view so you can see all nodes"
@@ -46201,14 +46161,6 @@ msgid "Method used to determine when to stop propagating pose to keyframes"
 msgstr "Método usado para determinar quando interromper a propagação de poses para os quadros-chave."
 
 
-msgid "While Held"
-msgstr "Enquanto são mantidos"
-
-
-msgid "Propagate pose to all keyframes after current frame that don't change (Default behavior)"
-msgstr "Propaga a pose para todos os quadros-chave após o quadro atual que não mudam (comportamento padrão)."
-
-
 msgid "To Next Keyframe"
 msgstr "Para o próximo quadro-chave"
 
@@ -47038,15 +46990,6 @@ msgstr "Remover ambiente para corpos rígidos"
 
 msgid "Remove Rigid Body simulation world from the current scene"
 msgstr "Remove o ambiente de simulação de corpo rígido da cena atual."
-
-
-msgctxt "Operator"
-msgid "Add Safe Area Preset"
-msgstr "Adicionar predefinição de áreas de segurança"
-
-
-msgid "Add or remove a Safe Areas Preset"
-msgstr "Permite adicionar ou remover uma predefinição de áreas de segurança."
 
 
 msgctxt "Operator"
@@ -50276,10 +50219,6 @@ msgid "Lightmap Pack"
 msgstr "Pacote Lightmap"
 
 
-msgid "Pack each faces UV's into the UV bounds"
-msgstr "Empacota cada uma das faces UV dentro dos limites UV."
-
-
 msgid "New Image"
 msgstr "Nova imagem"
 
@@ -52652,6 +52591,10 @@ msgid "Import USD"
 msgstr "Importar USD"
 
 
+msgid "Textures Directory"
+msgstr "Diretório de texturas"
+
+
 msgctxt "Operator"
 msgid "Close Window"
 msgstr "Fechar janela"
@@ -53574,10 +53517,6 @@ msgstr "Molas viscoelásticas"
 
 msgid "Forces"
 msgstr "Forças"
-
-
-msgid "Timing"
-msgstr "Temporização"
 
 
 msgid "Border Collisions"
@@ -55733,10 +55672,6 @@ msgid "The directory for storing temporary save files"
 msgstr "O diretório para armazenar arquivos temporários."
 
 
-msgid "Textures Directory"
-msgstr "Diretório de texturas"
-
-
 msgid "The default directory to search for textures"
 msgstr "O diretório padrão para pesquisar por texturas."
 
@@ -57141,20 +57076,12 @@ msgid "Any object modification requires a complete BVH rebuild, but renders fast
 msgstr "Qualquer modificação de objeto requer uma reconstrução completa da hierarquia de volume circundante, mas torna a renderização mais rápida."
 
 
-msgid "AVX"
-msgstr "AVX"
-
-
 msgid "AVX2"
 msgstr "AVX2"
 
 
 msgid "SSE2"
 msgstr "SSE 2"
-
-
-msgid "SSE3"
-msgstr "SSE 3"
 
 
 msgid "SSE41"
@@ -59677,10 +59604,6 @@ msgid "End Offset"
 msgstr "Deslocamento final"
 
 
-msgid "Start Offset"
-msgstr "Deslocamento inicial"
-
-
 msgid "X position where the strip begins"
 msgstr "A posição no eixo X onde a faixa é iniciada."
 
@@ -60226,10 +60149,6 @@ msgstr "Relógio"
 
 msgid "Sequence strip to load one or more images"
 msgstr "Faixa de sequência para carregar uma ou mais imagens."
-
-
-msgid "Speed Factor"
-msgstr "Fator de velocidade"
 
 
 msgid "Mask Sequence"
@@ -61827,10 +61746,6 @@ msgstr "Espaço do editor de imagens e UVs"
 
 msgid "Image and UV editor space data"
 msgstr "Espaço de dados do editor de imagens e UVs."
-
-
-msgid "Color and Alpha"
-msgstr "Cor e Alfa"
 
 
 msgid "Z-Buffer"
@@ -65663,11 +65578,6 @@ msgstr "Renderização:"
 msgctxt "Operator"
 msgid "Rigidbody:"
 msgstr "Corpos rígidos:"
-
-
-msgctxt "Operator"
-msgid "Safe_areas:"
-msgstr "Áreas de segurança:"
 
 
 msgctxt "Operator"
@@ -73601,10 +73511,6 @@ msgid "Not implemented for Masks"
 msgstr "Não implementado para máscaras."
 
 
-msgid "Cannot activate a file selector, one already open"
-msgstr "Não é possível ativar o seletor de arquivos, um já está aberto."
-
-
 msgid "Texture Field"
 msgstr "Campos de texturas"
 
@@ -74939,38 +74845,6 @@ msgid "Shrink/Fatten: %3f"
 msgstr "Encolher ou estufar: %3f"
 
 
-msgid "Bevel Weight: +%s %s"
-msgstr "Influência do chanfro: +%s %s"
-
-
-msgid "Bevel Weight: %s %s"
-msgstr "Influência do chanfro: %s %s"
-
-
-msgid "Bevel Weight: +%.3f %s"
-msgstr "Influência do chanfro: +%.3f %s"
-
-
-msgid "Bevel Weight: %.3f %s"
-msgstr "Influência do chanfro: %.3f %s"
-
-
-msgid "Crease: +%s %s"
-msgstr "Vincar: +%s %s"
-
-
-msgid "Crease: %s %s"
-msgstr "Vincar: %s %s"
-
-
-msgid "Crease: +%.3f %s"
-msgstr "Vincar: +%.3f %s"
-
-
-msgid "Crease: %.3f %s"
-msgstr "Vincar: %.3f %s"
-
-
 msgid "Edge Slide: "
 msgstr "Deslizar arestas:"
 
@@ -75507,10 +75381,6 @@ msgstr "Número máximo de texturas adicionadas %d"
 
 msgid "Index %d is invalid"
 msgstr "Índice %d é inválido"
-
-
-msgid "Texture layer '%s' not found"
-msgstr "Camada de textura '%s' não encontrada."
 
 
 msgid "Number of custom normals is not number of loops (%f / %d)"

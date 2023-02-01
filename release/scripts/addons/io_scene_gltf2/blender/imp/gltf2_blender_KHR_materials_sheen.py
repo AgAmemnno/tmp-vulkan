@@ -31,7 +31,7 @@ def sheen(  mh,
     sheenRoughnessFactor = ext.get('sheenRoughnessFactor', 0.0)
     tex_info_roughness = ext.get('sheenRoughnessTexture')
     if tex_info_roughness is not None:
-        tex_info_roughness = TextureInfo.from_dict(tex_info_roughness)    
+        tex_info_roughness = TextureInfo.from_dict(tex_info_roughness)
 
     if tex_info_color is None:
         sheenColorFactor.extend([1.0])
@@ -46,7 +46,7 @@ def sheen(  mh,
             node.location = x_sheenColor - 140, y_sheenColor
             node.blend_type = 'MULTIPLY'
             # Outputs
-            mh.node_tree.links.new(sheenColor_socket, node.outputs[0])
+            mh.node_tree.links.new(sheenColor_socket, node.outputs[2])
             # Inputs
             node.inputs['Factor'].default_value = 1.0
             sheenColor_socket = node.inputs[6]

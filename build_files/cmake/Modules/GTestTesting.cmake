@@ -16,15 +16,12 @@ endfunction()
 
 macro(BLENDER_SRC_GTEST_EX)
   if(WITH_GTESTS)
-    
     set(options SKIP_ADD_TEST)
     set(oneValueArgs NAME)
     set(multiValueArgs SRC EXTRA_LIBS COMMAND_ARGS)
     cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
 
     set(TARGET_NAME ${ARG_NAME}_test)
-    
-
     get_property(_current_include_directories
                  DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                  PROPERTY INCLUDE_DIRECTORIES)

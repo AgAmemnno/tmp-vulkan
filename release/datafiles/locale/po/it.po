@@ -1,9 +1,9 @@
 
 msgid ""
 msgstr ""
-"Project-Id-Version: Blender 3.5.0 Alpha (b'09ba00974f8f')\n"
+"Project-Id-Version: Blender 3.5.0 Alpha (b'90e940686692')\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-01-01 00:00:00\n"
+"POT-Creation-Date: 2023-01-30 08:45:14\n"
 "PO-Revision-Date: 2022-01-21 16:08+0100\n"
 "Last-Translator: MT\n"
 "Language-Team: blend-it <https://developer.blender.org/T42765>\n"
@@ -264,6 +264,14 @@ msgstr "Tipo Dispositivo di Calcolo"
 
 msgid "Device to use for computation (rendering with Cycles)"
 msgstr "Dispositivo da usare per i calcoli (rendering con Cycles)"
+
+
+msgid "Off"
+msgstr "Spento"
+
+
+msgid "Full"
+msgstr "Completo"
 
 
 msgid "Fribidi Library"
@@ -2392,10 +2400,6 @@ msgstr "L'osso può essere selezionato"
 
 msgid "Inherit Scale"
 msgstr "Eredita Scala"
-
-
-msgid "Full"
-msgstr "Completo"
 
 
 msgid "Layers"
@@ -5277,10 +5281,6 @@ msgstr "Scarta Faccia"
 
 msgid "Stop vertices from projecting to a face on the target when facing towards/away"
 msgstr "Impedisce ai vertici di proiettare su una faccia dell'obiettivo quando di fronte/lontano"
-
-
-msgid "Off"
-msgstr "Spento"
 
 
 msgid "No culling"
@@ -9930,6 +9930,18 @@ msgid "Build Modifier"
 msgstr "Modificatore Costruzione"
 
 
+msgid "Speed Factor"
+msgstr "Fattore di Velocità"
+
+
+msgid "Delay"
+msgstr "Ritardo"
+
+
+msgid "Timing"
+msgstr "Tempistica"
+
+
 msgid "Transition"
 msgstr "Transizione"
 
@@ -11775,6 +11787,10 @@ msgstr "Modifica Veloce"
 
 msgid "Don't fill polygons while editing"
 msgstr "Non riempie i poligoni durante la modifica"
+
+
+msgid "Normals"
+msgstr "Normali"
 
 
 msgid "Freestyle Line Style"
@@ -18583,6 +18599,14 @@ msgid "Text"
 msgstr "Testo"
 
 
+msgid "Math"
+msgstr "Matematica"
+
+
+msgid "Primitives"
+msgstr "Primitive"
+
+
 msgid "Attribute"
 msgstr "Attributo"
 
@@ -18720,10 +18744,6 @@ msgid "Save & Load"
 msgstr "Salva & Carica"
 
 
-msgid "Angle Control"
-msgstr "Controllo Angolo"
-
-
 msgid "Assign Material"
 msgstr "Assegna Materiale"
 
@@ -18762,10 +18782,6 @@ msgstr "Menu Contesto Testo"
 
 msgid "Face Data"
 msgstr "Dati Faccia"
-
-
-msgid "Normals"
-msgstr "Normali"
 
 
 msgid "Select All by Trait"
@@ -18918,10 +18934,6 @@ msgstr "Indice di questo spigolo"
 
 msgid "Loose"
 msgstr "Slegato"
-
-
-msgid "Sharp edge for the Edge Split modifier"
-msgstr "Spigolo netto per il modificatore Divisore Spigoli"
 
 
 msgid "Freestyle Edge Mark"
@@ -20742,10 +20754,6 @@ msgstr "Modificatore Modifica Normali"
 
 msgid "Modifier affecting/generating custom normals"
 msgstr "Modificatore che influenza/genera normali personalizzate"
-
-
-msgid "How much of generated normals to mix with exiting ones"
-msgstr "Quanto le normali generate si miscelano con quelle esistenti"
 
 
 msgid "Maximum angle between old and new normals"
@@ -22739,14 +22747,6 @@ msgid "NLA-Strip F-Curves"
 msgstr "Curve-F dello Spezzone-NLA"
 
 
-msgid "Nla Strips"
-msgstr "Spezzoni NLA"
-
-
-msgid "Collection of Nla Strips"
-msgstr "Raccolta di Spezzoni NLA"
-
-
 msgid "NLA Track"
 msgstr "Traccia NLA"
 
@@ -23744,10 +23744,6 @@ msgid "Motion Blur"
 msgstr "Sfocatura Movimento (motion blur)"
 
 
-msgid "Math"
-msgstr "Matematica"
-
-
 msgid "Include alpha of second input in this operation"
 msgstr "Include l'alfa del secondo ingresso in questa operazione"
 
@@ -24615,10 +24611,6 @@ msgstr "UV Lungo il Tratto"
 
 msgid "UV coordinates to be used for mapping"
 msgstr "Coordinate UV da usare per la mappatura"
-
-
-msgid "Vector Math"
-msgstr "Matematica Vettori"
 
 
 msgid "Cross Product"
@@ -26688,6 +26680,15 @@ msgstr "Include la lunghezza focale nella preimpostazione"
 
 
 msgctxt "Operator"
+msgid "Add Safe Area Preset"
+msgstr "Aggiungi Preimpostazioni Aree Sicure"
+
+
+msgid "Add or remove a Safe Areas Preset"
+msgstr "Aggiunge o rimuove preimpostazione aree sicure"
+
+
+msgctxt "Operator"
 msgid "Add Marker"
 msgstr "Aggiungi Marcatore"
 
@@ -27767,6 +27768,19 @@ msgid "Reset original length of bone for Stretch To Constraint"
 msgstr "Ripristina la lunghezza originale dell'osso per il vincolo Stira A"
 
 
+msgid "(De)select all control points"
+msgstr "(De)seleziona tutti i rapporti"
+
+
+msgctxt "Operator"
+msgid "Select Random"
+msgstr "Selezione Casuale"
+
+
+msgid "Probability"
+msgstr "Probabilità"
+
+
 msgctxt "Operator"
 msgid "Toggle Cyclic"
 msgstr "Alterna Ciclico"
@@ -28029,10 +28043,6 @@ msgid "Set per-point radius which is used for bevel tapering"
 msgstr "Imposta il raggio per-punto che viene usato per lo smusso di assottigliamento"
 
 
-msgid "(De)select all control points"
-msgstr "(De)seleziona tutti i rapporti"
-
-
 msgid "Select all control points linked to already selected ones"
 msgstr "Seleziona i nodi collegati a quelli selezionati"
 
@@ -28054,11 +28064,6 @@ msgstr "Deseleziona a Scacchiera"
 msgctxt "Operator"
 msgid "Select Previous"
 msgstr "Seleziona Precedente"
-
-
-msgctxt "Operator"
-msgid "Select Random"
-msgstr "Selezione Casuale"
 
 
 msgid "Randomly select some control points"
@@ -33465,17 +33470,9 @@ msgid "Toggle collapsed nodes and hide unused sockets"
 msgstr "Alterna il collassamento dei nodi e nasconde i connettori non utilizzati"
 
 
-msgid "Delete selected nodes"
-msgstr "Cancella i nodi selezionati"
-
-
 msgctxt "Operator"
 msgid "Delete with Reconnect"
 msgstr "Cancella e Riconnetti"
-
-
-msgid "Delete nodes; will reconnect nodes as if deletion was muted"
-msgstr "Cancella nodi e ricollega nodi precedenti e seguenti come se quelli cancellati fossero stati disattivati"
 
 
 msgctxt "Operator"
@@ -33635,10 +33632,6 @@ msgid "Use the mouse to create a link between two nodes"
 msgstr "Usa il mouse per creare una connessione fra due nodi"
 
 
-msgid "Delay"
-msgstr "Ritardo"
-
-
 msgid "Detach"
 msgstr "Scollega"
 
@@ -33703,10 +33696,6 @@ msgstr "Scollega Connessioni"
 msgctxt "Operator"
 msgid "Toggle Node Mute"
 msgstr "Alterna Attivazione Nodo"
-
-
-msgid "Toggle muting of the nodes"
-msgstr "Attiva/disattiva la funzionalità dei nodi"
 
 
 msgctxt "Operator"
@@ -33873,10 +33862,6 @@ msgid "Go to parent node tree"
 msgstr "Torna all'albero nodi genitore"
 
 
-msgid "Add an input or output socket to the current node tree"
-msgstr "Aggiunge un connettore d'ingresso o uscita all'albero nodi corrente"
-
-
 msgid "Socket Type"
 msgstr "Tipo di Connettore"
 
@@ -33884,10 +33869,6 @@ msgstr "Tipo di Connettore"
 msgctxt "Operator"
 msgid "Move Node Tree Socket"
 msgstr "Muovi Connettore Albero Nodi"
-
-
-msgid "Remove an input or output socket to the current node tree"
-msgstr "Rimuove un connettore d'ingresso o uscita all'albero nodi corrente"
 
 
 msgid "Resize view so you can see all nodes"
@@ -37010,14 +36991,6 @@ msgid "Method used to determine when to stop propagating pose to keyframes"
 msgstr "Metodo usato per determinare quando fermare la propagazione delle pose sui keyframes"
 
 
-msgid "While Held"
-msgstr "Mentre trattiene"
-
-
-msgid "Propagate pose to all keyframes after current frame that don't change (Default behavior)"
-msgstr "Estende la posa su tutti i fotogrammi chiave dopo il fotogramma corrente, che non cambia (impostazione predefinita)"
-
-
 msgid "To Next Keyframe"
 msgstr "Al fotogramma chiave successivo"
 
@@ -37704,15 +37677,6 @@ msgstr "Rimuovi Mondo Corpo Rigido"
 
 
 msgctxt "Operator"
-msgid "Add Safe Area Preset"
-msgstr "Aggiungi Preimpostazioni Aree Sicure"
-
-
-msgid "Add or remove a Safe Areas Preset"
-msgstr "Aggiunge o rimuove preimpostazione aree sicure"
-
-
-msgctxt "Operator"
 msgid "Delete Scene"
 msgstr "Cancella Scena"
 
@@ -38263,10 +38227,6 @@ msgstr "Esegue file python"
 msgctxt "Operator"
 msgid "Reload Scripts"
 msgstr "Ricarica Script"
-
-
-msgid "Probability"
-msgstr "Probabilità"
 
 
 msgctxt "Operator"
@@ -40316,10 +40276,6 @@ msgid "Hide (un)selected UV vertices"
 msgstr "Nascondi i vertici UV (de)selezionati"
 
 
-msgid "Pack each faces UV's into the UV bounds"
-msgstr "Compatta tutte le facce dell'UV all'interno dei suoi confini"
-
-
 msgid "New Image"
 msgstr "Nuova Immagine"
 
@@ -42145,6 +42101,10 @@ msgid "UV Maps"
 msgstr "Mappe UV"
 
 
+msgid "Textures Directory"
+msgstr "Cartella Texture"
+
+
 msgctxt "Operator"
 msgid "Close Window"
 msgstr "Chiudi Finestra"
@@ -42894,10 +42854,6 @@ msgid "Forces"
 msgstr "Forze"
 
 
-msgid "Timing"
-msgstr "Tempistica"
-
-
 msgid "Border Collisions"
 msgstr "Bordo Collisioni"
 
@@ -43008,10 +42964,6 @@ msgstr "Trova & Sostituisci"
 
 msgid "Playback"
 msgstr "Riproduzione"
-
-
-msgid "Primitives"
-msgstr "Primitive"
 
 
 msgid "Rename Active Item"
@@ -44645,10 +44597,6 @@ msgid "The directory for storing temporary save files"
 msgstr "Cartella di salvataggio per i file temporanei"
 
 
-msgid "Textures Directory"
-msgstr "Cartella Texture"
-
-
 msgid "The default directory to search for textures"
 msgstr "La cartella predefinita per cercare le texture"
 
@@ -45681,20 +45629,12 @@ msgid "Static BVH"
 msgstr "BVH Statico"
 
 
-msgid "AVX"
-msgstr "AVX"
-
-
 msgid "AVX2"
 msgstr "AVX2"
 
 
 msgid "SSE2"
 msgstr "SSE2"
-
-
-msgid "SSE3"
-msgstr "SSE3"
 
 
 msgid "SSE41"
@@ -47794,10 +47734,6 @@ msgid "Wipe direction"
 msgstr "Direzione tendina"
 
 
-msgid "Speed Factor"
-msgstr "Fattore di Velocità"
-
-
 msgid "Mask Sequence"
 msgstr "Maschera Sequenza"
 
@@ -48888,10 +48824,6 @@ msgstr "Spazio Editor Immagini"
 
 msgid "Image and UV editor space data"
 msgstr "Spazio dati dell'editor immagini e UV"
-
-
-msgid "Color and Alpha"
-msgstr "Colore e Trasparenza"
 
 
 msgid "Z-Buffer"
@@ -52026,11 +51958,6 @@ msgstr "Render:"
 msgctxt "Operator"
 msgid "Rigidbody:"
 msgstr "Corpo Rigido:"
-
-
-msgctxt "Operator"
-msgid "Safe_areas:"
-msgstr "Aree_sicure:"
 
 
 msgctxt "Operator"
@@ -59502,38 +59429,6 @@ msgid "Shrink/Fatten: %3f"
 msgstr "Stringi/Allarga: %3f"
 
 
-msgid "Bevel Weight: +%s %s"
-msgstr "Peso Smusso: +%s %s"
-
-
-msgid "Bevel Weight: %s %s"
-msgstr "Peso Smusso: %s %s"
-
-
-msgid "Bevel Weight: +%.3f %s"
-msgstr "Peso Smusso: +%.3f %s"
-
-
-msgid "Bevel Weight: %.3f %s"
-msgstr "Peso Smusso: %.3f %s"
-
-
-msgid "Crease: +%s %s"
-msgstr "Piega: +%s %s"
-
-
-msgid "Crease: %s %s"
-msgstr "Piega: %s %s"
-
-
-msgid "Crease: +%.3f %s"
-msgstr "Piega: +%.3f %s"
-
-
-msgid "Crease: %.3f %s"
-msgstr "Piega: %.3f %s"
-
-
 msgid "Edge Slide: "
 msgstr "Scivola Spigolo: "
 
@@ -59862,10 +59757,6 @@ msgstr "ID type '%s' non valido per un oggetto"
 
 msgid "Index %d is invalid"
 msgstr "L'indice %d non è valido"
-
-
-msgid "Texture layer '%s' not found"
-msgstr "Livello texture '%s' non trovato"
 
 
 msgid "Number of custom normals is not number of loops (%f / %d)"

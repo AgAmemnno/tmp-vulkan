@@ -561,6 +561,13 @@ extern GHOST_TSuccess GHOST_SetDrawingContextType(GHOST_WindowHandle windowhandl
                                                   GHOST_TDrawingContextType type);
 
 /**
+ * Returns the drawing context used in the this window.
+ * \param windowhandle: The handle to the window.
+ * \return The window drawing context.
+ */
+extern GHOST_ContextHandle GHOST_GetDrawingContext(GHOST_WindowHandle windowhandle);
+
+/**
  * Sets the title displayed in the title bar.
  * \param windowhandle: The handle to the window.
  * \param title: The title to display in the title bar.
@@ -1188,7 +1195,7 @@ int GHOST_XrGetControllerModelData(GHOST_XrContextHandle xr_context,
 #ifdef WITH_VULKAN_BACKEND
 
 /**
- * Return vulkan handles for the given context.
+ * Return VULKAN handles for the given context.
  */
 void GHOST_GetVulkanHandles(GHOST_ContextHandle context,
                             void *r_instance,
@@ -1197,7 +1204,7 @@ void GHOST_GetVulkanHandles(GHOST_ContextHandle context,
                             uint32_t *r_graphic_queue_familly);
 
 /**
- * Return vulkan backbuffer resources handles for the given window.
+ * Return VULKAN back-buffer resources handles for the given window.
  */
 void GHOST_GetVulkanBackbuffer(GHOST_WindowHandle windowhandle,
                                void *image,

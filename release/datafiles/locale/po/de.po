@@ -1,9 +1,9 @@
 
 msgid ""
 msgstr ""
-"Project-Id-Version: Blender 3.5.0 Alpha (b'09ba00974f8f')\n"
+"Project-Id-Version: Blender 3.5.0 Alpha (b'90e940686692')\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-01-01 00:00:00\n"
+"POT-Creation-Date: 2023-01-30 08:45:14\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Martin Reininger <martinreininger@gmx.net>\n"
 "Language-Team: German translation team\n"
@@ -304,6 +304,14 @@ msgstr "Berechnungsgerättyp"
 
 msgid "Device to use for computation (rendering with Cycles)"
 msgstr "Gerät, das für Berechnungen verwendet wird (rendern mit Cycles)"
+
+
+msgid "Off"
+msgstr "Aus"
+
+
+msgid "Full"
+msgstr "Voll"
 
 
 msgid "Distribute memory across devices"
@@ -2952,10 +2960,6 @@ msgstr "Skalierung übernehmen"
 
 msgid "Specifies how the bone inherits scaling from the parent bone"
 msgstr "Spezifiziert, wie die Skalierung des Knochen vom Elternknochen übernommen wird"
-
-
-msgid "Full"
-msgstr "Voll"
 
 
 msgid "Inherit all effects of parent scaling"
@@ -6757,10 +6761,6 @@ msgstr "Ziele verwenden"
 
 msgid "Shrinkwrap Constraint"
 msgstr "Schrumpfbeschränkung"
-
-
-msgid "Off"
-msgstr "Aus"
 
 
 msgid "No culling"
@@ -11994,8 +11994,12 @@ msgid "Concurrent"
 msgstr "Gleichzeitig"
 
 
-msgid "Start Delay"
-msgstr "Anfangsverzögerung"
+msgid "Speed Factor"
+msgstr "Geschwindigkeitsfaktor"
+
+
+msgid "Delay"
+msgstr "Verzögerung"
 
 
 msgid "Transition"
@@ -12294,6 +12298,10 @@ msgstr "Rauschsamen"
 
 msgid "Offset Modifier"
 msgstr "Offset-Modifizierer"
+
+
+msgid "Start Offset"
+msgstr "Startversatz"
 
 
 msgid "Opacity Modifier"
@@ -14243,6 +14251,10 @@ msgstr "Schnellbearbeitung"
 
 msgid "Attributes"
 msgstr "Eigenschaften"
+
+
+msgid "Normals"
+msgstr "Normalen"
 
 
 msgid "Active Texture"
@@ -18169,10 +18181,6 @@ msgid "Operator registry"
 msgstr "Operator-Voreinstellung"
 
 
-msgid "Flip Pose"
-msgstr "Pose umkehren"
-
-
 msgid "Preset Name"
 msgstr "Voreinstellung Name"
 
@@ -20894,8 +20902,24 @@ msgid "Text"
 msgstr "Text"
 
 
+msgid "Math"
+msgstr "Mathematisch"
+
+
+msgid "Primitives"
+msgstr "Grundkörper"
+
+
 msgid "Attribute"
 msgstr "Eigenschaft"
+
+
+msgid "Read"
+msgstr "Lesen"
+
+
+msgid "Write"
+msgstr "Schreiben"
 
 
 msgid "Instances"
@@ -21105,10 +21129,6 @@ msgstr "Gitter Kontextmenü"
 
 msgid "Face Data"
 msgstr "Flächendaten"
-
-
-msgid "Normals"
-msgstr "Normalen"
 
 
 msgid "Select All by Trait"
@@ -24427,14 +24447,6 @@ msgid "Sync Action Length"
 msgstr "Synchronisiere Aktionslänge"
 
 
-msgid "Nla Strips"
-msgstr "NLA-Streifen"
-
-
-msgid "A animation layer containing Actions referenced as NLA strips"
-msgstr "Eine Animationsebene, die Aktionen enthält, auf die als NLA-Strips verwiesen wird"
-
-
 msgid "NLA Track is active"
 msgstr "NLA-Spur ist aktiv"
 
@@ -25572,10 +25584,6 @@ msgid "Motion Blur"
 msgstr "Bewegungsunschärfe"
 
 
-msgid "Math"
-msgstr "Mathematisch"
-
-
 msgctxt "NodeTree"
 msgid "Operation"
 msgstr "Operation"
@@ -26107,10 +26115,6 @@ msgstr "Aufhellen"
 
 msgid "Darker"
 msgstr "Dunkler"
-
-
-msgid "Ceiling"
-msgstr "Decke"
 
 
 msgid "Input value used for unconnected socket"
@@ -27008,10 +27012,6 @@ msgstr "UV-Koordinaten zur Kartierung"
 
 msgid "Vector Displacement"
 msgstr "Vektorverlagerung"
-
-
-msgid "Vector Math"
-msgstr "Mathematischer Vektor"
 
 
 msgid "Multiply Add"
@@ -29821,6 +29821,20 @@ msgid "Convert Particle System to Curves"
 msgstr "Partikelsysteme zu Kurven konvertieren"
 
 
+msgid "(De)select all control points"
+msgstr "Kontrollpunkte aus-/abwählen"
+
+
+msgctxt "Operator"
+msgid "Select End"
+msgstr "Ende auswählen"
+
+
+msgctxt "Operator"
+msgid "Select Random"
+msgstr "Zufällig auswählen"
+
+
 msgctxt "Operator"
 msgid "Set Select Mode"
 msgstr "Auswahlmodus setzen"
@@ -30153,10 +30167,6 @@ msgid "Reveal hidden control points"
 msgstr "Versteckte Kontrollpunkte enthüllen"
 
 
-msgid "(De)select all control points"
-msgstr "Kontrollpunkte aus-/abwählen"
-
-
 msgid "Select all control points linked to the current selection"
 msgstr "Alle Kontrollpunkte auswählen, die mit der aktuellen Auswahl verknüpft sind"
 
@@ -30182,11 +30192,6 @@ msgstr "Deaktiviert"
 msgctxt "Operator"
 msgid "Select Previous"
 msgstr "Vorheriges auswählen"
-
-
-msgctxt "Operator"
-msgid "Select Random"
-msgstr "Zufällig auswählen"
 
 
 msgid "Seed for the random number generator"
@@ -31704,11 +31709,6 @@ msgstr "Strickpunkte extrudieren"
 msgctxt "Operator"
 msgid "Grease Pencil Fill"
 msgstr "Wachsstift Füllung"
-
-
-msgctxt "Operator"
-msgid "Clean Duplicated Frames"
-msgstr "Bereinigen von duplizierten Frames"
 
 
 msgid "All Frames"
@@ -35287,10 +35287,6 @@ msgid "Toggle collapsed nodes and hide unused sockets"
 msgstr "Knoten zusammen-/ausklappen und unbenutzte Buchsen ein-/ausblenden"
 
 
-msgid "Delete selected nodes"
-msgstr "Ausgewählte Knoten löschen"
-
-
 msgctxt "Operator"
 msgid "Delete with Reconnect"
 msgstr "Löschen und Verbinden"
@@ -35412,10 +35408,6 @@ msgid "Link Nodes"
 msgstr "Knoten verknüpfen"
 
 
-msgid "Delay"
-msgstr "Verzögerung"
-
-
 msgid "Detach"
 msgstr "Lösen"
 
@@ -35481,10 +35473,6 @@ msgstr "Verbindungen abhängen"
 msgctxt "Operator"
 msgid "Toggle Node Mute"
 msgstr "Knoten an-/ausschalten"
-
-
-msgid "Toggle muting of the nodes"
-msgstr "Knoten aktivieren oder deaktivieren"
 
 
 msgctxt "Operator"
@@ -35657,10 +35645,6 @@ msgid "Add Node Tree Interface Socket"
 msgstr "Knotenbaum-Schnittstellenbuchse hinzufügen"
 
 
-msgid "Add an input or output socket to the current node tree"
-msgstr "Fügt eine Eingabe- oder Ausgabebuchse zum aktuellen Knotenbaum hinzu"
-
-
 msgid "Socket Type"
 msgstr "Buchsentype"
 
@@ -35670,17 +35654,9 @@ msgid "Move Node Tree Socket"
 msgstr "Knotenbaum-Buchse bewegen"
 
 
-msgid "Move a socket up or down in the current node tree's sockets stack"
-msgstr "Bewegt eine Buchse in der aktuellen Liste hoch oder runter"
-
-
 msgctxt "Operator"
 msgid "Remove Node Tree Interface Socket"
 msgstr "Knotenbaum-Schnittstellenbuchse entfernen"
-
-
-msgid "Remove an input or output socket to the current node tree"
-msgstr "Entfernt eine Eingabe- oder Ausgabebuchse vom aktuellen Knotenbaum"
 
 
 msgid "Resize view so you can see all nodes"
@@ -39307,11 +39283,6 @@ msgid "Reload scripts"
 msgstr "Skripte neu laden"
 
 
-msgctxt "Operator"
-msgid "Select End"
-msgstr "Ende auswählen"
-
-
 msgid "Partial"
 msgstr "Partiell"
 
@@ -42839,6 +42810,10 @@ msgid "Add all imported objects to a new collection"
 msgstr "Alle importieren Objekt zu einer neuen Sammlung hinzufügen"
 
 
+msgid "Textures Directory"
+msgstr "Texturverzeichnis"
+
+
 msgid "Path Mask"
 msgstr "Maskenpfad"
 
@@ -43846,10 +43821,6 @@ msgstr "Auto-Schlüsselbilder"
 
 msgid "Playback"
 msgstr "Wiedergabe"
-
-
-msgid "Primitives"
-msgstr "Grundkörper"
 
 
 msgid "Extra Options"
@@ -45621,10 +45592,6 @@ msgid "The directory for storing temporary save files"
 msgstr "Das Verzeichnis, um temporär gespeicherte Dateien abzulegen"
 
 
-msgid "Textures Directory"
-msgstr "Texturverzeichnis"
-
-
 msgid "The default directory to search for textures"
 msgstr "Das Vorgabeverzeichnis, um nach Texturen zu suchen"
 
@@ -46817,20 +46784,12 @@ msgid "Dynamic BVH"
 msgstr "Dynamisch"
 
 
-msgid "AVX"
-msgstr "AVX"
-
-
 msgid "AVX2"
 msgstr "AVX2"
 
 
 msgid "SSE2"
 msgstr "SSE2"
-
-
-msgid "SSE3"
-msgstr "SSE3"
 
 
 msgid "SSE41"
@@ -48853,10 +48812,6 @@ msgid "Effect Fader Position"
 msgstr "Effektabklingposition"
 
 
-msgid "Start Offset"
-msgstr "Startversatz"
-
-
 msgid "Override Cache Settings"
 msgstr "Puffereigenschaften überschreiben"
 
@@ -49191,10 +49146,6 @@ msgstr "Iris"
 msgctxt "Sequence"
 msgid "Clock"
 msgstr "Uhr"
-
-
-msgid "Speed Factor"
-msgstr "Geschwindigkeitsfaktor"
 
 
 msgid "Mask Sequence"
@@ -50306,10 +50257,6 @@ msgstr "Kanäle anzeigen"
 
 msgid "Channels of the image to display"
 msgstr "Kanäle des anzuzeigenden Bildes"
-
-
-msgid "Color and Alpha"
-msgstr "Farbe und Alpha"
 
 
 msgid "Display image with RGB colors and alpha transparency"
@@ -53789,11 +53736,6 @@ msgstr "Starrer Körper:"
 
 
 msgctxt "Operator"
-msgid "Safe_areas:"
-msgstr "Sichere Bereiche:"
-
-
-msgctxt "Operator"
 msgid "Scene:"
 msgstr "Szene:"
 
@@ -56111,8 +56053,8 @@ msgstr "Lösche freie Punkte"
 
 
 msgctxt "Operator"
-msgid "Delete Duplicated Frames"
-msgstr "Lösche doppelte Einzelbilder"
+msgid "Delete Duplicate Frames"
+msgstr "Doppelte Einzelbilder löschen"
 
 
 msgctxt "Operator"
@@ -57403,11 +57345,6 @@ msgstr "Kanäle löschen"
 msgctxt "Operator"
 msgid "Extend"
 msgstr "Erweitern"
-
-
-msgctxt "Operator"
-msgid "Delete Duplicate Frames"
-msgstr "Doppelte Einzelbilder löschen"
 
 
 msgctxt "Operator"
@@ -58715,13 +58652,13 @@ msgstr "Alembic (.abc)"
 
 
 msgctxt "Operator"
-msgid "Universal Scene Description (.usd, .usdc, .usda)"
-msgstr "Universal Scene Description (.usd, .usdc, .usda)"
+msgid "SVG as Grease Pencil"
+msgstr "SVG als Wachsstift"
 
 
 msgctxt "Operator"
-msgid "SVG as Grease Pencil"
-msgstr "SVG als Wachsstift"
+msgid "Universal Scene Description (.usd, .usdc, .usda)"
+msgstr "Universal Scene Description (.usd, .usdc, .usda)"
 
 
 msgctxt "Operator"
@@ -62829,10 +62766,6 @@ msgid "%s already in %s"
 msgstr "%s ist bereits in %s"
 
 
-msgid "%s %s to %s"
-msgstr "%s %s zu %s"
-
-
 msgid "Cannot apply modifier for this object type"
 msgstr "Konnte Modifikator nicht für diesen Objekttyp anwenden"
 
@@ -63414,10 +63347,6 @@ msgid "No selected F-Curves to paste into"
 msgstr "Keine ausgewählte F-Kurven zum Einfügen"
 
 
-msgid "Cannot activate a file selector, one already open"
-msgstr "Dateiauswahl kann nicht aktiviert werden, bereits geöffnet"
-
-
 msgid "Texture Field"
 msgstr "Texturfeld"
 
@@ -63892,10 +63821,6 @@ msgstr "Undefinierter Socket Typ"
 
 msgid "Group Input "
 msgstr "Gruppeneingabe "
-
-
-msgid "NodeTree"
-msgstr "Knotenbaum"
 
 
 msgid " (String)"
@@ -65076,14 +65001,6 @@ msgstr "Speichern Extern..."
 
 msgid "No named attributes used"
 msgstr "Keine benannten Attribute verwendet"
-
-
-msgid "Read"
-msgstr "Lesen"
-
-
-msgid "Write"
-msgstr "Schreiben"
 
 
 msgid "Internal Dependencies"

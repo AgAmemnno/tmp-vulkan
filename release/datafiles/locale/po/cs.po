@@ -1,9 +1,9 @@
 
 msgid ""
 msgstr ""
-"Project-Id-Version: Blender 3.5.0 Alpha (b'09ba00974f8f')\n"
+"Project-Id-Version: Blender 3.5.0 Alpha (b'90e940686692')\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-01-01 00:00:00\n"
+"POT-Creation-Date: 2023-01-30 08:45:14\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Martin Tabačan <tabycz@gmail.com>\n"
 "Language-Team: Taby <tabycz@gmail.com>\n"
@@ -300,6 +300,14 @@ msgstr "Typ Výpočetního Zařízení"
 
 msgid "Device to use for computation (rendering with Cycles)"
 msgstr "Zařízení pro výpočet (vykreslování s enginem Cycles)"
+
+
+msgid "Off"
+msgstr "Vypnout"
+
+
+msgid "Full"
+msgstr "Plná"
 
 
 msgid "Distribute memory across devices"
@@ -2208,10 +2216,6 @@ msgstr "Původní velikost"
 
 msgid "Specifies how the bone inherits scaling from the parent bone"
 msgstr "Určuje, jak kost dědí změnu měřítka z nadřazené kosti"
-
-
-msgid "Full"
-msgstr "Plná"
 
 
 msgid "Layers"
@@ -4909,10 +4913,6 @@ msgstr "Míra vazby"
 
 msgid "Create constraint-based shrinkwrap relationship"
 msgstr "Typ: Animace"
-
-
-msgid "Off"
-msgstr "Vypnout"
 
 
 msgid "Front"
@@ -8137,6 +8137,18 @@ msgid "Build Modifier"
 msgstr "Přidat modifikátor"
 
 
+msgid "Speed Factor"
+msgstr "Faktor Rychlosti"
+
+
+msgid "Delay"
+msgstr "Odstranit"
+
+
+msgid "Timing"
+msgstr "Načasování"
+
+
 msgid "Transition"
 msgstr "Překlad"
 
@@ -8253,6 +8265,10 @@ msgstr "Odsazení Šumu"
 
 msgid "Steps"
 msgstr "Kroky"
+
+
+msgid "Start Offset"
+msgstr "Začátek Odsazení"
 
 
 msgid "Target Object"
@@ -9753,6 +9769,10 @@ msgstr "Atributy"
 
 msgid "Geometry attributes"
 msgstr "Atributy geometrie"
+
+
+msgid "Normals"
+msgstr "Normály"
 
 
 msgid "Enable symmetry in the X axis"
@@ -14539,6 +14559,10 @@ msgid "Utilities"
 msgstr "Nástroje"
 
 
+msgid "Math"
+msgstr "Matematika"
+
+
 msgid "Attribute"
 msgstr "Atribut"
 
@@ -14670,10 +14694,6 @@ msgstr "Speciální Znaky"
 
 msgid "Face Data"
 msgstr "Data Ploch"
-
-
-msgid "Normals"
-msgstr "Normály"
 
 
 msgid "Mesh Select Mode"
@@ -17831,10 +17851,6 @@ msgid "Motion Blur"
 msgstr "Rozostření pohybu"
 
 
-msgid "Math"
-msgstr "Matematika"
-
-
 msgid "Convert from degrees to radians"
 msgstr "Konvertovat stupně na radiány"
 
@@ -18762,10 +18778,6 @@ msgstr "Zobrazit materiál daného objektu"
 
 msgid "Use wave texture in rings"
 msgstr "Zobrazit materiál daného objektu"
-
-
-msgid "Vector Math"
-msgstr "Vektorová Matematika"
 
 
 msgid "Multiply Add"
@@ -21309,6 +21321,15 @@ msgid "Reset Original Length"
 msgstr "Uchovat originál"
 
 
+msgid "(De)select all control points"
+msgstr "O(d)značit vše"
+
+
+msgctxt "Operator"
+msgid "Select Random"
+msgstr "Vybrat Náhodně"
+
+
 msgctxt "Operator"
 msgid "Toggle Cyclic"
 msgstr "Uzavřený/otevřený"
@@ -21539,10 +21560,6 @@ msgid "Set Curve Radius"
 msgstr "Nastavit poloměr křivky"
 
 
-msgid "(De)select all control points"
-msgstr "O(d)značit vše"
-
-
 msgid "Select all control points linked to already selected ones"
 msgstr "Vybrané vertexy náleží do aktuální skupiny vertexů"
 
@@ -21568,11 +21585,6 @@ msgstr "Počet vybraných prvků v opakující se sekvenci"
 msgctxt "Operator"
 msgid "Select Previous"
 msgstr "Vybrat předchozí"
-
-
-msgctxt "Operator"
-msgid "Select Random"
-msgstr "Vybrat Náhodně"
 
 
 msgid "Randomly select some control points"
@@ -22875,11 +22887,6 @@ msgstr "Tah skicovací tužky"
 msgctxt "Operator"
 msgid "Duplicate Strokes"
 msgstr "Duplikovat Tahy"
-
-
-msgctxt "Operator"
-msgid "Clean Duplicated Frames"
-msgstr "Vyčistit Duplikované Snímky"
 
 
 msgctxt "Operator"
@@ -25808,10 +25815,6 @@ msgid "Collapse and Hide Unused Sockets"
 msgstr "Sbalit a skrýt nepoužené sokety"
 
 
-msgid "Delete selected nodes"
-msgstr "Odstranit označené Objekt(y)"
-
-
 msgctxt "Operator"
 msgid "Delete with Reconnect"
 msgstr "Odstranit s připojením"
@@ -25945,10 +25948,6 @@ msgid "Link Nodes"
 msgstr "Uzly"
 
 
-msgid "Delay"
-msgstr "Odstranit"
-
-
 msgid "Detach"
 msgstr "Vytvořit propojení"
 
@@ -25997,10 +25996,6 @@ msgstr "Odpojit propojení"
 msgctxt "Operator"
 msgid "Toggle Node Mute"
 msgstr "Ztlumit Uzel"
-
-
-msgid "Toggle muting of the nodes"
-msgstr "Úhle hrany"
 
 
 msgctxt "Operator"
@@ -32655,6 +32650,10 @@ msgid "Visible Only"
 msgstr "Viditelné Pouze"
 
 
+msgid "Textures Directory"
+msgstr "Adresář textur"
+
+
 msgctxt "Operator"
 msgid "Close Window"
 msgstr "Zavřít Okno"
@@ -33430,10 +33429,6 @@ msgstr "Interakce tekutin"
 
 msgid "Forces"
 msgstr "Síly"
-
-
-msgid "Timing"
-msgstr "Načasování"
 
 
 msgid "Border Collisions"
@@ -35067,10 +35062,6 @@ msgstr "Adresář zvuků"
 
 msgid "Temporary Directory"
 msgstr "Dočasný adresář"
-
-
-msgid "Textures Directory"
-msgstr "Adresář textur"
 
 
 msgid "Auto Save Temporary Files"
@@ -37093,10 +37084,6 @@ msgid "End Offset"
 msgstr "Konec Odsazení"
 
 
-msgid "Start Offset"
-msgstr "Začátek Odsazení"
-
-
 msgid "Modifiers affecting this strip"
 msgstr "Nelze kopírovat modifikátory do objektu jiného typu"
 
@@ -37410,10 +37397,6 @@ msgstr "Filtr skriptů"
 
 msgid "Wipe direction"
 msgstr "Překlopit směr"
-
-
-msgid "Speed Factor"
-msgstr "Faktor Rychlosti"
 
 
 msgid "Mask Sequence"
@@ -38289,10 +38272,6 @@ msgid "Space Image Editor"
 msgstr "UV/obrázkový editor"
 
 
-msgid "Color and Alpha"
-msgstr "Barva a alfa"
-
-
 msgid "Z-Buffer"
 msgstr "Z-Buffer"
 
@@ -38674,6 +38653,10 @@ msgid "Scene size"
 msgstr "Velikost scény"
 
 
+msgid "Show Overlays"
+msgstr "Zobrazit Překrytí"
+
+
 msgid "Separate Colors"
 msgstr "Oddělit"
 
@@ -38852,10 +38835,6 @@ msgstr "3D pohled:"
 
 msgid "Use Local Camera"
 msgstr "Použít Místní Kameru"
-
-
-msgid "Show Overlays"
-msgstr "Zobrazit Překrytí"
 
 
 msgid "Space UV Editor"
@@ -40746,11 +40725,6 @@ msgstr "Render:"
 
 
 msgctxt "Operator"
-msgid "Safe_areas:"
-msgstr "Bezpečné_oblasti:"
-
-
-msgctxt "Operator"
 msgid "Scene:"
 msgstr "Scéna:"
 
@@ -41744,8 +41718,8 @@ msgstr "Vymazat Volné Body"
 
 
 msgctxt "Operator"
-msgid "Delete Duplicated Frames"
-msgstr "Odstranit Duplikovat Snímky"
+msgid "Delete Duplicate Frames"
+msgstr "Odstranit Duplicitní Snímky"
 
 
 msgctxt "Operator"
@@ -42641,11 +42615,6 @@ msgstr "Zatlačit Dolů"
 msgctxt "Operator"
 msgid "Extend"
 msgstr "Rozšířit"
-
-
-msgctxt "Operator"
-msgid "Delete Duplicate Frames"
-msgstr "Odstranit Duplicitní Snímky"
 
 
 msgctxt "Operator"

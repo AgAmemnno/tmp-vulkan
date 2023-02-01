@@ -25,6 +25,7 @@ static void node_declare(NodeDeclarationBuilder &b)
   b.add_input<decl::Int>(N_("Count"))
       .default_value(10)
       .min(2)
+      .field_on_all()
       .max(100000)
       .make_available(
           [](bNode &node) { node_storage(node).mode = GEO_NODE_CURVE_RESAMPLE_COUNT; });
@@ -34,10 +35,10 @@ static void node_declare(NodeDeclarationBuilder &b)
       .subtype(PROP_DISTANCE)
       .make_available(
           [](bNode &node) { node_storage(node).mode = GEO_NODE_CURVE_RESAMPLE_LENGTH; });
-  b.add_output<decl::Geometry>(N_("Points"));
-  b.add_output<decl::Vector>(N_("Tangent")).field_source();
-  b.add_output<decl::Vector>(N_("Normal")).field_source();
-  b.add_output<decl::Vector>(N_("Rotation")).field_source();
+  b.add_output<decl::Geometry>(N_("Points")).propagate_all();
+  b.add_output<decl::Vector>(N_("Tangent")).field_on_all();
+  b.add_output<decl::Vector>(N_("Normal")).field_on_all();
+  b.add_output<decl::Vector>(N_("Rotation")).field_on_all();
 }
 
 static void node_layout(uiLayout *layout, bContext * /*C*/, PointerRNA *ptr)
@@ -111,19 +112,13 @@ static void node_geo_exec(GeoNodeExecParams params)
 
   GeometryComponentEditData::remember_deformed_curve_positions_if_necessary(geometry_set);
 
-  StrongAnonymousAttributeID tangent_anonymous_id;
-  StrongAnonymousAttributeID normal_anonymous_id;
-  StrongAnonymousAttributeID rotation_anonymous_id;
-  const bool rotation_required = params.output_is_required("Rotation");
-  if (params.output_is_required("Tangent") || rotation_required) {
-    tangent_anonymous_id = StrongAnonymousAttributeID("Tangent");
-  }
-  if (params.output_is_required("Normal") || rotation_required) {
-    normal_anonymous_id = StrongAnonymousAttributeID("Normal");
-  }
-  if (rotation_required) {
-    rotation_anonymous_id = StrongAnonymousAttributeID("Rotation");
-  }
+  AutoAnonymousAttributeID rotation_anonymous_id =
+      params.get_output_anonymous_attribute_id_if_needed("Rotation");
+  const bool need_tangent_and_normal = bool(rotation_anonymous_id);
+  AutoAnonymousAttributeID tangent_anonymous_id =
+      params.get_output_anonymous_attribute_id_if_needed("Tangent", need_tangent_and_normal);
+  AutoAnonymousAttributeID normal_anonymous_id =
+      params.get_output_anonymous_attribute_id_if_needed("Normal", need_tangent_and_normal);
 
   geometry::ResampleCurvesOutputAttributeIDs resample_attributes;
   resample_attributes.tangent_id = tangent_anonymous_id.get();
@@ -134,8 +129,7 @@ static void node_geo_exec(GeoNodeExecParams params)
       Field<int> count = params.extract_input<Field<int>>("Count");
       geometry_set.modify_geometry_sets([&](GeometrySet &geometry) {
         if (const Curves *src_curves_id = geometry.get_curves_for_read()) {
-          const bke::CurvesGeometry &src_curves = bke::CurvesGeometry::wrap(
-              src_curves_id->geometry);
+          const bke::CurvesGeometry &src_curves = src_curves_id->geometry.wrap();
           bke::CurvesGeometry dst_curves = geometry::resample_to_count(
               src_curves, fn::make_constant_field<bool>(true), count, resample_attributes);
           PointCloud *pointcloud = pointcloud_from_curves(std::move(dst_curves),
@@ -152,8 +146,7 @@ static void node_geo_exec(GeoNodeExecParams params)
       Field<float> length = params.extract_input<Field<float>>("Length");
       geometry_set.modify_geometry_sets([&](GeometrySet &geometry) {
         if (const Curves *src_curves_id = geometry.get_curves_for_read()) {
-          const bke::CurvesGeometry &src_curves = bke::CurvesGeometry::wrap(
-              src_curves_id->geometry);
+          const bke::CurvesGeometry &src_curves = src_curves_id->geometry.wrap();
           bke::CurvesGeometry dst_curves = geometry::resample_to_length(
               src_curves, fn::make_constant_field<bool>(true), length, resample_attributes);
           PointCloud *pointcloud = pointcloud_from_curves(std::move(dst_curves),
@@ -169,8 +162,7 @@ static void node_geo_exec(GeoNodeExecParams params)
     case GEO_NODE_CURVE_RESAMPLE_EVALUATED:
       geometry_set.modify_geometry_sets([&](GeometrySet &geometry) {
         if (const Curves *src_curves_id = geometry.get_curves_for_read()) {
-          const bke::CurvesGeometry &src_curves = bke::CurvesGeometry::wrap(
-              src_curves_id->geometry);
+          const bke::CurvesGeometry &src_curves = src_curves_id->geometry.wrap();
           bke::CurvesGeometry dst_curves = geometry::resample_to_evaluated(
               src_curves, fn::make_constant_field<bool>(true), resample_attributes);
           PointCloud *pointcloud = pointcloud_from_curves(std::move(dst_curves),

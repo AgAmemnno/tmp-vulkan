@@ -29,6 +29,7 @@ set(INC
   # For *_info.hh includes.
   ../compositor/realtime_compositor
   ../draw/engines/eevee_next
+  ../draw/engines/workbench
   ../draw/intern
 
   # For node muting stuff.
@@ -142,7 +143,6 @@ set(SRC
   intern/gpu_vertex_buffer_private.hh
   intern/gpu_vertex_format_private.h
 )
-
 
 set(OPENGL_SRC
 
@@ -278,6 +278,10 @@ set(METAL_SRC
   metal/mtl_vertex_buffer.hh
 )
 
+set(LIB
+  ${Epoxy_LIBRARIES}
+)
+
 # Select Backend source based on availability
 if(WITH_OPENGL)
   list(APPEND SRC ${OPENGL_SRC})
@@ -293,36 +297,30 @@ set(LIB
 )
 
 if(WITH_VULKAN_BACKEND)
-    message(STATUS  " >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   WITH_VULKAN_BACKEND  ON")
+    
     add_definitions(-DWITH_VULKAN_BACKEND)
     set(INC ${INC}    ../../../extern/spirv_cross/src)
-    if(EXISTS ${LIBDIR}/vulkan)
-      set(Vulkan_FOUND On)
-      set(Vulkan_ROOT_DIR ${LIBDIR}/vulkan)
-      set(Vulkan_INCLUDE_DIR ${Vulkan_ROOT_DIR}/include)
-      set(Vulkan_INCLUDE_DIRS ${Vulkan_INCLUDE_DIR})
-      set(Vulkan_LIBRARY ${Vulkan_ROOT_DIR}/lib/vulkan-1.lib ${Vulkan_ROOT_DIR}/Lib/shaderc_shared.lib)
-      set(Vulkan_LIBRARIES ${Vulkan_LIBRARY})
-     else()
-      message(ERROR "vulkan was not found, disabling WITH_VULKAN_BACKEND")
-    endif()
-    set(INC_SYS ${INC_SYS} ${Vulkan_INCLUDE_DIRS})
-    if(EXISTS ${LIBDIR}/shaderc)
-      set(Shaderc_FOUND On)
-      set(Shaderc_ROOT_DIR ${LIBDIR}/shaderc)
-      set(Shaderc_INCLUDE_DIR ${LIBDIR}/shaderc/include)
-      set(Shaderc_INCLUDE_DIRS ${Shaderc_INCLUDE_DIR})
-      set(Shaderc_LIBRARY ${LIBDIR}/shaderc/Lib/shaderc_shared.lib)
-      set(Shaderc_LIBRARIES ${Shaderc_LIBRARY})
-       set(INC_SYS ${INC_SYS} ${LIBDIR}/shaderc/include)
-     
-     else() 
-      message(ERROR "shaderc was not found, disabling WITH_VULKAN_BACKEND")
-    endif()
 
 
+    list(APPEND INC
+    ../../../extern/vulkan_memory_allocator/
+    )
+    list(APPEND INC_SYS
+      ${VULKAN_INCLUDE_DIRS}
+      ${SHADERC_INCLUDE_DIRS}
+    )
+    list(APPEND SRC
+      ${VULKAN_SRC}
+    )
     
-  list(APPEND SRC ${VULKAN_SRC})
+    list(APPEND LIB
+    ${VULKAN_LIBRARIES}
+    ${SHADERC_LIBRARIES}
+    extern_vulkan_memory_allocator
+    extern_spirv_cross
+    extern_spirv_cross_glsl
+    )
+    message(STATUS  " >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>${VULKAN_LIBRARIES} ${SHADERC_LIBRARIES}   WITH_VULKAN_BACKEND  ON")
 endif()
 
 set(MSL_SRC
@@ -414,6 +412,13 @@ set(GLSL_SRC
   shaders/common/gpu_shader_common_math.glsl
   shaders/common/gpu_shader_common_math_utils.glsl
   shaders/common/gpu_shader_common_mix_rgb.glsl
+  shaders/common/gpu_shader_math_base_lib.glsl
+  shaders/common/gpu_shader_math_fast_lib.glsl
+  shaders/common/gpu_shader_math_matrix_lib.glsl
+  shaders/common/gpu_shader_math_rotation_lib.glsl
+  shaders/common/gpu_shader_math_vector_lib.glsl
+  shaders/common/gpu_shader_test_lib.glsl
+  shaders/common/gpu_shader_utildefines_lib.glsl
 
   shaders/material/gpu_shader_material_add_shader.glsl
   shaders/material/gpu_shader_material_ambient_occlusion.glsl
@@ -510,7 +515,17 @@ set(GLSL_SRC
   shaders/gpu_shader_cfg_world_clip_lib.glsl
   shaders/gpu_shader_colorspace_lib.glsl
 
+
   GPU_shader_shared_utils.h
+)
+
+set(GLSL_SRC_TEST
+  tests/shaders/gpu_math_test.glsl
+  tests/shaders/gpu_compute_1d_test.glsl
+  tests/shaders/gpu_compute_2d_test.glsl
+  tests/shaders/gpu_compute_ibo_test.glsl
+  tests/shaders/gpu_compute_vbo_test.glsl
+  tests/shaders/gpu_compute_dummy_test.glsl
 )
 
 set(MTL_BACKEND_GLSL_SRC
@@ -529,6 +544,12 @@ set(MSL_SRC
   shaders/metal/mtl_shader_common.msl
   metal/mtl_shader_shared.h
 )
+
+if(WITH_GTESTS)
+  if(WITH_OPENGL_DRAW_TESTS)
+    list(APPEND GLSL_SRC ${GLSL_SRC_TEST})
+  endif()
+endif()
 
 if(WITH_METAL_BACKEND)
   list(APPEND GLSL_SRC ${MTL_BACKEND_GLSL_SRC})
@@ -655,10 +676,21 @@ set(SRC_SHADER_CREATE_INFOS
   shaders/infos/gpu_srgb_to_framebuffer_space_info.hh
 )
 
+set(SRC_SHADER_CREATE_INFOS_TEST
+  shaders/infos/gpu_shader_test_info.hh
+)
+
+
 set(SRC_SHADER_CREATE_INFOS_MTL
   metal/kernels/depth_2d_update_info.hh
   metal/kernels/gpu_shader_fullscreen_blit_info.hh
 )
+
+if(WITH_GTESTS)
+  if(WITH_OPENGL_DRAW_TESTS)
+    list(APPEND SRC_SHADER_CREATE_INFOS ${SRC_SHADER_CREATE_INFOS_TEST})
+  endif()
+endif()
 
 if(WITH_METAL_BACKEND)
   list(APPEND SRC_SHADER_CREATE_INFOS ${SRC_SHADER_CREATE_INFOS_MTL})
@@ -685,8 +717,6 @@ if(WITH_OPENCOLORIO)
   add_definitions(-DWITH_OCIO)
 endif()
 
-
-
 blender_add_lib(bf_gpu "${SRC}" "${INC}" "${INC_SYS}" "${LIB}")
 target_link_libraries(bf_gpu PUBLIC
   bf_compositor_shaders
@@ -703,10 +733,6 @@ if(CXX_WARN_NO_SUGGEST_OVERRIDE)
   target_compile_options(bf_gpu PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-Wsuggest-override>)
 endif()
 
-
-if(WITH_VULKAN_BACKEND)
-target_link_libraries(bf_gpu PUBLIC extern_spirv_cross extern_spirv_cross_glsl)
-endif()
 
 
 if(WITH_GPU_BUILDTIME_SHADER_BUILDER)
@@ -764,8 +790,6 @@ if(WITH_GPU_BUILDTIME_SHADER_BUILDER)
 
   blender_add_lib(bf_gpu_shader_infos "${GPU_SHADER_INFO_SRC}" "" "" "")
 endif()
-
-
 
 
 if(WITH_GTESTS)

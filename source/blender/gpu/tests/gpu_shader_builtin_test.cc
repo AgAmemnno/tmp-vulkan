@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: Apache-2.0 */
-#ifdef 1 //TEST_OFF
+
 #include "gpu_testing.hh"
 
 #include "GPU_shader.h"
@@ -68,4 +68,3 @@ static void test_shader_builtin()
 GPU_TEST(shader_builtin)
 
 }  // namespace blender::gpu::tests
-#endif

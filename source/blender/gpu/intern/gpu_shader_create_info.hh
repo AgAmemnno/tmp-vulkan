@@ -19,7 +19,6 @@
 
 #include <iostream>
 
-
 namespace blender::gpu::shader {
 
 #ifndef GPU_SHADER_CREATE_INFO
@@ -573,9 +572,9 @@ struct ShaderCreateInfo {
     return *(Self *)this;
   }
 
-  Self &vertex_out(StageInterfaceInfo &iface)
+  Self &vertex_out(StageInterfaceInfo &interface)
   {
-    vertex_out_interfaces_.append(&iface);
+    vertex_out_interfaces_.append(&interface);
     return *(Self *)this;
   }
 
@@ -621,9 +620,9 @@ struct ShaderCreateInfo {
    * appended in the geometry shader IF AND ONLY IF the vertex_out interface instance name matches
    * the geometry_out interface instance name.
    */
-  Self &geometry_out(StageInterfaceInfo &iface)
+  Self &geometry_out(StageInterfaceInfo &interface)
   {
-    geometry_out_interfaces_.append(&iface);
+    geometry_out_interfaces_.append(&interface);
     return *(Self *)this;
   }
 

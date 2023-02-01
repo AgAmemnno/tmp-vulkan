@@ -514,7 +514,7 @@ GLShaderInterface::GLShaderInterface(GLuint program, const shader::ShaderCreateI
   for (const ShaderCreateInfo::PushConst &uni : info.push_constants_) {
     copy_input_name(input, uni.name, name_buffer_, name_buffer_offset);
     input->location = glGetUniformLocation(program, name_buffer_ + input->name_offset);
-    input->binding  = -1;
+    input->binding = -1;
     input++;
   }
 

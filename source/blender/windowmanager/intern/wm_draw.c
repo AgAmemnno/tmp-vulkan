@@ -969,7 +969,7 @@ static void wm_draw_window_offscreen(bContext *C, wmWindow *win, bool stereo)
 
     GPU_debug_group_end();
     if (area->spacetype == SPACE_OUTLINER) {
-      WM_exit(C);
+      //WM_exit(C);
     }
   }
 
@@ -1126,8 +1126,7 @@ static void wm_draw_window(bContext *C, wmWindow *win)
   /* Draw area regions into their own frame-buffer. This way we can redraw
    * the areas that need it, and blit the rest from existing frame-buffers. */
   wm_draw_window_offscreen(C, win, stereo);
-  GPU_context_end_frame(win->gpuctx);
-  WM_exit(C);
+
 
   /* Now we draw into the window frame-buffer, in full window coordinates. */
   if (!stereo) {

@@ -247,9 +247,10 @@ void VKFrameBuffer::clear(eGPUFrameBufferBits buffers,
   auto loadOp = vk_attachments_.get_LoadOp();
   if (loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR) {  // VK_ATTACHMENT_LOAD_OP_LOAD
     if (is_render_begin_) {
+      VKContext *context = VKContext::get();
       render_end();
-      context_->end_frame();
-      context_->begin_frame();
+      context->end_frame();
+      context->begin_frame();
     }
     render_begin(VK_NULL_HANDLE, VK_COMMAND_BUFFER_LEVEL_PRIMARY, (VkClearValue *)clearValues);
   }

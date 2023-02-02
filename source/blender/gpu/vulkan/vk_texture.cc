@@ -521,11 +521,13 @@ bool VKTexture::init_internal(void)
   alloc_info.flags = VMA_ALLOCATION_CREATE_STRATEGY_BEST_FIT_BIT;
 
   VmaAllocationInfo allocinfo = {};
-  allocinfo.pName = (name_ + std::to_string(VK_IMAGE_ALLOCATED_TIMES++)).c_str();
+  std::string pName = (name_ + std::to_string(VK_IMAGE_ALLOCATED_TIMES++)).c_str();
+
 
   vmaCreateImage(mem_allocator, &info, &alloc_info, &vk_image_, &vk_allocation_, &allocinfo);
   needs_update_descriptor_ = true;
-
+  vmaSetAllocationName(mem_allocator, vk_allocation_, pName.c_str());
+                                                     
   auto state_manager = reinterpret_cast<VKStateManager *>(context_->state_manager);
   state_manager->texture_bind_temp(this);
 

@@ -117,9 +117,11 @@ VKShaderInterface::VKShaderInterface()
 };
 VKShaderInterface ::~VKShaderInterface()
 {
+  printf("destroy %s  \n", sc_info_->name_.c_str());
   MEM_SAFE_FREE(push_cache_);
   destroy();
 };
+
 
 void VKShaderInterface::destroy()
 {
@@ -544,11 +546,11 @@ bool VKShaderInterface::alloc_inputs(Vector<_max_name_len> max_names, Vector<_le
 
   for (int i = 0; i < max_names.size(); i++) {
     auto &src_max = max_names[i];
-    dst_max.attr = std::max(src_max.attr, dst_max.attr);
-    dst_max.ubo = std::max(src_max.ubo, dst_max.ubo);
-    dst_max.image = std::max(src_max.image, dst_max.image);
-    dst_max.ssbo = std::max(src_max.ssbo, dst_max.ssbo);
-    dst_max.push = std::max(src_max.push, dst_max.push);
+    dst_max.attr = std::max(src_max.attr+1, dst_max.attr);
+    dst_max.ubo = std::max(src_max.ubo+1, dst_max.ubo);
+    dst_max.image = std::max(src_max.image+1, dst_max.image);
+    dst_max.ssbo = std::max(src_max.ssbo+1, dst_max.ssbo);
+    dst_max.push = std::max(src_max.push+1, dst_max.push);
 
     auto &src_len = lens[i];
     dst_len.attr = std::max(src_len.attr, dst_len.attr);
@@ -714,7 +716,10 @@ bool VKShaderInterface::apply(spirv_cross::CompilerBlender *vert,
   push_cache_ = (char *)MEM_mallocN(push_range_.size, "push_cache");
   BLI_assert(ofs == len_.attr + len_.ubo + len_.image + len_.push + len_.ssbo);
 
-  const uint32_t SetNums = VKContext::get()->getImageViewNums();
+  uint32_t SetNums = VKContext::get()->getImageViewNums();
+  if (SetNums == 0) {
+    SetNums = 2;
+  }
   int i = 0;
   for (auto &slb : setlayoutbindings_) {
     if (i == 0) {

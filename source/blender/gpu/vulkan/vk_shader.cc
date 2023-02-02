@@ -1004,7 +1004,7 @@ std::string VKShader::resources_declare(const shader::ShaderCreateInfo &info) co
 
   ss << "\n/* Batch Resources. */\n";
   for (const shader::ShaderCreateInfo::Resource &res : info.batch_resources_) {
-    print_resource(ss, res);
+    print_resource(ss, res,slot++);
   }
   for (const shader::ShaderCreateInfo::Resource &res : info.batch_resources_) {
     print_resource_alias(ss, res);
@@ -1115,6 +1115,7 @@ std::string VKShader::vertex_interface_declare(const shader::ShaderCreateInfo &i
   std::string post_main;
   ss << "#define gl_VertexID gl_VertexIndex \n";
   ss << "#define gl_InstanceID gl_InstanceIndex \n";
+  ss << "#define gpu_InstanceIndex gl_InstanceIndex \n"; /* workbench_opaque_  */
   ss << "#extension GL_EXT_debug_printf : enable \n ";
 
   /*Scratch for uploading color in uchar4.*/
@@ -1702,6 +1703,8 @@ void VKShader::uniform_int(int location, int comp_len, int array_size, const int
 
 VKShader::~VKShader()
 {
+  VK_ALLOCATION_CALLBACKS;
+
   bool valid = true;
   VkDevice device = context_->device_get();
 
@@ -1722,7 +1725,7 @@ VKShader::~VKShader()
 
   if (pipe != VK_NULL_HANDLE) {
     valid = this->is_valid();
-    vkDestroyPipeline(device, pipe, nullptr);
+    vkDestroyPipeline(device, pipe, vk_allocation_callbacks);
   }
 
   /// <summary>
@@ -1737,14 +1740,22 @@ VkPipeline VKShader::CreatePipeline(
 
     VkRenderPass renderpass)
 {
+  VK_ALLOCATION_CALLBACKS;
+
+  if (pipe != VK_NULL_HANDLE) {
+    vkDestroyPipeline(VK_DEVICE, pipe, vk_allocation_callbacks);
+  }
+
+  if (renderpass == VK_NULL_HANDLE) {
+    pipe = VK_NULL_HANDLE;
+    return pipe;
+  }
 
   VKContext *ctx = VKContext::get();
 
   auto vkinterface = (VKShaderInterface *)interface;
 
-  if (pipe != VK_NULL_HANDLE) {
-    vkDestroyPipeline(VK_DEVICE, pipe, nullptr);
-  }
+
 
   BLI_assert(this);
   VKShaderInterface *vk_interface = this->get_interface();
@@ -1795,8 +1806,8 @@ VkPipeline VKShader::CreatePipeline(
   ci.subpass = 0;
   ci.pTessellationState = nullptr;
 
-  VK_CHECK2(
-      vkCreateGraphicsPipelines(device, stman->get_pipeline_cache(), 1, &ci, nullptr, &pipe));
+  VK_CHECK2(vkCreateGraphicsPipelines(
+      device, stman->get_pipeline_cache(), 1, &ci, vk_allocation_callbacks, &pipe));
 
   return pipe;
 };

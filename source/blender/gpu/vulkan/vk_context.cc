@@ -28,7 +28,26 @@
 
 
 namespace blender::gpu {
-/* Global memory manager. */
+static VmaAllocator mem_allocator_ = VK_NULL_HANDLE;
+static VmaAllocatorCreateInfo mem_allocator_info = {};
+
+
+  void VKContext::destroyMemAllocator(){
+
+    if (mem_allocator_ != VK_NULL_HANDLE) {
+      vmaDestroyAllocator(mem_allocator_);
+    }
+    mem_allocator_ = VK_NULL_HANDLE;
+    mem_allocator_info = {};
+
+ };
+
+ VmaAllocator VKContext::mem_allocator_get() 
+ {
+   return mem_allocator_;
+ }
+
+ /* Global memory manager. */
   uint32_t    VKContext::max_cubemap_size = 0;
   uint32_t    VKContext::max_ubo_size = 0;
   uint32_t   VKContext::max_ubo_binds = 0;
@@ -77,7 +96,7 @@ VKContext::~VKContext()
     if (sampler_state_cache_[i] != VK_NULL_HANDLE)
       vkDestroySampler(device_, sampler_state_cache_[i], nullptr);
   };
-  vmaDestroyAllocator(mem_allocator_);
+ 
 };
 
 void VKContext::create_swapchain_fb() {
@@ -123,13 +142,17 @@ void VKContext::init(void *ghost_window, void *ghost_context)
       &graphic_queue_familly_);
 
   /* Initialize the memory allocator. */
-  VmaAllocatorCreateInfo info = {};
+  //VmaAllocatorCreateInfo info = {};
   /* Should use same vulkan version as GHOST. */
-  info.vulkanApiVersion = VK_API_VERSION_1_2;
-  info.physicalDevice = physical_device_;
-  info.device = device_;
-  info.instance = instance_;
-  vmaCreateAllocator(&info, &mem_allocator_);
+  if (mem_allocator_ == VK_NULL_HANDLE) {
+
+    mem_allocator_info.vulkanApiVersion = VK_API_VERSION_1_2;
+    mem_allocator_info.physicalDevice = physical_device_;
+    mem_allocator_info.device = device_;
+    mem_allocator_info.instance = instance_;
+    vmaCreateAllocator(&mem_allocator_info, &mem_allocator_);
+    gcontext->destroyer = []() { VKContext::destroyMemAllocator(); };
+  }
 
   VKBackend::capabilities_init(this);
   VKBackend::platform_init(this);

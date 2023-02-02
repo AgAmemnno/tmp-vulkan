@@ -229,7 +229,7 @@ class VKContext : public Context {
   VkDevice device_ = VK_NULL_HANDLE;
   uint32_t graphic_queue_familly_ = 0;
   /** Allocator used for texture and buffers and other resources. */
-  VmaAllocator mem_allocator_ = VK_NULL_HANDLE;
+ // VmaAllocator mem_allocator_ = VK_NULL_HANDLE;
 
 
   /** Mutex for the below structures. */
@@ -260,7 +260,7 @@ class VKContext : public Context {
    static uint32_t    max_push_constants_size;
    static uint32_t    max_inline_ubo_size;
    static bool vertex_attrib_binding_support;
-
+   static void destroyMemAllocator();
   VkSampler get_default_sampler_state();
   VkSampler get_sampler_from_state(VKSamplerState sampler_state);
   VkSampler generate_sampler_from_state(VKSamplerState sampler_state);
@@ -322,10 +322,7 @@ class VKContext : public Context {
 
   void get_command_buffer(VkCommandBuffer& cmd);
 
-  VmaAllocator mem_allocator_get() const
-  {
-    return mem_allocator_;
-  }
+  VmaAllocator mem_allocator_get();
   VkDevice device_get() {
     return device_;
   };
@@ -336,7 +333,9 @@ class VKContext : public Context {
 
   static VKContext *get()
   {
-    return static_cast<VKContext *>(Context::get());
+    VKContext *vk_ctx = static_cast<VKContext *>(unwrap(GPU_context_active_get()));
+    BLI_assert(vk_ctx);
+    return vk_ctx;//static_cast<VKContext *>(Context::get());
   }
 
   Set<VKVaoCache*> vao_caches_;

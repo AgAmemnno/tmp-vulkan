@@ -33,7 +33,7 @@ VkPhysicalDeviceProperties& getProperties() {
 
 };
   VKBackend::VKBackend() {
-    context_ = nullptr;
+    ofs_context_ = context_ = nullptr;
   };
 
 VKBackend::~VKBackend()
@@ -47,6 +47,7 @@ VKBackend::~VKBackend()
 
 void VKBackend::delete_resources()
 {
+ // VKContext::destroyMemAllocator();
 }
 
 void VKBackend::samplers_update()
@@ -87,8 +88,9 @@ DrawList *VKBackend::drawlist_alloc(int /*list_length*/)
 
 FrameBuffer *VKBackend::framebuffer_alloc(const char *name)
 {
-  BLI_assert(context_);
-  return new VKFrameBuffer(name,context_);
+  VKContext *vk_ctx = static_cast<VKContext *>(unwrap(GPU_context_active_get()));
+  BLI_assert(vk_ctx);
+  return new VKFrameBuffer(name, vk_ctx);
 }
 
 IndexBuf *VKBackend::indexbuf_alloc()
@@ -108,7 +110,9 @@ Shader *VKBackend::shader_alloc(const char * name)
 
 Texture *VKBackend::texture_alloc(const char * name)
 {
-  return new VKTexture(name,context_);
+  VKContext *vk_ctx = static_cast<VKContext *>(unwrap(GPU_context_active_get()));
+  BLI_assert(vk_ctx);
+  return new VKTexture(name,vk_ctx);
 }
 
 UniformBuf *VKBackend::uniformbuf_alloc(int  size, const char * name)
@@ -132,13 +136,15 @@ VertBuf *VKBackend::vertbuf_alloc()
 void VKBackend::render_begin()
 {
   printf("<<<<<<<<<<<<<<<<   vulkan backend render begin     ");
-
-  if (context_) {
-    context_->begin_frame();
-    VKFrameBuffer* fb_ = static_cast<VKFrameBuffer*>(context_->active_fb);
-    context_->get_command_buffer(backend_prim_cmd_);
-    fb_->render_begin(backend_prim_cmd_, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-   
+  VKContext *vk_ctx = static_cast<VKContext *>(unwrap(GPU_context_active_get()));
+  BLI_assert(vk_ctx);
+  if (vk_ctx) {
+    if (vk_ctx->is_swapchain_) {
+      vk_ctx->begin_frame();
+      VKFrameBuffer *fb_ = static_cast<VKFrameBuffer *>(vk_ctx->active_fb);
+      vk_ctx->get_command_buffer(backend_prim_cmd_);
+      fb_->render_begin(backend_prim_cmd_, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+    }
   }
   else {
     BLI_assert_msg(false, "Context lost.");
@@ -149,13 +155,19 @@ void VKBackend::render_begin()
 void VKBackend::render_end()
 {
   printf("   vulkan backend render end     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-  auto fb = static_cast<VKFrameBuffer*>(context_->active_fb);
+  VKContext *vk_ctx = static_cast<VKContext *>(unwrap(GPU_context_active_get()));
+  
+  if (vk_ctx) {
+    /*BLI_assert(vk_ctx);*/
+    if (vk_ctx->is_swapchain_) {
+      auto fb = static_cast<VKFrameBuffer *>(vk_ctx->active_fb);
 
-  if (context_ && fb->is_render_begin() ){    
-    fb->render_end();
-    context_->end_frame();
+      if (vk_ctx && fb->is_render_begin()) {
+        fb->render_end();
+        vk_ctx->end_frame();
+      }
+    }
   }
-
 }
 
 void VKBackend::render_step()

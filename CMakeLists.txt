@@ -625,8 +625,10 @@ mark_as_advanced(
 
 # Vulkan
 option(WITH_VULKAN_BACKEND "Enable Vulkan as graphics backend (only for development)" OFF)
+option(WITH_VULKAN_GUARDEDALLOC "Use guardedalloc for host allocations done inside Vulkan (development option)" OFF)
 mark_as_advanced(
   WITH_VULKAN_BACKEND
+  WITH_VULKAN_GUARDEDALLOC
 )
 
 # Metal
@@ -2002,6 +2004,9 @@ if(FIRST_RUN)
       info_cfg_option(WITH_CYCLES_ONEAPI_BINARIES)
     endif()
   endif()
+  info_cfg_text("Vulkan:")
+  info_cfg_option(WITH_VULKAN_BACKEND)
+  info_cfg_option(WITH_VULKAN_GUARDEDALLOC)
 
   info_cfg_text("")
 

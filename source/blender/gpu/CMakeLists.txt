@@ -299,6 +299,9 @@ set(LIB
 if(WITH_VULKAN_BACKEND)
     
     add_definitions(-DWITH_VULKAN_BACKEND)
+    if(WITH_VULKAN_GUARDEDALLOC)
+      add_definitions(-DWITH_VULKAN_GUARDEDALLOC)
+    endif()
     set(INC ${INC}    ../../../extern/spirv_cross/src)
 
 
@@ -320,7 +323,7 @@ if(WITH_VULKAN_BACKEND)
     extern_spirv_cross
     extern_spirv_cross_glsl
     )
-    message(STATUS  " >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>${VULKAN_LIBRARIES} ${SHADERC_LIBRARIES}   WITH_VULKAN_BACKEND  ON")
+    message(STATUS  " >>>>>>>>>>>>>>WITH_VULKAN_GUARDEDALLOC  ${WITH_VULKAN_GUARDEDALLOC} >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>${VULKAN_LIBRARIES} ${SHADERC_LIBRARIES}   WITH_VULKAN_BACKEND  ON")
 endif()
 
 set(MSL_SRC

@@ -550,10 +550,15 @@ void WM_exit_ex(bContext *C, const bool do_python)
   if (opengl_is_init) {
     BKE_image_free_unused_gpu_textures();
   }
-GPU_exit(); 
+
+  /* With the current structure, VMAAllocator will leak, so execute BLF_exit() and GPU_exit() first.*/
+  BLF_exit();
+  GPU_exit();
+  BKE_studiolight_free();
+  UI_exit();
   BKE_blender_free(); /* blender.c, does entire library and spacetypes */
                       //  BKE_material_copybuf_free();
-
+ 
   /* Free the GPU subdivision data after the database to ensure that subdivision structs used by
    * the modifiers were garbage collected. */
   if (opengl_is_init) {
@@ -575,7 +580,7 @@ GPU_exit();
   /* Same for UI-list types. */
   WM_uilisttype_free();
 
-  BLF_exit();
+  //BLF_exit();
 
   BLT_lang_free();
 
@@ -607,7 +612,7 @@ GPU_exit();
     DRW_opengl_context_enable_ex(false);
     UI_exit();
     GPU_pass_cache_free();
-    GPU_exit();
+    //GPU_exit();
     DRW_opengl_context_disable_ex(false);
     DRW_opengl_context_destroy();
   }

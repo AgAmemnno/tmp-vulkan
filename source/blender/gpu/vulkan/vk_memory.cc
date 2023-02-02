@@ -31,6 +31,74 @@
   } while (false)
 
 
+
+/* SPDX-License-Identifier: GPL-2.0-or-later
+ * Copyright 2023 Blender Foundation. All rights reserved. */
+
+/** \file
+ * \ingroup gpu
+ */
+
+#include "vk_memory.hh"
+
+#include "MEM_guardedalloc.h"
+
+namespace blender::gpu {
+
+#ifdef WITH_VULKAN_GUARDEDALLOC
+
+static void *allocation(void *user_data,
+                        size_t size,
+                        size_t alignment,
+                        VkSystemAllocationScope /*scope*/)
+{
+  const char *name = static_cast<const char *>(const_cast<const void *>(user_data));
+
+  // void *ptr = _aligned_malloc(size, alignment);
+  //return ptr;
+  return MEM_mallocN_aligned(size, alignment, name);
+}
+
+static void *reallocation(void *user_data,
+                          void *original,
+                          size_t size,
+                          size_t alignment,
+                          VkSystemAllocationScope /*scope*/)
+{
+  const char *name = static_cast<const char *>(const_cast<const void *>(user_data));
+ 
+  return MEM_reallocN_id(original, size, name);
+}
+
+static void free(void * user_data, void *memory)
+{
+  if (memory == nullptr)  // https://www.khronos.org/registry/vulkan/specs/1.0/man/html/PFN_vkFreeFunction.html
+                           // (may be null and it would be safe anyway!)
+  {
+    return;
+  }
+ //return _aligned_free(memory);
+  return MEM_freeN(memory);
+  //printf("Free Vk Allocator %llx   %llx   \n", (uintptr_t)user_data, (uintptr_t)memory);
+
+}
+
+VkAllocationCallbacks vk_allocation_callbacks_init(const char *name)
+{
+  VkAllocationCallbacks callbacks;
+  callbacks.pUserData = const_cast<char *>(name);
+  callbacks.pfnAllocation = allocation;
+  callbacks.pfnReallocation = reallocation;
+  callbacks.pfnFree = free;
+  callbacks.pfnInternalAllocation = nullptr;
+  callbacks.pfnInternalFree = nullptr;
+  return callbacks;
+}
+#endif
+
+}  // namespace blender::gpu
+
+
 namespace blender::gpu {
 
 
@@ -77,7 +145,7 @@ void gpu::VKBuffer::Create(uint64_t size, uint alignment , VKResourceOptions& op
  
   options.bufferInfo.size = size;
   options.allocInfo = {};
-  options.allocInfo.pName = Name;
+  
   options.allocInfo.offset = 0;
   options.allocInfo.size = size;
   options.allocCreateInfo.flags = VMA_ALLOCATION_CREATE_STRATEGY_BEST_FIT_BIT;
@@ -93,7 +161,7 @@ void gpu::VKBuffer::Create(uint64_t size, uint alignment , VKResourceOptions& op
       &allocation,
       &options.allocInfo);
     BLI_assert(size <= allocation->GetSize());
-
+    vmaSetAllocationName(mem_allocator, allocation, Name);
     if (options.allocInfo.pUserData != nullptr)
     {
       can_mapped_ = true;

@@ -393,21 +393,14 @@ namespace blender::vulkan {
   }
 };
 
-#include <unordered_set>
-#  include <sstream>
-struct DebugMaster {
 
-  PFN_vkCreateDebugUtilsMessengerEXT    createDebugUtilsMessengerEXT = nullptr;
-  PFN_vkDestroyDebugUtilsMessengerEXT  destroyDebugUtilsMessengerEXT = nullptr;
-  VkDebugUtilsMessengerEXT dbgMessenger = nullptr;
-  std::unordered_set<int32_t> dbgIgnoreMessages;
-  VkDevice device;
-  void ignoreDebugMessage(int32_t msgID)
+
+  void DebugMaster::ignoreDebugMessage(int32_t msgID)
   {
     dbgIgnoreMessages.insert(msgID);
   }
 
-  void _setObjectName(uint64_t object,const  std::string &name, VkObjectType t)
+  void DebugMaster::_setObjectName(uint64_t object, const std::string &name, VkObjectType t)
   {
 
       VkDebugUtilsObjectNameInfoEXT s{
@@ -417,17 +410,17 @@ struct DebugMaster {
   }
 
 #  if VK_NV_ray_tracing
-  void setObjectName(VkAccelerationStructureNV object, const std::string &name)
+  void DebugMaster::setObjectName(VkAccelerationStructureNV object, const std::string &name)
   {
     _setObjectName((uint64_t)object, name, VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV);
   }
 #  endif
-  void setObjectName(VkBuffer object, const std::string &name)
+  void DebugMaster::setObjectName(VkBuffer object, const std::string &name)
   {
     _setObjectName((uint64_t)object, name, VK_OBJECT_TYPE_BUFFER);
   }
 
-  void beginLabel(VkCommandBuffer cmdBuf, const std::string &label)
+  void DebugMaster::beginLabel(VkCommandBuffer cmdBuf, const std::string &label)
   {
 
       VkDebugUtilsLabelEXT s{VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
@@ -437,13 +430,13 @@ struct DebugMaster {
       vkCmdBeginDebugUtilsLabelEXT(cmdBuf, &s);
 
   }
-  void endLabel(VkCommandBuffer cmdBuf)
+  void DebugMaster::endLabel(VkCommandBuffer cmdBuf)
   {
 
       vkCmdEndDebugUtilsLabelEXT(cmdBuf);
 
   }
-  void insertLabel(VkCommandBuffer cmdBuf, const std::string &label)
+  void DebugMaster::insertLabel(VkCommandBuffer cmdBuf, const std::string &label)
   {
 
       VkDebugUtilsLabelEXT s{VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
@@ -457,8 +450,8 @@ struct DebugMaster {
   // Begin and End Command Label MUST be balanced, this helps as it will always close the opened
   // label
   //
-  struct ScopedCmdLabel {
-    ScopedCmdLabel(VkCommandBuffer cmdBuf, const std::string &label) : m_cmdBuf(cmdBuf)
+#if 0
+    DebugMaster::ScopedCmdLabel(VkCommandBuffer cmdBuf, const std::string &label) : m_cmdBuf(cmdBuf)
     {
       if (s_enabled) {
         VkDebugUtilsLabelEXT s{VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
@@ -493,11 +486,8 @@ struct DebugMaster {
   {
     return ScopedCmdLabel(cmdBuf, label);
   }
+#endif
 
- private:
-  static bool s_enabled;
-};
-static DebugMaster deb;
 
 
 
@@ -618,7 +608,9 @@ debugUtilsCB(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 }
 
 static VkDebugReportCallbackEXT debug_report_callback;
-static VkResult CreateDebugReport(VkInstance instance, VkDebugReportFlagsEXT flag)
+static VkResult CreateDebugReport(VkInstance instance,
+                                  VkDebugReportFlagsEXT flag,
+                                  DebugMaster &deb)
 {
   PFN_vkCreateDebugReportCallbackEXT dbgCreateDebugReportCallback;
 
@@ -652,7 +644,7 @@ static VkResult CreateDebugReport(VkInstance instance, VkDebugReportFlagsEXT fla
       instance, &create_info, NULL, &debug_report_callback);
   return res;
 }
-static VkResult DestroyDebugReport(VkInstance instance)
+static VkResult DestroyDebugReport(VkInstance instance, DebugMaster &deb)
 {
   PFN_vkDestroyDebugReportCallbackEXT dbgDestroyDebugReportCallback = VK_NULL_HANDLE;
   dbgDestroyDebugReportCallback = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(
@@ -669,7 +661,9 @@ static VkResult DestroyDebugReport(VkInstance instance)
   return VK_SUCCESS;
 }
 
-static VkResult CreateDebugUtils(VkInstance instance, VkDebugUtilsMessageSeverityFlagsEXT flag)
+static VkResult CreateDebugUtils(VkInstance instance,
+                                 VkDebugUtilsMessageSeverityFlagsEXT flag,
+                                 DebugMaster& deb)
 {
   deb.dbgIgnoreMessages.clear();
   deb.createDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr( instance, "vkCreateDebugUtilsMessengerEXT");
@@ -691,7 +685,7 @@ static VkResult CreateDebugUtils(VkInstance instance, VkDebugUtilsMessageSeverit
   }
   return VK_ERROR_UNKNOWN;
 }
-static VkResult DestroyDebugUtils(VkInstance instance)
+static VkResult DestroyDebugUtils(VkInstance instance, DebugMaster &deb)
 {
   if (deb.destroyDebugUtilsMessengerEXT) {
     deb.destroyDebugUtilsMessengerEXT(instance, deb.dbgMessenger, nullptr);
@@ -707,7 +701,7 @@ static VkResult DestroyDebugUtils(VkInstance instance)
 
 
 
-static GHOST_TSuccess CreateDebug(VULKAN_DEBUG_TYPE mode,VkInstance instance)
+static GHOST_TSuccess CreateDebug(VULKAN_DEBUG_TYPE mode,VkInstance instance,DebugMaster& deb)
 {
   if (mode == VULKAN_DEBUG_REPORT || mode == VULKAN_DEBUG_REPORT_ALL ||
       mode == VULKAN_DEBUG_BOTH) {
@@ -719,7 +713,7 @@ static GHOST_TSuccess CreateDebug(VULKAN_DEBUG_TYPE mode,VkInstance instance)
 
     if (mode == VULKAN_DEBUG_REPORT_ALL)
       flag = (VkDebugReportFlagBitsEXT)(flag |VK_DEBUG_REPORT_DEBUG_BIT_EXT);
-    VK_CHECK(CreateDebugReport(instance, flag));
+    VK_CHECK(CreateDebugReport(instance, flag,deb));
 
   }
   if (mode == VULKAN_DEBUG_UTILS || mode == VULKAN_DEBUG_UTILS_ALL || mode == VULKAN_DEBUG_BOTH) {
@@ -730,7 +724,7 @@ static GHOST_TSuccess CreateDebug(VULKAN_DEBUG_TYPE mode,VkInstance instance)
     if (mode == VULKAN_DEBUG_UTILS_ALL)
       flag = (VkDebugReportFlagBitsEXT)(flag | VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT);
     
-    VK_CHECK(CreateDebugUtils(instance,flag));
+    VK_CHECK(CreateDebugUtils(instance,flag,deb));
   
   
   }
@@ -738,14 +732,14 @@ static GHOST_TSuccess CreateDebug(VULKAN_DEBUG_TYPE mode,VkInstance instance)
 
  return GHOST_kSuccess;
 };
-static GHOST_TSuccess DestroyDebug(VULKAN_DEBUG_TYPE mode, VkInstance instance)
+static GHOST_TSuccess DestroyDebug(VULKAN_DEBUG_TYPE mode, VkInstance instance,DebugMaster& deb)
 {
   {
     if (mode == VULKAN_DEBUG_REPORT || mode == VULKAN_DEBUG_BOTH)
-      VK_CHECK(DestroyDebugReport(instance));
+      VK_CHECK(DestroyDebugReport(instance,deb));
 
     if (mode == VULKAN_DEBUG_UTILS || mode == VULKAN_DEBUG_BOTH)
-      VK_CHECK(DestroyDebugUtils(instance));
+      VK_CHECK(DestroyDebugUtils(instance,deb));
 
   }
   return GHOST_kSuccess;
@@ -849,22 +843,26 @@ GHOST_ContextVK::GHOST_ContextVK(bool stereoVisual,
 
 
 
-  destroySwapchain();
-
+  if (m_surface) {
+    destroySwapchain();
+  }
  
   if (m_command_pool != VK_NULL_HANDLE) {
     vkDestroyCommandPool(m_device, m_command_pool, NULL);
   }
 
-  if (m_device != VK_NULL_HANDLE) {
-    vkDestroyDevice(m_device, NULL);
-  }
   if (m_surface != VK_NULL_HANDLE) {
     vkDestroySurfaceKHR(m_instance, m_surface, NULL);
   }
 
-
-  DestroyDebug(m_debugMode,m_instance);
+  if (destroyer) {
+    destroyer();
+  }
+  if (m_device != VK_NULL_HANDLE) {
+    vkDestroyDevice(m_device, NULL);
+  }
+ 
+  DestroyDebug(m_debugMode,m_instance,deb);
   if (m_instance != VK_NULL_HANDLE) {
     vkDestroyInstance(m_instance, NULL);
   }
@@ -2116,6 +2114,9 @@ VkCommandBuffer GHOST_ContextVK::getCommandBuffers(int i)
 {
    
   if (m_command_buffers.size() <= i) {
+    if (m_command_pool == VK_NULL_HANDLE) {
+      createCommandBuffers();
+    }
     m_command_buffers.push_back(create_command_buffer(m_device, m_command_pool));
   }
   printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> CommandBuffer request  %d \n", i);
@@ -2436,7 +2437,7 @@ GHOST_TSuccess GHOST_ContextVK::initializeDrawingContext()
   VK_CHECK(vkCreateInstance(&create_info, NULL, &m_instance));
 
   if(m_debug) {
-       CreateDebug(m_debugMode,m_instance);
+       CreateDebug(m_debugMode,m_instance,deb);
   }
 
   if (use_window_surface) {

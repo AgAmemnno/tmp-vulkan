@@ -458,11 +458,16 @@ bool VKTexture::init_internal(void)
     info.format = to_vk(format_);
     info.imageType = to_vk_image_type(type_);
     info.extent.width = static_cast<uint32_t>(w_);
+    if (h_ == 0) {
+      h_ = 1;
+    }
     info.extent.height = static_cast<uint32_t>(h_);
-    info.extent.depth = 1;
-    if (d_ > 0) {
-      info.extent.depth = static_cast<uint32_t>(d_);
-    };
+    if (d_ == 0) {
+      d_ = 1;
+    }
+    info.extent.depth = static_cast<uint32_t>(d_);
+
+
     info.arrayLayers = this->layer_count();
     info.samples = VK_SAMPLE_COUNT_1_BIT;
     info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;

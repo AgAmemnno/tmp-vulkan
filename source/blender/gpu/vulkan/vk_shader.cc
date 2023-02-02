@@ -1220,8 +1220,11 @@ std::string VKShader::vertex_interface_declare(const shader::ShaderCreateInfo &i
   ss << "\n";
   if (true) {
     std::string pre_main = "";
-
-    if ("gpu_shader_2D_image_multi_rect_color" == info.name_) {
+    if ("workbench_opaque_mesh_tex_none_no_clip" == info.name_){
+      post_main = "";
+       
+    }
+    else if ("gpu_shader_2D_image_multi_rect_color" == info.name_) {
       post_main +=
           "debugPrintfEXT(\"Here pos %v2f  texCoord_interp  %v2f  \",pos.xy,texCoord_interp);\n\n";
     }
@@ -1250,23 +1253,12 @@ std::string VKShader::vertex_interface_declare(const shader::ShaderCreateInfo &i
         float c2 = texelFetch(glyph, ivec2(2, 0), 0).r; \
         debugPrintfEXT(\"Here  sampling  %i   glyph.R  %f  %f  %f   size_x %i \", glyph_offset,c,c1,c2,size_x);\n\n";
       pre_main = "";
-#if 0
-      post_main += "    \
-        int size_x         = textureSize(glyph, 0).r;  \n \
-        vec2 texel_2d  = texCoord_interp * vec2(glyph_dim) + vec2(0.5);\n \
-        ivec2 texel_2d_near = ivec2(texel_2d) - 1;\n \
-        int index = glyph_offset + texel_2d_near.y * glyph_dim.x + texel_2d_near.x;\n \
-        color_flat.a  = 1.;// texelFetch(glyph, ivec2(index % size_x, index / size_x), 0).r; \n  \
-        ";
-#endif
 
-      // post_main += "debugPrintfEXT(\"Here  pos %v4f  col %v4f     glyphsize %v2i  offset  %i
-      // \",pos,col,glyph_size,offset);
-      // \n\n";//,gl_Position.xy,ModelViewProjectionMatrix[0][0]);\n\n";
-
-      pre_main += "gl_PointSize = 10.0f; \n";
     }
 
+
+
+    pre_main += "gl_PointSize = 10.0f; \n";
     // post_main += "gl_Position.y *= -1.;\n\n";
     ss << main_function_wrapper(pre_main, post_main);
   }

@@ -394,6 +394,7 @@ namespace blender::gpu {
     case 24:
     case 13:
     case 103:
+    case 145:
       save = true;
       break;
     default:

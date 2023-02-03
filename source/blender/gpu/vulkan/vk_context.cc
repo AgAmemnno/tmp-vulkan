@@ -28,8 +28,7 @@
 
 
 namespace blender::gpu {
-static VmaAllocator mem_allocator_ = VK_NULL_HANDLE;
-static VmaAllocatorCreateInfo mem_allocator_info = {};
+
 
 
   void VKContext::destroyMemAllocator(){
@@ -55,6 +54,7 @@ static VmaAllocatorCreateInfo mem_allocator_info = {};
   uint32_t   VKContext::max_ssbo_binds = 0;
   uint32_t   VKContext::max_push_constants_size = 0;
   uint32_t   VKContext::max_inline_ubo_size = 0;
+  bool   VKContext::multi_draw_indirect_support  = 0;
   bool          VKContext::vertex_attrib_binding_support = false;
 
 VKContext::VKContext(void *ghost_window,
@@ -96,7 +96,8 @@ VKContext::~VKContext()
     if (sampler_state_cache_[i] != VK_NULL_HANDLE)
       vkDestroySampler(device_, sampler_state_cache_[i], nullptr);
   };
- 
+  vmaDestroyAllocator(mem_allocator_);
+  mem_allocator_ = VK_NULL_HANDLE;
 };
 
 void VKContext::create_swapchain_fb() {
@@ -151,7 +152,9 @@ void VKContext::init(void *ghost_window, void *ghost_context)
     mem_allocator_info.device = device_;
     mem_allocator_info.instance = instance_;
     vmaCreateAllocator(&mem_allocator_info, &mem_allocator_);
-    gcontext->destroyer = []() { VKContext::destroyMemAllocator(); };
+    gcontext->destroyer = [&]() {
+
+    };
   }
 
   VKBackend::capabilities_init(this);
@@ -169,10 +172,6 @@ void VKContext::init(void *ghost_window, void *ghost_context)
    // int w = GHOST_GetWidthRectangle(bounds);
    // int h = GHOST_GetHeightRectangle(bounds);
     GHOST_DisposeRectangle(bounds);
-
-
-
-
 
     /* Create FrameBuffer handles. */
     int i = 0;

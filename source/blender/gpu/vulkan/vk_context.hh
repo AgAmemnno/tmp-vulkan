@@ -259,8 +259,11 @@ class VKContext : public Context {
    static  uint32_t   max_ssbo_binds;
    static uint32_t    max_push_constants_size;
    static uint32_t    max_inline_ubo_size;
+   static bool    multi_draw_indirect_support;
+   static uint32_t max_geometry_shader_invocations;
    static bool vertex_attrib_binding_support;
-   static void destroyMemAllocator();
+   static float derivative_signs[2];
+  void destroyMemAllocator();
   VkSampler get_default_sampler_state();
   VkSampler get_sampler_from_state(VKSamplerState sampler_state);
   VkSampler generate_sampler_from_state(VKSamplerState sampler_state);
@@ -400,6 +403,8 @@ class VKContext : public Context {
   VKTexture *get_dummy_texture(eGPUTextureType type);
   void bottom_transition();
   void fail_transition();
+  VmaAllocator mem_allocator_ = VK_NULL_HANDLE;
+  VmaAllocatorCreateInfo mem_allocator_info = {};
 
   private:
   /* Parent Context. */

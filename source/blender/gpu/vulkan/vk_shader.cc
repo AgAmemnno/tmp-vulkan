@@ -87,6 +87,7 @@ already CPP.
 
 //#include "shader_compiler.hh"
 #include <shaderc/shaderc.hpp>
+extern "C" char datatoc_glsl_shader_defines_glsl[];
 
 namespace blender::gpu {
 
@@ -161,19 +162,111 @@ static std::string combine_sources(Span<const char *> sources)
   }
   return combined.str();
 }
-static char *glsl_patch_get()
+static char *glsl_patch_default_get()
 {
-  static char patch[512] = "\0";
+  /** Used for shader patching. Init once. */
+  static char patch[2048] = "\0";
   if (patch[0] != '\0') {
     return patch;
   }
 
   size_t slen = 0;
   /* Version need to go first. */
+
   STR_CONCAT(patch, slen, "#version 460\n");
+  STR_CONCAT(patch, slen, "#extension GL_EXT_debug_printf : enable \n ");
+  /* Enable extensions for features that are not part of our base GLSL version
+   * don't use an extension for something already available! */
+  if (true) { //VKContext::texture_gather_support) {
+    STR_CONCAT(patch, slen, "#extension GL_ARB_texture_gather: enable\n");
+    /* Some drivers don't agree on epoxy_has_gl_extension("GL_ARB_texture_gather") and the actual
+     * support in the shader so double check the preprocessor define (see T56544). */
+    STR_CONCAT(patch, slen, "#ifdef GL_ARB_texture_gather\n");
+    STR_CONCAT(patch, slen, "#  define GPU_ARB_texture_gather\n");
+    STR_CONCAT(patch, slen, "#endif\n");
+  }
+  if (true) {  // VKContext::shader_draw_parameters_support) {
+    STR_CONCAT(patch, slen, "#extension GL_ARB_shader_draw_parameters : enable\n");
+    STR_CONCAT(patch, slen, "#define GPU_ARB_shader_draw_parameters\n");
+    STR_CONCAT(patch, slen, "#define gpu_BaseInstance gl_BaseInstanceARB\n");
+  }
+  if (true) {  // VKContext::geometry_shader_invocations) {
+    STR_CONCAT(patch, slen, "#extension GL_ARB_gpu_shader5 : enable\n");
+    STR_CONCAT(patch, slen, "#define GPU_ARB_gpu_shader5\n");
+  }
+  if (true) {  // VKContext::texture_cube_map_array_support) {
+    STR_CONCAT(patch, slen, "#extension GL_ARB_texture_cube_map_array : enable\n");
+    STR_CONCAT(patch, slen, "#define GPU_ARB_texture_cube_map_array\n");
+  }
+  if (true) {  // epoxy_has_gl_extension("GL_ARB_conservative_depth")) {
+    //STR_CONCAT(patch, slen, "#extension GL_ARB_conservative_depth : enable\n");
+  }
+  if (true) {  // GPU_shader_image_load_store_support()) {
+    STR_CONCAT(patch, slen, "#extension GL_ARB_shader_image_load_store: enable\n");
+    STR_CONCAT(patch, slen, "#extension GL_ARB_shading_language_420pack: enable\n");
+  }
+  if (true) {  // VKContext::layered_rendering_support) {
+    //STR_CONCAT(patch, slen, "#extension GL_AMD_vertex_shader_layer: enable\n");
+    STR_CONCAT(patch, slen, "#define gpu_Layer gl_Layer\n");
+  }
+  if (true) {  // VKContext::native_barycentric_support) {
+    STR_CONCAT(patch, slen, "#extension GL_AMD_shader_explicit_vertex_parameter: enable\n");
+  }
+
+  /* Fallbacks. */
+  if (false) {  //! VKContext::shader_draw_parameters_support) {
+    STR_CONCAT(patch, slen, "uniform int gpu_BaseInstance;\n");
+  }
+
+  /* Vulkan GLSL compat. */
+  STR_CONCAT(patch, slen, "#define gpu_InstanceIndex (gl_InstanceID + gpu_BaseInstance)\n");
+
+  /* Array compat. */
+  STR_CONCAT(patch, slen, "#define gpu_Array(_type) _type[]\n");
+
+  /* Derivative sign can change depending on implementation. */
+  STR_CONCATF(patch, slen, "#define DFDX_SIGN %1.1f\n", VKContext::derivative_signs[0]);
+  STR_CONCATF(patch, slen, "#define DFDY_SIGN %1.1f\n", VKContext::derivative_signs[1]);
+
+  /* GLSL Backend Lib. */
+  STR_CONCAT(patch, slen, datatoc_glsl_shader_defines_glsl);
 
   BLI_assert(slen < sizeof(patch));
   return patch;
+
+}
+
+static char *glsl_patch_compute_get()
+{
+  /** Used for shader patching. Init once. */
+  static char patch[2048] = "\0";
+  if (patch[0] != '\0') {
+    return patch;
+  }
+
+  size_t slen = 0;
+  /* Version need to go first. */
+  STR_CONCAT(patch, slen, "#version 430\n");
+  STR_CONCAT(patch, slen, "#extension GL_ARB_compute_shader :enable\n");
+
+  /* Array compat. */
+  STR_CONCAT(patch, slen, "#define gpu_Array(_type) _type[]\n");
+
+  STR_CONCAT(patch, slen, datatoc_glsl_shader_defines_glsl);
+
+  BLI_assert(slen < sizeof(patch));
+  return patch;
+}
+
+static char *glsl_patch_get(VKShaderStageType gl_stage)
+{
+
+    if (gl_stage == VKShaderStageType::ComputeShader) {
+      return glsl_patch_compute_get();
+    }
+    return glsl_patch_default_get();
+
+
 }
 
 GHOST_TSuccess VKShader::compile_source(Span<const char *> sources, VKShaderStageType stage)
@@ -375,6 +468,7 @@ GHOST_TSuccess VKShader::compile_source(Span<const char *> sources, VKShaderStag
   }
 
   if (shaderc_result_get_compilation_status(result) != shaderc_compilation_status_success) {
+    printf("Shader Context \n\n\n %s ", source.c_str());
     bool failedToOptimize = strstr(shaderc_result_get_error_message(result), "failed to optimize");
     // int level = failedToOptimize ? LOGLEVEL_WARNING : LOGLEVEL_ERROR;
 
@@ -427,7 +521,7 @@ VkShaderModule VKShader::create_shader_module(MutableSpan<const char *> sources,
                                               VKShaderStageType stage)
 {
   /* Patch the shader code using the first source slot. */
-  sources[0] = glsl_patch_get();
+  sources[0] = glsl_patch_get(stage);
   compile_source(sources, stage);
 
   return shaders_[uint32_t(stage)].module;
@@ -486,9 +580,12 @@ bool VKShader::finalize(const shader::ShaderCreateInfo *info)
   }
   VKShaderInterface &iface = *((VKShaderInterface *)interface);
   if (!iface.valid) {
-    blender::gpu::ShaderModule vsm, fsm;
+    blender::gpu::ShaderModule vsm, fsm,gsm;
     getShaderModule(vsm, 0);
     getShaderModule(fsm, 2);
+    if (info->geometry_source_.size() > 0) {
+      getShaderModule(gsm, 1);
+    }
     iface.parse(vsm, fsm, info, this);
     auto fb = static_cast<VKFrameBuffer *>(VKContext::get()->active_fb);
     CreatePipeline(fb->get_render_pass());
@@ -1115,8 +1212,7 @@ std::string VKShader::vertex_interface_declare(const shader::ShaderCreateInfo &i
   std::string post_main;
   ss << "#define gl_VertexID gl_VertexIndex \n";
   ss << "#define gl_InstanceID gl_InstanceIndex \n";
-  ss << "#define gpu_InstanceIndex gl_InstanceIndex \n"; /* workbench_opaque_  */
-  ss << "#extension GL_EXT_debug_printf : enable \n ";
+
 
   /*Scratch for uploading color in uchar4.*/
   if (info.name_ == "gpu_shader_text") {
@@ -1219,11 +1315,13 @@ std::string VKShader::vertex_interface_declare(const shader::ShaderCreateInfo &i
   }
 
   ss << "\n";
-  if (true) {
+
+
+  std::string pre_main = "gl_PointSize = 10.0f; \n";
+  if (post_main.empty() == false){
     std::string pre_main = "";
-    if ("workbench_opaque_mesh_tex_none_no_clip" == info.name_){
+    if ("workbench_opaque_mesh_tex_none_no_clip" == info.name_) {
       post_main = "";
-       
     }
     else if ("gpu_shader_2D_image_multi_rect_color" == info.name_) {
       post_main +=
@@ -1254,13 +1352,15 @@ std::string VKShader::vertex_interface_declare(const shader::ShaderCreateInfo &i
         float c2 = texelFetch(glyph, ivec2(2, 0), 0).r; \
         debugPrintfEXT(\"Here  sampling  %i   glyph.R  %f  %f  %f   size_x %i \", glyph_offset,c,c1,c2,size_x);\n\n";
       pre_main = "";
-
     }
 
+      
+      //pre_main += "gl_PointSize = 10.0f; \n";
+      // post_main += "gl_Position.y *= -1.;\n\n";
+      ss << main_function_wrapper(pre_main, post_main);
 
-
-    pre_main += "gl_PointSize = 10.0f; \n";
-    // post_main += "gl_Position.y *= -1.;\n\n";
+  }
+  else {
     ss << main_function_wrapper(pre_main, post_main);
   }
 
@@ -1271,6 +1371,7 @@ std::string VKShader::fragment_interface_declare(const shader::ShaderCreateInfo 
 {
   std::stringstream ss;
   std::string pre_main;
+
   ss << "#extension GL_EXT_debug_printf : enable \n ";
 
   ss << "\n/* Interfaces. */\n";
@@ -1361,9 +1462,9 @@ std::string VKShader::fragment_interface_declare(const shader::ShaderCreateInfo 
 
   /// ss << "layout(location = " << std::to_string(out_index) << " ) out vec4 fragColor;\n";
 
-  if (true) {  //(pre_main.empty() == false) {
-    std::string post_main =
-        "";  ///"debugPrintfEXT(\"Here Frag texco %v2f    color %v4f \",texCoord_interp,color);";
+  if (pre_main.empty() == false) {
+
+    std::string post_main = "";
     if ("gpu_shader_2D_image_multi_rect_color" == info.name_) {
       // pre_main += "fragColor = vec4(0.,0.,1.,1); return;//debugPrintfEXT(\"Here  texCoord %v2f
       // finalColor  %v4f    \",texCoord_interp,finalColor);\n\n";
@@ -1378,56 +1479,7 @@ std::string VKShader::fragment_interface_declare(const shader::ShaderCreateInfo 
       // pre_main = "fragColor =  color_flat.rgba;return;";
     }
     else if ("gpu_shader_2D_widget_base" == info.name_) {
-      /*TODO uv coord inverse y.*/
-#if 0
-      pre_main += " \
-        vec2 uv = uvInterp;\n \
-        bool upper_half = uv.y > outRectSize.y * 0.5; \n \
-        bool right_half = uv.x > outRectSize.x * 0.5; \n \
-        float corner_rad; \n \
- \n \
-        /* Correct aspect ratio for 2D views not using uniform scaling. \n \
-         * uv is already in pixel space so a uniform scale should give us a ratio of 1. */ \n \
-        float ratio = (butCo != -2.0) ? (dFdy(uv.y) / dFdx(uv.x)) : 1.0; \n \
-        vec2 uv_sdf = uv; \n \
-        uv_sdf.x *= ratio; \n \
- \n \
-        if (right_half) { \n \
-          uv_sdf.x = outRectSize.x * ratio - uv_sdf.x; \n \
-        } \n \
-        if (upper_half) { \n \
-          uv_sdf.y = outRectSize.y - uv_sdf.y; \n \
-          corner_rad = right_half ? outRoundCorners.z : outRoundCorners.w; \n \
-        } \n \
-        else { \n \
-          corner_rad = right_half ? outRoundCorners.y : outRoundCorners.x; \n \
-        } \n \
- \n \
-        /* Fade emboss at the border. */ \n \
-        float emboss_size = upper_half ? 0.0 : min(1.0, uv_sdf.x / (corner_rad * ratio)); \n \
- \n \
-        /* Signed distance field from the corner (in pixel). \n \
-         * inner_sdf is sharp and outer_sdf is rounded. */ \n \
-        uv_sdf -= corner_rad; \n \
-        float inner_sdf = max(0.0, min(uv_sdf.x, uv_sdf.y)); \n \
-        float outer_sdf = -length(min(uv_sdf, 0.0)); \n \
-        float sdf = inner_sdf + outer_sdf + corner_rad; \n \
- \n \
-        /* Clamp line width to be at least 1px wide. This can happen if the projection matrix \n \
-         * has been scaled (i.e: Node editor)... */ \n \
-        float line_width = (lineWidth > 0.0) ? max(fwidth(uv.y), lineWidth) : 0.0; \n \
- \n \
-        const float aa_radius = 0.5; \n \
-        vec3 masks; \n \
-        masks.x = smoothstep(-aa_radius, aa_radius, sdf); \n \
-        masks.y = smoothstep(-aa_radius, aa_radius, sdf - line_width); \n \
-        masks.z = smoothstep(-aa_radius, aa_radius, sdf + line_width * emboss_size); \n \
- \n \
-        /* Compose masks together to avoid having too much alpha. */ \n \
-        masks.zx = max(vec2(0.0), masks.zx - masks.xy); \n \
- \n \
-    debugPrintfEXT(\"Here  roundcorners  %v4f sdf %f  line width %f fragColor %v3f   \",outRoundCorners,sdf, line_width, masks); \n\n";
-#endif
+
     }
 
     ss << main_function_wrapper(pre_main, post_main);
@@ -1440,10 +1492,10 @@ std::string VKShader::geometry_layout_declare(const shader::ShaderCreateInfo &in
 {
 
   std::stringstream ss;
-#if 0
+
     int max_verts = info.geometry_layout_.max_vertices;
   int invocations = info.geometry_layout_.invocations;
-  if (GLContext::geometry_shader_invocations == false && invocations != -1) {
+  if (VKContext::max_geometry_shader_invocations <= 0 && invocations != -1) {
     max_verts *= invocations;
     invocations = -1;
   }
@@ -1459,7 +1511,7 @@ std::string VKShader::geometry_layout_declare(const shader::ShaderCreateInfo &in
   ss << "layout(" << to_string(info.geometry_layout_.primitive_out)
      << ", max_vertices = " << max_verts << ") out;\n";
   ss << "\n";
-#endif
+
   return ss.str();
 }
 
@@ -1479,22 +1531,26 @@ std::string VKShader::geometry_interface_declare(const shader::ShaderCreateInfo 
   std::stringstream ss;
 
   ss << "\n/* Interfaces. */\n";
-#if 0
+  uint32_t location = 0;
   for (const StageInterfaceInfo *iface : info.vertex_out_interfaces_) {
     bool has_matching_output_iface = find_interface_by_name(info.geometry_out_interfaces_,
                                                             iface->instance_name) != nullptr;
     const char *suffix = (has_matching_output_iface) ? "_in[]" : "[]";
-    print_interface(ss, "in", *iface, suffix);
+   
+    print_interface(ss, " layout(location = " + std::to_string(location) + ") in ", *iface, suffix);
+    location++;
   }
   ss << "\n";
+  location = 0;
   for (const StageInterfaceInfo *iface : info.geometry_out_interfaces_) {
     bool has_matching_input_iface = find_interface_by_name(info.vertex_out_interfaces_,
                                                            iface->instance_name) != nullptr;
     const char *suffix = (has_matching_input_iface) ? "_out" : "";
-    print_interface(ss, "out", *iface, suffix);
+    print_interface(ss, " layout(location = " + std::to_string(location) + ") out", *iface, suffix);
+    location++;
   }
   ss << "\n";
-#endif
+
   return ss.str();
 }
 

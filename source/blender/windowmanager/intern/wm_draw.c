@@ -891,6 +891,11 @@ static void wm_draw_window_offscreen(bContext *C, wmWindow *win, bool stereo)
   ED_screen_areas_iter (win, screen, area) {
     CTX_wm_area_set(C, area);
     GPU_debug_group_begin(wm_area_name(area));
+    if (area->spacetype == SPACE_VIEW3D) {
+        GPU_context_end_frame(win->gpuctx);
+        GPU_context_main_unlock();
+        WM_exit(C);
+    }
 
     /* Compute UI layouts for dynamically size regions. */
     LISTBASE_FOREACH (ARegion *, region, &area->regionbase) {
@@ -969,9 +974,7 @@ static void wm_draw_window_offscreen(bContext *C, wmWindow *win, bool stereo)
     CTX_wm_area_set(C, NULL);
 
     GPU_debug_group_end();
-    if (area->spacetype == SPACE_OUTLINER) {
-      printf("Area SPACE_OUTLINER");
-    }
+    
   }
 
   /* Draw menus into their own frame-buffer. */

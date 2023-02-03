@@ -895,6 +895,10 @@ static void wm_draw_window_offscreen(bContext *C, wmWindow *win, bool stereo)
         GPU_context_end_frame(win->gpuctx);
         GPU_context_main_unlock();
         WM_exit(C);
+      
+      printf(
+          "View 3D Draw ==========================================================>>>>>>>>>>>>> "
+          "\n");
     }
 
     /* Compute UI layouts for dynamically size regions. */

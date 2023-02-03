@@ -1611,8 +1611,10 @@ GHOST_TSuccess GHOST_ContextVK::getVulkanHandles(void *r_instance,
 }
 
 GHOST_TSuccess GHOST_ContextVK::activateDrawingContext()
-{
+{ 
+  /*When performing multithreaded rendering, do we perform processing that blocks one context within this thread?*/
   return GHOST_kSuccess;
+
 }
 
 GHOST_TSuccess GHOST_ContextVK::releaseDrawingContext()
@@ -2595,14 +2597,35 @@ GHOST_TSuccess GHOST_ContextVK::initializeDrawingContext()
     queue_create_infos.push_back(transfer_queue_create_info);
    
    VkPhysicalDeviceFeatures device_features = {};
-
+   VkPhysicalDeviceFeatures enable_features = {};
 #if STRICT_REQUIREMENTS
-  device_features.geometryShader = VK_TRUE;
-  device_features.dualSrcBlend = VK_TRUE;
-  device_features.logicOp = VK_TRUE;
-  device_features.depthClamp = VK_TRUE;
-  device_features.sampleRateShading = VK_TRUE;
-  device_features.fragmentStoresAndAtomics = VK_TRUE;
+
+   vkGetPhysicalDeviceFeatures(m_physical_device, &device_features);
+   if (device_features.geometryShader) {
+     enable_features.geometryShader = VK_TRUE;
+   }
+   if (device_features.dualSrcBlend) {
+     enable_features.dualSrcBlend = VK_TRUE;
+   }
+  if (device_features.logicOp) {
+     enable_features.logicOp = VK_TRUE;
+   }
+  if (device_features.depthClamp) {
+     enable_features.depthClamp = VK_TRUE;
+   }
+  if (device_features.sampleRateShading) {
+     enable_features.sampleRateShading = VK_TRUE;
+   }
+  if (device_features.fragmentStoresAndAtomics) {
+     enable_features.fragmentStoresAndAtomics = VK_TRUE;
+  }
+  if (device_features.multiDrawIndirect) {
+    device_features.multiDrawIndirect = VK_TRUE;
+  }
+
+  if (device_features.samplerAnisotropy) {
+    device_features.samplerAnisotropy = VK_TRUE;
+  }
   
 #endif
 

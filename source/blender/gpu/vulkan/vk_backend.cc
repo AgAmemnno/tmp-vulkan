@@ -81,9 +81,9 @@ Batch *VKBackend::batch_alloc()
   return new VKBatch();
 }
 
-DrawList *VKBackend::drawlist_alloc(int /*list_length*/)
+DrawList *VKBackend::drawlist_alloc(int list_length)
 {
-  return new VKDrawList();
+  return new VKDrawList(list_length);
 }
 
 FrameBuffer *VKBackend::framebuffer_alloc(const char *name)
@@ -327,8 +327,15 @@ static void get_properties2(VkPhysicalDevice physical_device,T& strct) {
   vkGetPhysicalDeviceProperties2(physical_device, &properties2);
 
 };
+
+
+float VKContext::derivative_signs[2] = {1.0f, 1.0f};
+uint32_t VKContext::max_geometry_shader_invocations = 0;
+
 void VKBackend::capabilities_init(VKContext *ctx)
 {
+  /* If we assume multi-physical devices for multi-contexts, capabilities cannot be static. */
+
   if (GPG.initialized) return;
    GHOST_ContextVK *ctxVk = (GHOST_ContextVK *)( ctx->ghost_context_);
    VkInstance instance;
@@ -336,6 +343,15 @@ void VKBackend::capabilities_init(VKContext *ctx)
    VkDevice device;
    uint32_t r_graphic_queue_familly;
    ctxVk->getVulkanHandles(&instance, &physical_device, &device, &r_graphic_queue_familly);
+
+   VkPhysicalDeviceFeatures device_features = {};
+   vkGetPhysicalDeviceFeatures(physical_device, &device_features);
+   VKContext::multi_draw_indirect_support = false;
+   if (device_features.multiDrawIndirect) {
+     VKContext::multi_draw_indirect_support = true;
+   }
+
+
    VkPhysicalDeviceProperties &properties = vulkan::properties;
   vkGetPhysicalDeviceProperties(physical_device, &properties);
    VkPhysicalDeviceLimits limits = properties.limits;
@@ -377,11 +393,32 @@ void VKBackend::capabilities_init(VKContext *ctx)
   GCaps.max_compute_shader_storage_blocks = limits.maxPerStageDescriptorStorageBuffers;
 
   /*GL_MAX_UNIFORM_BLOCK_SIZE*/
-  VKContext::max_ubo_size = limits.maxUniformBufferRange;
+  VKContext::max_ubo_size    = limits.maxUniformBufferRange;
   /*GL_MAX_FRAGMENT_UNIFORM_BLOCKS*/
-  VKContext::max_ubo_binds = limits.maxPerStageDescriptorUniformBuffers; 
+  VKContext::max_ubo_binds = limits.maxPerStageDescriptorUniformBuffers;
+  VKContext::max_geometry_shader_invocations = limits.maxGeometryShaderInvocations;
 
 
+  # if 0
+  const char *version = (const char *)glGetString(GL_VERSION);
+    /* dFdx/dFdy calculation factors, those are dependent on driver. */
+  if (GPU_type_matches(GPU_DEVICE_ATI, GPU_OS_ANY, GPU_DRIVER_ANY) &&
+      strstr(version, "3.3.10750")) {
+    VKContext::derivative_signs[0] = 1.0;
+    VKContext::derivative_signs[1] = -1.0;
+  }
+  else if (GPU_type_matches(GPU_DEVICE_INTEL, GPU_OS_WIN, GPU_DRIVER_ANY)) {
+    if (strstr(version, "4.0.0 - Build 10.18.10.3308") ||
+        strstr(version, "4.0.0 - Build 9.18.10.3186") ||
+        strstr(version, "4.0.0 - Build 9.18.10.3165") ||
+        strstr(version, "3.1.0 - Build 9.17.10.3347") ||
+        strstr(version, "3.1.0 - Build 9.17.10.4101") ||
+        strstr(version, "3.3.0 - Build 8.15.10.2618")) {
+      VKContext::derivative_signs[0] = -1.0;
+      VKContext::derivative_signs[1] = 1.0;
+    }
+  }
+  #endif
   /* TODO */
   #if 0 
 

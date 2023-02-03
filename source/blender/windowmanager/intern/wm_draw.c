@@ -824,12 +824,12 @@ void wm_draw_region_blend(ARegion *region, int view, bool blend)
     alpha = 1.0f;
   }
 
-  /* Not the same layout as rectf/recti. */
+  /* Not the same layout as #rctf/#rcti. */
   const float rectt[4] = {rect_tex.xmin, rect_tex.ymin, rect_tex.xmax, rect_tex.ymax};
   const float rectg[4] = {rect_geo.xmin, rect_geo.ymin, rect_geo.xmax, rect_geo.ymax};
 
   if (blend) {
-    /* Regions drawn offscreen have premultiplied alpha. */
+    /* Regions drawn off-screen have pre-multiplied alpha. */
     GPU_blend(GPU_BLEND_ALPHA_PREMULT);
   }
 
@@ -927,6 +927,7 @@ static void wm_draw_window_offscreen(bContext *C, wmWindow *win, bool stereo)
 
       CTX_wm_region_set(C, region);
       bool use_viewport = WM_region_use_viewport(area, region);
+
       GPU_debug_group_begin(use_viewport ? "Viewport" : "ARegion");
 
       if (stereo && wm_draw_region_stereo_set(bmain, area, region, STEREO_LEFT_ID)) {
@@ -969,13 +970,9 @@ static void wm_draw_window_offscreen(bContext *C, wmWindow *win, bool stereo)
 
     GPU_debug_group_end();
     if (area->spacetype == SPACE_OUTLINER) {
-      GPU_context_end_frame(win->gpuctx);
-      GPU_context_main_unlock();
-      WM_exit(C);
+      printf("Area SPACE_OUTLINER");
     }
   }
-
-
 
   /* Draw menus into their own frame-buffer. */
   LISTBASE_FOREACH (ARegion *, region, &screen->regionbase) {
@@ -1004,6 +1001,11 @@ static void wm_draw_window_offscreen(bContext *C, wmWindow *win, bool stereo)
     region->do_draw = false;
     CTX_wm_menu_set(C, NULL);
   }
+
+  GPU_context_end_frame(win->gpuctx);
+  GPU_context_main_unlock();
+  WM_exit(C);
+
 }
 
 static void wm_draw_window_onscreen(bContext *C, wmWindow *win, int view)

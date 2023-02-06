@@ -57,6 +57,7 @@ VKStateManager::VKStateManager(VKContext *_ctx) : ctx_(_ctx)
   
   texture_unbind_all();
 
+
   dynamicStateEnables.clear();
   dynamicStateEnables.push_back(VK_DYNAMIC_STATE_VIEWPORT);
   dynamicStateEnables.push_back(VK_DYNAMIC_STATE_SCISSOR);
@@ -145,13 +146,13 @@ VKStateManager::VKStateManager(VKContext *_ctx) : ctx_(_ctx)
   dynamic.pDynamicStates = dynamicStateEnables.data();
   dynamic.dynamicStateCount = (uint32_t)dynamicStateEnables.size();
 
-
+  
   ///set_mutable_state(mutable_state);
 }
 
 VKStateManager::~VKStateManager()
 {
-     current_pipeline_desc_.destroy_pipeline_cache();
+
  };
 
 VkGraphicsPipelineCreateInfo VKStateManager::get_pipelinecreateinfo(VkRenderPass vkRP,
@@ -227,10 +228,7 @@ void VKStateManager::set_raster_discard(){
   auto &raster = current_pipeline_.rasterization;
   raster.rasterizerDiscardEnable = VK_TRUE;
 };
-VkPipelineCache VKStateManager::get_pipeline_cache()
-{
-  return current_pipeline_desc_.get_pipeline_cache();
-};
+
 
 void VKStateManager::set_state(const GPUState &state)
 {
@@ -362,7 +360,8 @@ void VKStateManager::set_write_mask(const eGPUWriteMask value)
   ds.depthWriteEnable = ((value & GPU_WRITE_DEPTH) != 0) ? VK_TRUE : VK_FALSE;
   ///glDepthMask((value & GPU_WRITE_DEPTH) != 0);
 
-  VkPipelineColorBlendAttachmentState &att_state = current_pipeline_.colorblend_attachment;
+
+  VkPipelineColorBlendAttachmentState &att_state = current_pipeline_.colorblend_attachment.last();
   att_state.colorWriteMask = 0x0;
 
   if ((value & GPU_WRITE_RED) != 0)
@@ -634,7 +633,8 @@ void VKStateManager::set_blend(const eGPUBlend value)
     cb.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     cb.pNext = NULL;
     cb.flags = 0;
-    VkPipelineColorBlendAttachmentState& att_state = current_pipeline_.colorblend_attachment;
+
+    VkPipelineColorBlendAttachmentState &att_state = current_pipeline_.colorblend_attachment.last();
     
     att_state.blendEnable = VK_TRUE;
     att_state.alphaBlendOp = VK_BLEND_OP_ADD;
@@ -793,6 +793,42 @@ void VKStateManager::set_blend(const eGPUBlend value)
   }
 }
 
+void VKStateManager::set_color_blend_from_fb(VKFrameBuffer* fb) {
+
+  VkPipelineColorBlendStateCreateInfo &cb = current_pipeline_.colorblend;
+  cb.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+  cb.pNext = NULL;
+  cb.flags = 0;
+
+  VkPipelineColorBlendAttachmentState att_state_last = current_pipeline_.colorblend_attachment.last();
+
+  auto size_atta = current_pipeline_.colorblend_attachment.size();
+  cb.attachmentCount = 0;
+
+  for (auto desc : fb->get_attach_desc()) {
+    if (desc.finalLayout != VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
+      continue;
+    };
+    cb.attachmentCount++;
+    VkPipelineColorBlendAttachmentState att_state = att_state_last;
+    if (cb.attachmentCount  > (size_atta)) {
+      current_pipeline_.colorblend_attachment.append(att_state_last);
+      size_atta++;
+    }
+    else {
+      current_pipeline_.colorblend_attachment[cb.attachmentCount-1] = att_state_last;
+    }
+
+    }
+
+  cb.pAttachments = current_pipeline_.colorblend_attachment.data();
+    cb.logicOpEnable = VK_FALSE;
+    cb.logicOp = VK_LOGIC_OP_NO_OP;
+
+  
+
+
+};
 /** \} */
 
 /* -------------------------------------------------------------------- */

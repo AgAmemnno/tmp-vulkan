@@ -190,7 +190,9 @@ class VKFrameBuffer : public FrameBuffer {
   };
 
   void save_current_frame(const char *filename);
-
+  const Vector<VkAttachmentDescription>& get_attach_desc() {
+    return vk_attachments_.vdesc_;
+  };
  private:
   VkCommandBuffer vk_cmd = VK_NULL_HANDLE;
   int cmd_refs = 0;

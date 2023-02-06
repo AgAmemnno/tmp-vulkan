@@ -73,7 +73,7 @@ class VKStateManager : public StateManager {
   void force_state(void) override;
 
   void issue_barrier(eGPUBarrier barrier_bits) override;
-
+ 
   void texture_bind(Texture *tex, eGPUSamplerState sampler, int unit) override;
   void texture_unbind(Texture *tex) override;
   void texture_unbind_all(void) override;
@@ -86,6 +86,7 @@ class VKStateManager : public StateManager {
 
   void texture_bind_temp(VKTexture* tex);
 
+  void set_color_blend_from_fb(VKFrameBuffer *fb);
 
   VkGraphicsPipelineCreateInfo get_pipelinecreateinfo(VkRenderPass vkRP, VkPipelineLayout &layout);
   static VKGraphicsPipelineStateDescriptor &getPipelineStateDesc();
@@ -95,7 +96,7 @@ class VKStateManager : public StateManager {
   static void cmd_dynamic_state(VkCommandBuffer &cmd);
 
   static void set_raster_discard();
-  static VkPipelineCache get_pipeline_cache();
+ 
  private:
 
 

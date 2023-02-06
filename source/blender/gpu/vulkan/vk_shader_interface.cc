@@ -192,7 +192,7 @@ uint16_t VKShaderInterface::vbo_bind(VKVertBuf *vbo,
     VKContext *context = VKContext::get();
     auto fb = static_cast<VKFrameBuffer *>(context->active_fb);
     auto shader = context->pipeline_state.active_shader;
-    shader->CreatePipeline(fb->get_render_pass());
+    shader->CreatePipeline(fb);
   }
 
   // uint offset = 0;

@@ -452,6 +452,20 @@ class GHOST_ContextVK : public GHOST_Context {
         VkCommandBufferBeginInfo cmdBufInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
         vkResetCommandBuffer(cmd, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
         VK_CHECK(vkBeginCommandBuffer(cmd, &cmdBufInfo));
+
+        if (m_in_flight_fences.size() <=0 ) {
+
+          VkFenceCreateInfo fence_info = {};
+          fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+          fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+          m_in_flight_fences.resize(2);
+          for (int i = 0; i < 2; i++) {
+            VK_CHECK(vkCreateFence(m_device, &fence_info, NULL, &m_in_flight_fences[i]));
+          }
+
+        }
+
+        vkResetFences(m_device, 1, &m_in_flight_fences[m_currentFence]);
         return GHOST_kSuccess;
     };
     GHOST_TSuccess end_submit_simple() {
@@ -538,6 +552,19 @@ class GHOST_ContextVK : public GHOST_Context {
                                            uint32_t *r_graphic_queue_familly);
   uint32_t getQueueIndex(uint32_t i);
 
+
+  /* Validation Error: [ VUID-vkCreateGraphicsPipelines-pipelineCache-parent ] Object 0xfc850b000000045c of type VkPipelineCache was not created, */
+  /* allocated or retrieved from the correct device. The Vulkan spec states: If pipelineCache is a valid handle, it must have been created, allocated, or retrieved from device (https://vulkan.lunarg.com/doc/view/1.3.231.1/windows/1.3-extensions/vkspec.html#VUID-vkCreateGraphicsPipelines-pipelineCache-parent) */
+  /*Pipelines are cached per logical device. So GHOST is responsible for the PipelineCache lifecycle.*/
+  /*However, if we associate a VKContext with a logical device, it will be managed there.*/
+
+  VkPipelineCache vkPC = VK_NULL_HANDLE;
+
+  GHOST_TSuccess createPipelineCache();
+  VkPipelineCache getPipelineCache();
+  void destroyPipelineCache();
+
+
   int getCurrent(VkCommandBuffer& cmd)
   {
     cmd = m_command_buffers[m_currentCommand];
@@ -568,7 +595,10 @@ void getImage(VkImage& image)
 
 uint32_t   getCurrentImage()
 {
-  return m_currentImage;
+  if (m_swapchain_images.size() > 0) {
+    return m_currentImage;
+  }
+  return 0;
 };
 
 

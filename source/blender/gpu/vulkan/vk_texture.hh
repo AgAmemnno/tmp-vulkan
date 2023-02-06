@@ -129,10 +129,81 @@ class VKTexture : public Texture {
  private:
   bool proxy_check(VkImageCreateInfo &info);
 
+  VkImageUsageFlagBits  to_vk_usage(eGPUTextureUsage usage)
+  {
+
+    VkImageUsageFlagBits vk_usage = (VkImageUsageFlagBits)0;
+
+    if (usage == GPU_TEXTURE_USAGE_GENERAL) {
+      if (format_flag_ & GPU_FORMAT_DEPTH) {
+
+        vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+        vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                                          VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+
+      }
+      else {
+        //vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_SAMPLED_BIT);
+        // vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_STORAGE_BIT);
+        vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_SAMPLED_BIT |
+                                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT );
+        vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+
+      }
+      return vk_usage;
+    }
+
+    if (usage & GPU_TEXTURE_USAGE_ATTACHMENT) {
+
+      if (format_flag_ & GPU_FORMAT_DEPTH) {
+
+        vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+
+      }
+      else {
+
+        vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+
+      }
+     
+
+      if (usage & GPU_TEXTURE_USAGE_SHADER_READ) {
+          vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT);
+                                     /// VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR);
+      }
+
+      if (usage & GPU_TEXTURE_USAGE_SHADER_WRITE) {
+        //BLI_assert(false);
+        vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_STORAGE_BIT);
+      }
+    }
+    else {
+
+      if (usage & GPU_TEXTURE_USAGE_SHADER_READ) {
+        vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_SAMPLED_BIT);
+      }
+
+      if (usage & GPU_TEXTURE_USAGE_SHADER_WRITE) {
+        vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_STORAGE_BIT);
+      }
+    }
+
+    if (usage & GPU_TEXTURE_USAGE_MIP_SWIZZLE_VIEW) {
+      // BLI_assert(false);
+      /* vk_usage = vk_usage | MTLTextureUsagePixelFormatView; */
+    }
+
+    vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                                      VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+
+    return vk_usage;
+
+  }
+
  public:
   VkImageCreateInfo info = {VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
   VkDescriptorImageInfo desc_info_;
-  eGPUTextureUsage gpu_image_usage_flags_;
+
   /// VKTexture(const char *name);
   VKTexture(const char *name, VKContext *context);
   ~VKTexture();
@@ -312,6 +383,12 @@ inline VkComponentSwizzle swizzle_to_vk(const char swizzle)
   }
 }
 
+
+
+
+
+
+
 #define VK_FORMAT_INVALID VK_FORMAT_MAX_ENUM
 inline VkFormat to_vk(eGPUTextureFormat format)
 {
@@ -444,19 +521,22 @@ class VKAttachment {
   }
   int fbo_id_ = -1;
   Vector<VKTexture *> vtex_;
-
+  Vector<VKTexture *> vtex_ds_;
+  Vector<VkAttachmentDescription> vdesc_;
   VkAttachmentLoadOp get_LoadOp()
   {
 
-    BLI_assert(vdesc_.size() == 1);
+    if (vdesc_.size() > 1) {
+      printf("loadOp\n");
+    };
     return vdesc_[0].loadOp;
   };
 
  private:
   bool used_ = false;
 
-  Vector<VkImageView> vview_;
-  Vector<VkAttachmentDescription> vdesc_;
+  Vector< Vector<VkImageView> > vview_;
+
   Vector<VkAttachmentReference> vref_color_;
   Vector<VkAttachmentReference> vref_depth_stencil_;
   uint32_t num_;

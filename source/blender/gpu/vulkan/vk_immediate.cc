@@ -316,7 +316,7 @@ void VKImmediate::end()
 
     context_->state_manager->apply_state();
     auto fb = static_cast<VKFrameBuffer *>(context_->active_fb);
-    context_->pipeline_state.active_shader->CreatePipeline(fb->get_render_pass());
+    context_->pipeline_state.active_shader->CreatePipeline(fb);
 
     record();
   }

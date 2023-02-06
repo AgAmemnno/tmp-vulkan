@@ -779,7 +779,10 @@ uint32_t VKContext::get_transferQueueIndex()
 }
 
 
+VkPipelineCache VKContext::get_pipeline_cache(){
 
+     return ((GHOST_ContextVK *)ghost_context_)->getPipelineCache();
+};
 
   VkQueue VKContext::queue_get(uint32_t type_)
 {

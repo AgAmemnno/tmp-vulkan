@@ -252,6 +252,9 @@ static inline GPUTexture *gpu_texture_create(const char *name,
 {
   BLI_assert(mip_len > 0);
   Texture *tex = GPUBackend::get()->texture_alloc(name);
+  /* Assign usage. */
+  tex->usage_set(usage);
+
   bool success = false;
   switch (type) {
     case GPU_TEXTURE_1D:
@@ -273,8 +276,7 @@ static inline GPUTexture *gpu_texture_create(const char *name,
       break;
   }
 
-  /* Assign usage. */
-  tex->usage_set(usage);
+
 
   if (!success) {
     delete tex;

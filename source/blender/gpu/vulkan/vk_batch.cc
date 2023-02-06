@@ -319,7 +319,7 @@ namespace blender::gpu {
     /*Here, setting prim_type without fail means that there is a premise that the topology type will be handled dynamically.*/
     VKStateManager::set_prim_type(prim_type);
     VKShader* vkshader = reinterpret_cast<VKShader*>(shader);
-    vkshader->CreatePipeline(fb_->get_render_pass());
+    vkshader->CreatePipeline(fb_);
 
     auto current_pipe_ = vkshader->get_pipeline();
     BLI_assert(current_pipe_ != VK_NULL_HANDLE);

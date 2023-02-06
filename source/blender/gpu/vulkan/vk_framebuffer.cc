@@ -133,6 +133,8 @@ void VKFrameBuffer::update_attachments()
     if (attach.tex) {
       vk_attachments_.append(attach, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
       is_nocolor_ = false;
+      auto tex  = (VKTexture *)(attach.tex);
+      printf("Update Attchment   %s    \n ", tex->name_);
     };
   };
 
@@ -141,7 +143,10 @@ void VKFrameBuffer::update_attachments()
   {
     GPUAttachment &attach = attachments_[GPU_FB_DEPTH_ATTACHMENT];
     if (attach.tex) {
-      vk_attachments_.append(attach, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+      vk_attachments_.append(
+          attach, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);//VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+      auto tex = (VKTexture *)(attach.tex);
+      printf("Update Attchment Depth   %s    \n ", tex->name_);
     }
   };
 
@@ -150,7 +155,8 @@ void VKFrameBuffer::update_attachments()
   {
     GPUAttachment &attach = attachments_[GPU_FB_DEPTH_STENCIL_ATTACHMENT];
     if (attach.tex) {
-      vk_attachments_.append(attach, VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL);
+      vk_attachments_.append(
+          attach, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);//VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL);
     }
   };
 
@@ -170,24 +176,49 @@ void VKFrameBuffer::update_attachments()
     submit_signal_.append(sema);
   }
   VkCommandBuffer cmd = VK_NULL_HANDLE;
-  ;
+  
 
-  BLI_assert(vk_attachments_.vtex_.size() == 1);
+  /* Currently the texture for the framebuffer is for mips==1. */
+  int mip = 0;
 
-  VKTexture *tex = vk_attachments_.vtex_[0];
 
   context->begin_submit_simple(cmd);
-  blender::vulkan::GHOST_ImageTransition(
-      cmd,
-      tex->get_image(),
-      tex->info.format,
-      VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-      VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-      VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM,
-      VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-      VK_IMAGE_LAYOUT_UNDEFINED);
+
+  for (VKTexture *tex : vk_attachments_.vtex_) {
+    if (tex->get_image_layout(mip) == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
+      continue;
+    }
+    blender::vulkan::GHOST_ImageTransition(
+        cmd,
+        tex->get_image(),
+        tex->info.format,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+        VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM,
+        VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+        VK_IMAGE_LAYOUT_UNDEFINED);
+    tex->set_image_layout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, mip);
+
+  };
+
+  for (VKTexture *tex : vk_attachments_.vtex_ds_) {
+    if (tex->get_image_layout(mip) == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+      continue;
+    }
+    blender::vulkan::GHOST_ImageTransition(
+        cmd,
+        tex->get_image(),
+        tex->info.format,
+        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+        VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+        VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM,
+        VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+        VK_IMAGE_LAYOUT_UNDEFINED);
+    tex->set_image_layout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, mip);
+  };
+
   context->end_submit_simple();
-  tex->set_image_layout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 0);
+
 };
 
 void VKFrameBuffer::bind(bool enabled_srgb)
@@ -238,12 +269,20 @@ void VKFrameBuffer::clear(eGPUFrameBufferBits buffers,
                           float clear_depth,
                           uint clear_stencil)
 {
-
   VkClearValue clearValues[2];
-  for (int i = 0; i < 4; i++)
-    clearValues[0].color.float32[i] = clear_col[i];
-  clearValues[1].depthStencil.depth = clear_depth;
-  clearValues[1].depthStencil.stencil = clear_stencil;
+
+  if (buffers & GPU_COLOR_BIT) {
+    BLI_assert(clear_col);
+    for (int i = 0; i < 4; i++) {
+      clearValues[0].color.float32[i] = clear_col[i];
+    }
+  }
+  if (buffers & GPU_DEPTH_BIT) {
+    clearValues[1].depthStencil.depth = clear_depth;
+  }
+  if (buffers & GPU_STENCIL_BIT) {
+    clearValues[1].depthStencil.stencil = clear_stencil;
+  }
   auto loadOp = vk_attachments_.get_LoadOp();
   if (loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR) {  // VK_ATTACHMENT_LOAD_OP_LOAD
     if (is_render_begin_) {
@@ -256,13 +295,13 @@ void VKFrameBuffer::clear(eGPUFrameBufferBits buffers,
   }
   else if (loadOp == VK_ATTACHMENT_LOAD_OP_LOAD) {
 
-    BLI_assert(!is_render_begin_);
+  BLI_assert(!is_render_begin_);
 
-    VKContext *context = VKContext::get();
-    VkCommandBuffer cmd = VK_NULL_HANDLE;
-    VKTexture *tex = vk_attachments_.vtex_[0];
-    VkImage srcImage = tex->get_image();
-    VkImageLayout src_layout = tex->get_image_layout(0);
+  VKContext *context = VKContext::get();
+  VkCommandBuffer cmd = VK_NULL_HANDLE;
+  VKTexture *tex = vk_attachments_.vtex_[0];
+  VkImage srcImage = tex->get_image();
+  VkImageLayout src_layout = tex->get_image_layout(0);
     // VkFormat src_format = tex->info.format;
 
     context->begin_submit_simple(cmd);
@@ -368,6 +407,9 @@ void VKFrameBuffer::apply_state()
         "Attempting to set FrameBuffer State (VIEWPORT, SCISSOR), But FrameBuffer is not bound to "
         "current Context.\n");
   }
+
+
+
 }
 
 void VKFrameBuffer::clear_attachment(GPUAttachmentType type,

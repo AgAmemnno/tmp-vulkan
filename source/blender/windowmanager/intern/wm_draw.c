@@ -892,9 +892,12 @@ static void wm_draw_window_offscreen(bContext *C, wmWindow *win, bool stereo)
     CTX_wm_area_set(C, area);
     GPU_debug_group_begin(wm_area_name(area));
     if (area->spacetype == SPACE_VIEW3D) {
-        GPU_context_end_frame(win->gpuctx);
+
+      
+      GPU_context_end_frame(win->gpuctx);
         GPU_context_main_unlock();
         WM_exit(C);
+      
       
       printf(
           "View 3D Draw ==========================================================>>>>>>>>>>>>> "

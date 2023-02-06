@@ -241,7 +241,11 @@ VkBuffer VKBuffer::get_vk_buffer() const
 }
 uint64_t VKBuffer::get_size() const
 {
-  return allocation->GetSize();
+  if (options_.allocInfo.size > 0) {
+
+    return allocation->GetSize();
+  };
+  return 0;
 }
 
 uint64_t VKBuffer::get_buffer_size() const {
@@ -265,6 +269,9 @@ void VKBuffer::Copy(void *data, VkDeviceSize size, VkDeviceSize ofs)
   VKContext* context_ = VKContext::get();
   BLI_assert(context_);
 
+  if (size == 0) {
+    return;
+  }
   if (can_mapped_) {
     VmaAllocator mem_allocator = context_->mem_allocator_get();
 

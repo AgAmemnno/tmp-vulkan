@@ -328,7 +328,7 @@ void VKTexture::TextureSubImage(int mip, int offset[3], int extent[3], const voi
   VkPipelineStageFlagBits dst_stage = VK_PIPELINE_STAGE_NONE_KHR;
   /* Restrictions on how flags can be combined.
    * https://vulkan.lunarg.com/doc/view/1.3.231.1/windows/1.3-extensions/vkspec.html#VkRenderPassFragmentDensityMapCreateInfoEXT*/
-  if (info.usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) {
+  if (format_flag_ & GPU_FORMAT_DEPTH) {
     BLI_assert(info.format == VK_FORMAT_X8_D24_UNORM_PACK32);
     aspect_flag = VK_IMAGE_ASPECT_DEPTH_BIT;
     dst_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -342,6 +342,12 @@ void VKTexture::TextureSubImage(int mip, int offset[3], int extent[3], const voi
       dst_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       dst_access = VK_ACCESS_SHADER_READ_BIT;
       dst_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    }
+    else if ( ( info.usage & VK_IMAGE_USAGE_STORAGE_BIT ) )
+    {
+      dst_layout  = VK_IMAGE_LAYOUT_GENERAL;
+      dst_access = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+      dst_stage   = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
     }
     else if ((info.usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)) {
       dst_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -410,6 +416,9 @@ void VKTexture::TextureSubImage(int mip, int offset[3], int extent[3], const voi
 
 VKTexture::VKTexture(const char *name, VKContext *context) : Texture(name)
 {
+
+  printf("VKTexture     name         %s  \n",name);
+
   context_ = context;
 
   mip_max_ = 0;
@@ -482,7 +491,8 @@ bool VKTexture::init_internal(void)
     /*KTX texture Compressed Texture sample
      * https://github.com/KhronosGroup/Vulkan-Samples/blob/master/samples/performance/texture_compression_comparison/texture_compression_comparison.cpp*/
 
-    /*need a little more detailed flag.*/
+    info.usage = to_vk_usage(gpu_image_usage_flags_);
+    /*need a little more detailed flag.
     if (name_[0] == 'o' && name_[1] == 'f' && name_[2] == 's') {
       if (format_flag_ & GPU_FORMAT_DEPTH) {
         info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
@@ -498,8 +508,9 @@ bool VKTexture::init_internal(void)
         info.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
       }
     }
+    */
 
-    info.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+   
     info.flags = 0;
 
     if (type_ == GPU_TEXTURE_CUBE) {
@@ -755,7 +766,11 @@ VkImageView VKTexture::create_image_view(int mip, int layer, int mipcount = 1, i
                      VK_COMPONENT_SWIZZLE_A};
 
   info.subresourceRange = range;
-
+  printf(
+      "Create imageVIew ===================================================================     "
+      "%llx     NAME   %s  \n",
+      (uintptr_t)vk_image_,
+      name_);
   vkCreateImageView(device, &info, nullptr, &vk_image_view_);
   desc_info_.imageView = vk_image_view_;
 
@@ -825,6 +840,9 @@ VKAttachment::VKAttachment(VKFrameBuffer *fb)
   BLI_assert(fb != nullptr);
   clear();
   fb_ = fb;
+  vview_.resize(1);
+  vtex_.clear();
+  vtex_ds_.clear();
 }
 VKAttachment::~VKAttachment()
 {
@@ -852,6 +870,7 @@ void VKAttachment::clear()
   vref_color_.clear();
   vref_depth_stencil_.clear();
   vview_.clear();
+  vview_.resize(1);
   num_ = 0;
   extent_ = {0, 0, 0};
   renderpass_ = VK_NULL_HANDLE;
@@ -861,8 +880,16 @@ void VKAttachment::clear()
 /* naive implementation. Can subpath be used effectively? */
 void VKAttachment::append(GPUAttachment &attach, VkImageLayout layout)
 {
+  int currentImageID = 0;
 
   VKTexture *tex = static_cast<VKTexture *>(unwrap(attach.tex));
+  VkAttachmentDescription desc = {};
+  desc.format = tex->info.format;
+  desc.samples = VK_SAMPLE_COUNT_1_BIT;
+  desc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;  // VK_ATTACHMENT_LOAD_OP_CLEAR;
+  desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+  desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
   if (extent_.width == 0) {
     extent_ = tex->info.extent;
@@ -879,23 +906,20 @@ void VKAttachment::append(GPUAttachment &attach, VkImageLayout layout)
     vref_color_.append({num_, layout});
     fb_->set_srgb(GPU_texture_format(attach.tex) == GPU_SRGB8_A8);
     vtex_.append(tex);
+
+    desc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    desc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
   }
   else {
     vref_depth_stencil_.append({num_, layout});
+    vtex_ds_.append(tex);
+    desc.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    desc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
   }
 
-  VkAttachmentDescription desc = {};
-  desc.format = tex->info.format;
-  desc.samples = VK_SAMPLE_COUNT_1_BIT;
-  desc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;  // VK_ATTACHMENT_LOAD_OP_CLEAR;
-  desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-  desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-  desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-  desc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-  desc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
   vdesc_.append(desc);
-  vview_.append(tex->create_image_view(mip_, 0, 1, tex->info.arrayLayers));
+
+  vview_[currentImageID].append(tex->create_image_view(mip_, 0, 1, tex->info.arrayLayers));
 
   num_++;
 };
@@ -919,18 +943,31 @@ void VKAttachment::create_framebuffer()
                                                      nullptr :
                                                      vref_depth_stencil_.data();
 
+
     // Use subpass dependencies for layout transitions
     std::array<VkSubpassDependency, 2> dependencies;
-
+    int depCnt = 1;
     dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
     dependencies[0].dstSubpass = 0;
-    dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-    dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-    dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-                                    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+    dependencies[0].srcStageMask      = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+    dependencies[0].dstStageMask      = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependencies[0].srcAccessMask     = VK_ACCESS_MEMORY_READ_BIT;
+    dependencies[0].dstAccessMask     = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependencies[0].dependencyFlags   = VK_DEPENDENCY_BY_REGION_BIT;
 
+    if (vref_depth_stencil_.size() > 0) {
+
+      depCnt++;
+      dependencies[1].srcSubpass = VK_SUBPASS_EXTERNAL;
+      dependencies[1].dstSubpass = 0;
+      dependencies[1].srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+      dependencies[1].dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+      dependencies[1].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+      dependencies[1].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+      dependencies[1].dependencyFlags = 0;
+
+    }
+    /*
     dependencies[1].srcSubpass = 0;
     dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
     dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -939,6 +976,7 @@ void VKAttachment::create_framebuffer()
                                     VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
     dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+    */
 
     // Create the actual renderpass
     VkRenderPassCreateInfo renderPassInfo = {};
@@ -947,7 +985,7 @@ void VKAttachment::create_framebuffer()
     renderPassInfo.pAttachments = vdesc_.data();
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpassDescription;
-    renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
+    renderPassInfo.dependencyCount = depCnt;
     renderPassInfo.pDependencies = dependencies.data();
     VK_CHECK2(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderpass_));
 
@@ -956,19 +994,22 @@ void VKAttachment::create_framebuffer()
     framebuffer_.resize(vview_.size());
   };
 
-  int i = 0;
+
   BLI_assert(framebuffer_.size() == vview_.size());
 
-  for (auto view : vview_) {
+
+  int i = 0;
+  for (auto & view_ : vview_) {
 
     VkFramebufferCreateInfo fb_create_info = {};
     fb_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     fb_create_info.renderPass = renderpass_;
-    fb_create_info.attachmentCount = 1;
-    fb_create_info.pAttachments = &view;
+    fb_create_info.attachmentCount = static_cast<uint32_t> ( view_.size() );
+    fb_create_info.pAttachments = view_.data();
     fb_create_info.width = extent_.width;
     fb_create_info.height = extent_.height;
     fb_create_info.layers = 1;
+    printf("Create ====================================-     %llx   \n", (uintptr_t)view_[0]);
     VK_CHECK2(vkCreateFramebuffer(device, &fb_create_info, nullptr, &framebuffer_[i]));
     i++;
   };
@@ -986,14 +1027,15 @@ void VKAttachment::append_from_swapchain(int swapchain_idx)
   auto device_ = context_->device_get();
 
   auto size = context_->getImageViewNums();
-  BLI_assert(vview_.size() == 0);
+  
 
   framebuffer_.resize(size);
+  vview_.resize(size);
 
   for (int i = 0; i < size; i++) {
     VkImageView view = VK_NULL_HANDLE;
     context_->getImageView(view, i);
-    vview_.append(view);
+    vview_[i].append(view);
   }
 
   VkExtent2D ext = {};

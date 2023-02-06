@@ -840,13 +840,10 @@ GHOST_ContextVK::GHOST_ContextVK(bool stereoVisual,
   if (m_device) {
     vkDeviceWaitIdle(m_device);
   }
-
-
-
   if (m_surface) {
     destroySwapchain();
   }
- 
+  destroyPipelineCache();
   if (m_command_pool != VK_NULL_HANDLE) {
     vkDestroyCommandPool(m_device, m_command_pool, NULL);
   }
@@ -867,6 +864,31 @@ GHOST_ContextVK::GHOST_ContextVK(bool stereoVisual,
     vkDestroyInstance(m_instance, NULL);
   }
 }
+
+
+GHOST_TSuccess GHOST_ContextVK::createPipelineCache()
+{
+  VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
+  pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+  VK_CHECK(vkCreatePipelineCache(m_device, &pipelineCacheCreateInfo, nullptr, &vkPC));
+  return GHOST_kSuccess;
+};
+
+VkPipelineCache GHOST_ContextVK::getPipelineCache()
+{
+  if (vkPC == VK_NULL_HANDLE)
+    createPipelineCache();
+  return vkPC;
+};
+
+void GHOST_ContextVK::destroyPipelineCache()
+{
+  if (vkPC != VK_NULL_HANDLE) {
+    vkDestroyPipelineCache(m_device, vkPC, nullptr);
+  }
+  vkPC = VK_NULL_HANDLE;
+}
+
   GHOST_TSuccess GHOST_ContextVK::acquireCustom()
 {
   if (m_swapchain == VK_NULL_HANDLE ){

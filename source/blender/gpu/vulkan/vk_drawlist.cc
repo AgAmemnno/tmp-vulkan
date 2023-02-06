@@ -16,22 +16,7 @@
 #include "vk_drawlist.hh"
 #include "vk_index_buffer.hh"
 #include "vk_framebuffer.hh"
-/*
-typedef struct VkDrawIndexedIndirectCommand {
-    uint32_t    indexCount;
-    uint32_t    instanceCount;
-    uint32_t    firstIndex;
-    int32_t     vertexOffset;
-    uint32_t    firstInstance;
-} VkDrawIndexedIndirectCommand;
 
-typedef struct VkDrawIndirectCommand {
-    uint32_t    vertexCount;
-    uint32_t    instanceCount;
-    uint32_t    firstVertex;
-    uint32_t    firstInstance;
-} VkDrawIndirectCommand;
-*/
 
 namespace blender::gpu {
 
@@ -182,7 +167,7 @@ void VKDrawList::submit()
     /*A fallback level bind that isn't very well timing.*/
     VKStateManager::set_prim_type(batch_->prim_type);
     VKShader *vkshader = reinterpret_cast<VKShader *>(VKContext::get()->shader);
-    vkshader->CreatePipeline(fb_->get_render_pass());
+    vkshader->CreatePipeline(fb_);
 
     auto current_pipe_ = vkshader->get_pipeline();
     BLI_assert(current_pipe_ != VK_NULL_HANDLE);

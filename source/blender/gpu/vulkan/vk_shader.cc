@@ -588,7 +588,7 @@ bool VKShader::finalize(const shader::ShaderCreateInfo *info)
     }
     iface.parse(vsm, fsm, info, this);
     auto fb = static_cast<VKFrameBuffer *>(VKContext::get()->active_fb);
-    CreatePipeline(fb->get_render_pass());
+    CreatePipeline(fb);
 
     iface.valid = true;
   }
@@ -1792,11 +1792,13 @@ VKShader::~VKShader()
   is_valid_ = false;
 }
 
-VkPipeline VKShader::CreatePipeline(
-
-    VkRenderPass renderpass)
+VkPipeline VKShader::CreatePipeline(VKFrameBuffer *fb)
 {
+
   VK_ALLOCATION_CALLBACKS;
+
+  VkRenderPass renderpass = fb->get_render_pass();
+  fb->apply_state();
 
   if (pipe != VK_NULL_HANDLE) {
     vkDestroyPipeline(VK_DEVICE, pipe, vk_allocation_callbacks);
@@ -1808,7 +1810,7 @@ VkPipeline VKShader::CreatePipeline(
   }
 
   VKContext *ctx = VKContext::get();
-
+  
   auto vkinterface = (VKShaderInterface *)interface;
 
 
@@ -1863,7 +1865,7 @@ VkPipeline VKShader::CreatePipeline(
   ci.pTessellationState = nullptr;
 
   VK_CHECK2(vkCreateGraphicsPipelines(
-      device, stman->get_pipeline_cache(), 1, &ci, vk_allocation_callbacks, &pipe));
+      device, ctx->get_pipeline_cache(), 1, &ci, vk_allocation_callbacks, &pipe));
 
   return pipe;
 };

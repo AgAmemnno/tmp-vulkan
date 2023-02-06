@@ -276,6 +276,7 @@ class VKContext : public Context {
   VkPhysicalDevice get_physical_device();
   void *ghost_context_;
 
+  VkPipelineCache get_pipeline_cache();
 
   VKStagingBufferManager*  buffer_manager_;
   PipelineStateCreateInfoVk       pipeline_state;

@@ -211,7 +211,7 @@ class VKShader : public Shader {
   }
 
   void set_interface(VKShaderInterface *interface);
-  VkPipeline CreatePipeline(VkRenderPass renderpass);
+  VkPipeline CreatePipeline(VKFrameBuffer *fb);
 
   VkCommandBuffer current_cmd_ = VK_NULL_HANDLE;
   VkPipelineLayout current_layout_ = VK_NULL_HANDLE;

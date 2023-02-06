@@ -250,7 +250,7 @@ struct PipelineStateCreateInfoVk {
   /// <summary>
   /// pNext Or Extentions Chain
   /// </summary>
-  VkPipelineColorBlendAttachmentState colorblend_attachment = {};
+  Vector<VkPipelineColorBlendAttachmentState> colorblend_attachment = {};
   VkPipelineRasterizationProvokingVertexStateCreateInfoEXT provokingvertex = {
       VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_PROVOKING_VERTEX_STATE_CREATE_INFO_EXT, NULL};
   VkPipelineRasterizationLineStateCreateInfoEXT rasterline = {
@@ -267,7 +267,9 @@ struct PipelineStateCreateInfoVk {
 
   PipelineStateCreateInfoVk()
   {
-    colorblend.pAttachments = &colorblend_attachment;
+    colorblend_attachment.resize(1);
+    colorblend.pAttachments = colorblend_attachment.data();
+    colorblend.attachmentCount = 1;
 
     provokingvertex.pNext = &rasterline;
     rasterization.pNext = &provokingvertex;
@@ -288,13 +290,6 @@ struct PipelineStateCreateInfoVk {
 struct VKGraphicsPipelineStateDescriptor {
 
   VkGraphicsPipelineCreateInfo                                    pipelineCI;
-  VkPipelineCache                                                          vkPC =VK_NULL_HANDLE;
-
-
-  bool create_pipeline_cache();
-
-  VkPipelineCache get_pipeline_cache();
-  void destroy_pipeline_cache();
 
 
 };

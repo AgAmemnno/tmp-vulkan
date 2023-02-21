@@ -853,54 +853,53 @@ void VKStateManager::set_color_blend_from_fb(VKFrameBuffer* fb) {
  * \{ */
 
 
-static void attachment2sampler(VKTexture* tex,int mip)
+static void attachment2sampler(VKTexture* tex)
 {
+  
+  int mip_rem = tex->mip_count();
   const VkImageLayout dst_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-  VkImageLayout src_layout = tex->get_image_layout(mip);
-  if (src_layout == dst_layout) {
-    tex->desc_info_.imageLayout = dst_layout;
-    /*All views are newly created because the system is a bit cryptic. */
-    tex->desc_info_.imageView = tex->vk_image_view_get(0, 0, true);
-    return;
-  }
 
-  BLI_assert((src_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) ||
-             (src_layout == VK_IMAGE_LAYOUT_UNDEFINED) || 
-   ( src_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) );
-
-
-  VkAccessFlags acs_flag = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-                           VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-  if (src_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
-    acs_flag = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
-               VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-  }
-  else if (src_layout == VK_IMAGE_LAYOUT_UNDEFINED) {
-    acs_flag = VK_ACCESS_NONE_KHR;
-  }
 
   VkCommandBuffer cmd = VK_NULL_HANDLE;
   VKContext *context = VKContext::get();
 
   VkImage src_image = tex->get_image();
+  context->begin_submit_simple(cmd, true);
 
-  context->begin_submit_simple(cmd,true);
+  for (int mip = 0; mip < mip_rem; mip++) {
 
+    VkImageLayout src_layout = tex->get_image_layout(mip);
+    if (src_layout == dst_layout) {
+      continue;
+    }
 
-    blender::vulkan::GHOST_ImageTransition(
-        cmd,
-        src_image,
-        tex->info.format,
-        dst_layout,
-        VK_ACCESS_SHADER_READ_BIT,
-        VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM,
-        acs_flag,
-        src_layout);
+    BLI_assert((src_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) ||
+               (src_layout == VK_IMAGE_LAYOUT_UNDEFINED) ||
+               (src_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL));
+
+    VkAccessFlags acs_flag = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+                             VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+    if (src_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+      acs_flag = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                 VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    }
+    else if (src_layout == VK_IMAGE_LAYOUT_UNDEFINED) {
+      acs_flag = VK_ACCESS_NONE_KHR;
+    }
+
+        blender::vulkan::GHOST_ImageTransition(cmd,
+                                           src_image,
+                                           tex->info.format,
+                                           dst_layout,
+                                           VK_ACCESS_SHADER_READ_BIT,
+                                           VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM,
+                                           acs_flag,
+                                           src_layout,mip,1);
+    tex->set_image_layout(dst_layout, mip);
+  }
 
   context->end_submit_simple();
-    tex->set_image_layout(dst_layout, mip);
-
 
 
   tex->desc_info_.imageLayout = dst_layout;
@@ -916,7 +915,7 @@ void VKStateManager::texture_bind(Texture *tex_, eGPUSamplerState sampler_type, 
   }
 
 
-  attachment2sampler(tex, 0);
+  attachment2sampler(tex);
       
   auto shader = VKContext::get()->pipeline_state.active_shader;
   shader->append_write_descriptor(tex, sampler_type,binding);

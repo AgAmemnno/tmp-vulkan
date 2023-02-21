@@ -366,6 +366,9 @@ void VKTexture::generate_mipmaps(const void *data)
                          1,
                          &buffer_copy_region);
 
+  vk_image_layout_.resize(mipmaps_);
+
+
   if (this->mipmaps_ > 1) {
     insert_image_memory_barrier(cmd,
                                 vk_image_,
@@ -388,9 +391,12 @@ void VKTexture::generate_mipmaps(const void *data)
                                 VK_PIPELINE_STAGE_TRANSFER_BIT,
                                 VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
                                 {VK_IMAGE_ASPECT_COLOR_BIT, 0, (uint32_t)this->mipmaps_, 0, 1});
+
+
     for (auto &layout : vk_image_layout_) {
-      layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+       layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     }
+
   }
 
   staging->end();
@@ -463,8 +469,10 @@ void VKTexture::generate_mipmaps(const void *data)
                                 VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
                                 {VK_IMAGE_ASPECT_COLOR_BIT, 0, (uint32_t)this->mipmaps_, 0, 1});
 
+
+
     for (auto &layout : vk_image_layout_) {
-      layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+     layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     }
     staging->end();
   }
@@ -598,21 +606,22 @@ VKTexture::VKTexture(const char *name, VKContext *context) : Texture(name)
 
   context_ = context;
 
-  mip_max_ = 0;
-  mip_min_ = 0;
+  mip_max_ = 1;
+  mip_min_  = 0;
   current_view_id_ = -1;
+  views_ = VK_NULL_HANDLE;
 }
 
 VKTexture::~VKTexture(void)
 {
   VkDevice device = context_->device_get();
 
-  for (VkImageView view : views_) {
-    if (view != VK_NULL_HANDLE) {
-      vkDestroyImageView(device, view, nullptr);
-    }
-  }
-  views_.clear();
+ if (views_ != VK_NULL_HANDLE) {
+      vkDestroyImageView(device, views_, nullptr);
+      views_ = VK_NULL_HANDLE;
+ }
+  
+ 
 
   if (vk_image_ != VK_NULL_HANDLE) {
     VmaAllocator mem_allocator = context_->mem_allocator_get();
@@ -626,6 +635,11 @@ static int VK_IMAGE_ALLOCATED_TIMES = 0;
 
 bool VKTexture::init_internal(void)
 {
+
+  mip_min_ = 0;
+  mip_max_ = mipmaps_;
+  BLI_assert(views_ == VK_NULL_HANDLE);
+
   /*blender type check.*/
   target_type_ = to_vk_image_type(type_);
   target_view_type_ = to_vk_image_view_type(type_);
@@ -712,14 +726,16 @@ bool VKTexture::init_internal(void)
   auto state_manager = reinterpret_cast<VKStateManager *>(context_->state_manager);
   state_manager->texture_bind_temp(this);
 
-  views_.resize(info.mipLevels * (info.arrayLayers + 1), VK_NULL_HANDLE);
+
   desc_info_.imageView = VK_NULL_HANDLE;
   desc_info_.imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   desc_info_.sampler = VK_NULL_HANDLE;
   vk_image_layout_.resize(mipmaps_);
+
   for (auto &layout : vk_image_layout_) {
-    layout = VK_IMAGE_LAYOUT_UNDEFINED;
+    layout  = VK_IMAGE_LAYOUT_UNDEFINED;
   }
+
   return true;
 }
 
@@ -897,14 +913,14 @@ void VKTexture::swizzle_set(const char swizzle_mask[4])
 
   /* The swizzling changed, we need to reconstruct all views. */
   VkDevice device = context_->device_get();
-  for (VkImageView view : views_) {
-    if (view != VK_NULL_HANDLE) {
+
+    if (views_ != VK_NULL_HANDLE) {
       /* WARNING: This is potentially unsafe since the views might already be in used.
        * In practice, swizzle_set is always used just after initialization or before usage. */
-      vkDestroyImageView(device, view, nullptr);
-      view = VK_NULL_HANDLE;
+      vkDestroyImageView(device, views_, nullptr);
+      views_ = VK_NULL_HANDLE;
     }
-  }
+
 }
 
 void VKTexture::copy_to(Texture *dst_){
@@ -998,8 +1014,7 @@ VkImageView VKTexture::create_image_view(int mip, int layer, int mipcount = 1, i
   BLI_assert(mip >= 0);
   BLI_assert(layer >= 0);
   VkDevice device = context_->device_get();
-  int view_id = mip * (layer_count() + 1) + layer + 1;
-  VkImageView &view = views_[view_id];
+  VkImageView &view = views_;
   if (view != VK_NULL_HANDLE) {
     vkDestroyImageView(device, view, nullptr);
     view = VK_NULL_HANDLE;
@@ -1039,9 +1054,9 @@ VkImageView VKTexture::vk_image_view_get(int mip)
 
 VkImageView VKTexture::vk_image_view_get(int mip, int layer,bool force )
 {
-  int view_id = mip * (layer_count() + 1) + layer + 1;
+  int view_id = mipmaps_ * (layer_count() + 1) + layer + 1;
   VkDevice device = context_->device_get();
-  VkImageView& view = views_[view_id];
+  VkImageView& view = views_;
   if (force) {
     if (view != VK_NULL_HANDLE) {
       vkDestroyImageView(device, view, nullptr);
@@ -1057,7 +1072,7 @@ VkImageView VKTexture::vk_image_view_get(int mip, int layer,bool force )
 
   needs_update_descriptor_ = true;
   if (view == VK_NULL_HANDLE) {
-    views_[view_id] = view = this->create_image_view(mip, layer);
+    views_ = view = this->create_image_view(0,layer, mipmaps_,1);
   }
   current_view_id_ = view_id;
   return view;
@@ -1213,7 +1228,7 @@ void VKAttachment::append(GPUAttachment &attach, VkImageLayout layout)
   }
 
   vdesc_.append(desc);
-
+  BLI_assert(mip_ == 0);
   vview_[currentImageID].append(tex->create_image_view(mip_, 0, 1, tex->info.arrayLayers));
 
   num_++;

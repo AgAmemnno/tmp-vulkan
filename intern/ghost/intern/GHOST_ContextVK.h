@@ -867,8 +867,9 @@ namespace blender {
       VkAccessFlags dstAccesses,
       VkImageAspectFlags aspects = VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM,
       VkAccessFlags srcAccess = VK_ACCESS_FLAG_BITS_MAX_ENUM,
-      VkImageLayout srcLayout =
-      VK_IMAGE_LAYOUT_MAX_ENUM);  // The ways that the app will be able to access the image.
+      VkImageLayout srcLayout = VK_IMAGE_LAYOUT_MAX_ENUM,
+      int basemip = 0,
+      int miplevel = -1);  // The ways that the app will be able to access the image.
   };
 };
 

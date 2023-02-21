@@ -482,7 +482,9 @@ namespace blender::gpu {
     save = true;
   }
   
-
+   if (cnt == 12) {
+    save = true;
+   }
 
     if(cnt == -182)
     {
@@ -506,7 +508,7 @@ namespace blender::gpu {
       GPU_context_active_set(ctx);
 
     };
-    save = false;
+
     if (save) {
 
       std::string filename = std::string(fb_->name_get()) + "_" + vkshader->name_get();

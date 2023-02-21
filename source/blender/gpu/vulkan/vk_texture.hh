@@ -111,13 +111,13 @@ class VKTexture : public Texture {
   /* Vulkan object handle. */
   VkImage vk_image_ = VK_NULL_HANDLE;
 
-  Vector<VkImageLayout> vk_image_layout_;
+  Vector<VkImageLayout>  vk_image_layout_;
   /* GPU Memory allocated by this object. */
   VmaAllocation vk_allocation_ = VK_NULL_HANDLE;
   /* Vulkan format used to initialize the texture. */
   VkFormat vk_format_ = VK_FORMAT_MAX_ENUM;
   /* Image views for each mipmap and each layer. */
-  Vector<VkImageView> views_;
+  VkImageView  views_;
   int current_view_id_ = -1;
   /* Swizzle state. */
   VkComponentMapping vk_swizzle_ = {VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -223,6 +223,9 @@ class VKTexture : public Texture {
 
   VkImageLayout get_image_layout(int i)
   {
+    if (i == -1) {
+      return vk_image_layout_[mipmaps_-1];
+    }
     return vk_image_layout_[i];
   };
   VkImage get_image()
@@ -233,7 +236,10 @@ class VKTexture : public Texture {
   void copy_to(Texture *dst) override;
   void clear(eGPUDataFormat format, const void *data) override{};
   void swizzle_set(const char swizzle_mask[4]) override;
-  void mip_range_set(int min, int max) override{};
+  void mip_range_set(int min, int max) override{
+    mip_min_ = min;
+    mip_max_ = max;
+  };
   void *read(int mip, eGPUDataFormat type) override
   {
     /* NOTE: mip_size_get() won't override any dimension that is equal to 0. */
@@ -265,15 +271,16 @@ class VKTexture : public Texture {
   /* Vulkan specific functions. */
   VkImageView vk_image_view_get(int mip);
   VkImageView vk_image_view_get(int mip, int layer,bool force= false );
-  VkDescriptorImageInfo *get_image_info(eGPUSamplerState id = (eGPUSamplerState)257,bool force = false){
+  VkDescriptorImageInfo *get_image_info(eGPUSamplerState id = (eGPUSamplerState)513,bool force = false){
 
     int layer = 0;
     /*BLI_assert((int)id <= 257);*/
     int mip = 0;
-    desc_info_.imageLayout = vk_image_layout_[mip];
+    desc_info_.imageLayout = vk_image_layout_[mipmaps_-1];
     desc_info_.imageView = vk_image_view_get(mip, layer, force);
 
-    if (id == 257) {
+    if (id == 513) {
+      BLI_assert(false);
       desc_info_.sampler = NULL;
     }
     else {

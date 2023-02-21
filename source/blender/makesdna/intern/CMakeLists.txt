@@ -53,8 +53,11 @@ set(SRC
   ../../blenlib/intern/hash_mm2a.c  # needed by 'BLI_ghash_utils.c', not used directly.
   ../../../../intern/guardedalloc/intern/leak_detector.cc
   ../../../../intern/guardedalloc/intern/mallocn.c
-  ../../../../intern/guardedalloc/intern/mallocn_guarded_impl.c
+   ../../../../intern/guardedalloc/intern/mallocn_guarded_impl.c
   ../../../../intern/guardedalloc/intern/mallocn_lockfree_impl.c
+  #../../../../intern/guardedalloc/intern/mallocn_guarded_impl.cc
+  .#./../../../intern/guardedalloc/intern/mallocn_lockfree_impl.cc
+    #../../../../intern/guardedalloc/MEM_dbg.cpp
   ../../../../intern/guardedalloc/intern/memory_usage.cc
   ${dna_header_include_file}
   ${dna_header_string_file}

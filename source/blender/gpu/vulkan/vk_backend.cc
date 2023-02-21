@@ -135,15 +135,12 @@ VertBuf *VKBackend::vertbuf_alloc()
 
 void VKBackend::render_begin()
 {
-  printf("<<<<<<<<<<<<<<<<   vulkan backend render begin     ");
+
   VKContext *vk_ctx = static_cast<VKContext *>(unwrap(GPU_context_active_get()));
   BLI_assert(vk_ctx);
   if (vk_ctx) {
     if (vk_ctx->is_swapchain_) {
       vk_ctx->begin_frame();
-      VKFrameBuffer *fb_ = static_cast<VKFrameBuffer *>(vk_ctx->active_fb);
-      vk_ctx->get_command_buffer(backend_prim_cmd_);
-      fb_->render_begin(backend_prim_cmd_, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
     }
   }
   else {
@@ -154,20 +151,16 @@ void VKBackend::render_begin()
 
 void VKBackend::render_end()
 {
-  printf("   vulkan backend render end     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+
   VKContext *vk_ctx = static_cast<VKContext *>(unwrap(GPU_context_active_get()));
   
   if (vk_ctx) {
     /*BLI_assert(vk_ctx);*/
     if (vk_ctx->is_swapchain_) {
-      auto fb = static_cast<VKFrameBuffer *>(vk_ctx->active_fb);
-
-      if (vk_ctx && fb->is_render_begin()) {
-        fb->render_end();
         vk_ctx->end_frame();
       }
-    }
   }
+
 }
 
 void VKBackend::render_step()

@@ -45,6 +45,8 @@ class VKFrameBuffer : public FrameBuffer {
 
  public:
   bool is_dirty_render_ = false;
+  bool is_swapchain_ = false;
+  bool is_blit_begin_ = false;
   /**
    * Create a conventional frame-buffer to attach texture to.
    */
@@ -79,6 +81,7 @@ class VKFrameBuffer : public FrameBuffer {
                         eGPUDataFormat data_format,
                         const void *clear_value) override;
 
+  void clear_color(int slot,const float clear_col[4]);
   /* Attachment load-stores are currently no-op's in OpenGL. */
   void attachment_set_loadstore_op(GPUAttachmentType /*type*/,
                                    eGPULoadOp /*load_action*/,
@@ -114,9 +117,9 @@ class VKFrameBuffer : public FrameBuffer {
 
   void apply_state();
 
-  int get_width();
+  int   get_width();
 
-  int get_height();
+  int   get_height();
 
   bool get_srgb_enabled()
   {
@@ -136,7 +139,8 @@ class VKFrameBuffer : public FrameBuffer {
   VkCommandBuffer render_begin(VkCommandBuffer cmd,
                                VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_SECONDARY,
                                VkClearValue *clearValues = nullptr,
-                               bool blit = false);
+                               bool blit = false,
+                               bool rebuild = false);
   void render_end();
   bool is_render_begin()
   {
@@ -184,6 +188,12 @@ class VKFrameBuffer : public FrameBuffer {
     wait_sema.push_back(sema);
   };
 
+  Vector<VkPipeline> cache_pipes;
+  void move_pipe(VkPipeline &pipe_)
+  {
+    cache_pipes.append(pipe_);
+    pipe_ = VK_NULL_HANDLE;
+  };
   void set_dirty_render(bool t)
   {
     is_dirty_render_ = t;
@@ -193,14 +203,20 @@ class VKFrameBuffer : public FrameBuffer {
   const Vector<VkAttachmentDescription>& get_attach_desc() {
     return vk_attachments_.vdesc_;
   };
+
+  void update_attachments();
+
+  void get_attachments(GPUAttachmentType type, GPUAttachment *&attach);
+  void readColorAttachment(VKTexture *tex, void *&data, VkDeviceMemory& dstImageMemory,int mip = 0);
+  VkSubresourceLayout subResourceLayout_;
+
  private:
   VkCommandBuffer vk_cmd = VK_NULL_HANDLE;
   int cmd_refs = 0;
   VKAttachment vk_attachments_;
   bool is_nocolor_ = true;
   bool is_init_ = false;
-  bool is_swapchain_ = false;
-  bool is_blit_begin_ = false;
+
   int signal_index_ = -1;
   int offscreen_render_times_ = 0;
 
@@ -214,10 +230,11 @@ class VKFrameBuffer : public FrameBuffer {
   bool is_srgb_;
 
   void init(VKContext *ctx);
-  void update_attachments();
+ 
   void force_clear();
 
   VKContext *dirty_state_ctx_ = nullptr;
+  
 
   MEM_CXX_CLASS_ALLOC_FUNCS("VKFrameBuffer");
 };
@@ -258,7 +275,13 @@ static inline VkImageAspectFlags to_vk(const eGPUFrameBufferBits bits)
   mask |= (bits & GPU_COLOR_BIT) ? VK_IMAGE_ASPECT_COLOR_BIT : 0;
   return mask;
 }
-
+void saveTexture(std::string &filename, VKFrameBuffer *fb, const GPUTexture *tex, int mip);
+void saveRect(std::string &filename,
+              void *data,
+              int w,
+              int h,
+              eGPUTextureFormat tex_format,
+              eGPUDataFormat data_format);
 /** \} */
 
 }  // namespace blender::gpu

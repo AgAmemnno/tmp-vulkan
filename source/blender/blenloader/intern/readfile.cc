@@ -297,11 +297,14 @@ static void oldnewmap_clear(OldNewMap *onm)
 {
   /* Free unused data. */
   for (NewAddress &new_addr : onm->map.values()) {
+    //printf("FD MAP %llx   addr %llx  nr  %d  \n", (uintptr_t)(onm), new_addr.newp, new_addr.nr);
     if (new_addr.nr == 0) {
       MEM_freeN(new_addr.newp);
     }
   }
   onm->map.clear_and_shrink();
+
+
 }
 
 static void oldnewmap_free(OldNewMap *onm)
@@ -1796,6 +1799,9 @@ static void *read_struct(FileData *fd, BHead *bh, const char *blockname)
       else {
         /* SDNA_CMP_EQUAL */
         temp = MEM_mallocN(bh->len, blockname);
+        if (bh->len == 32) {
+          //printf("BP 32B  %s  %llx \n",blockname,(uintptr_t)temp);
+        }
 #ifdef USE_BHEAD_READ_ON_DEMAND
         if (BHEADN_FROM_BHEAD(bh)->has_data) {
           memcpy(temp, (bh + 1), bh->len);
@@ -3292,6 +3298,7 @@ static bool read_libblock_undo_restore(
   return false;
 }
 
+
 /* This routine reads a datablock and its direct data, and advances bhead to
  * the next datablock. For library linked datablocks, only a placeholder will
  * be generated, to be replaced in read_library_linked_ids.
@@ -3400,6 +3407,7 @@ static BHead *read_libblock(FileData *fd,
   /* Read datablock contents.
    * Use convenient malloc name for debugging and better memory link prints. */
   const char *allocname = dataname(idcode);
+
   bhead = read_data_into_datamap(fd, bhead, allocname);
   const bool success = direct_link_id(fd, main, id_tag, id, id_old);
   oldnewmap_clear(fd->datamap);

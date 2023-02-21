@@ -30,6 +30,7 @@
 
 #include "MEM_guardedalloc.h"
 
+
 /* Struct storing a viewport specific GPUBatch.
  * The end-goal is to have a single batch shared across viewport and use a model matrix to place
  * the batch. Due to OCIO and Image/UV editor we are not able to use an model matrix yet. */
@@ -451,6 +452,7 @@ static void gpu_viewport_draw_colormanaged(GPUViewport *viewport,
     GPU_batch_uniform_1i(batch, "display_transform", display_colorspace);
   }
 
+  //GPU_uniformbuf_bind(batch->shader.parameters_buffer, 2);
   GPU_texture_bind(color, 0);
   GPU_texture_bind(color_overlay, 1);
   GPU_batch_draw(batch);

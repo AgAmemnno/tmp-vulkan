@@ -33,7 +33,7 @@ namespace blender::gpu {
  * focussed memory operations.
  */
 
-#  ifdef WITH_VULKAN_GUARDEDALLOC
+#  ifdef WITH_VULKAN_GUARDEDALLOC_
 VkAllocationCallbacks vk_allocation_callbacks_init(const char *name);
 
 #    define VK_ALLOCATION_CALLBACKS \
@@ -123,7 +123,8 @@ class VKBuffer {
   VmaAllocation allocation = nullptr;
   VKResourceOptions options_;
   bool  can_mapped_ = true;
-
+  char* mapped_ = nullptr;
+  VKContext *context_ = nullptr;
  public:
 
 
@@ -142,7 +143,7 @@ class VKBuffer {
 
   VkBuffer get_vk_buffer() const;
   void *get_host_ptr() const;
-  void unmap() const;
+  void unmap();
   uint64_t get_size() const;
   uint64_t get_buffer_size() const;
   void *get_contents();

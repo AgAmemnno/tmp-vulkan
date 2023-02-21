@@ -693,6 +693,8 @@ bool OCIOImpl::gpuDisplayShaderBind(OCIO_ConstConfigRcPtr *config,
   OCIO_GPUShader &shader = display_shader.shader;
   OCIO_GPUCurveMappping &curvemap = display_shader.curvemap;
 
+  GPU_shader_bind(display_shader.shader.shader);
+
   /* Update and bind curve mapping data. */
   if (curve_mapping_settings) {
     updateGPUCurveMapping(curvemap, curve_mapping_settings);
@@ -715,7 +717,7 @@ bool OCIOImpl::gpuDisplayShaderBind(OCIO_ConstConfigRcPtr *config,
   }
 
   updateGPUDisplayParameters(shader, scale, exponent, dither, use_predivide, use_overlay);
-  GPU_uniformbuf_bind(shader.parameters_buffer, UNIFORMBUF_SLOT_DISPLAY);
+  GPU_uniformbuf_bind(shader.parameters_buffer, 2);//UNIFORMBUF_SLOT_DISPLAY);
 
   /* TODO(fclem): remove remains of IMM. */
   immBindShader(shader.shader);

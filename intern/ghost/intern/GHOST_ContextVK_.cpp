@@ -2123,7 +2123,7 @@ VkCommandBuffer GHOST_ContextVK::getCommandBuffers(int i)
   if (m_command_buffers.size() <= i) {
     m_command_buffers.push_back(create_command_buffer(m_device, m_command_pool));
   }
-  printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> CommandBuffer request  %d \n", i);
+ 
   return m_command_buffers[i];
 }
 

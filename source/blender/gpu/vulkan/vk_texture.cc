@@ -35,10 +35,177 @@
 #include "intern/GHOST_ContextVK.h"
 
 namespace blender::gpu {
-/// <summary>
+
+
+struct ImgState {
+  VkImage img;
+  VkImageLayout layout;
+  VkAccessFlags acs;
+  VkPipelineStageFlags stg;
+  VkImageAspectFlags iacs;
+};
+
+
+static bool check_canBlit(VkFormat srcFormat,VkFormat dstFormat)
+{
+
+  VKContext *context = VKContext::get();
+  BLI_assert(context);
+  auto pdevice = context->get_physical_device();
+  VkFormatProperties formatProps;
+  vkGetPhysicalDeviceFormatProperties(pdevice, srcFormat, &formatProps);
+  if (!(formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT)) {
+    std::cerr << "Device does not support blitting from optimal tiled images, using copy instead "
+                 "of blit!"
+              << std::endl;
+    return false;
+  }
+
+  // Check if the device supports blitting to linear images
+  vkGetPhysicalDeviceFormatProperties(pdevice, srcFormat, &formatProps);
+  if (!(formatProps.linearTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT)) {
+    std::cerr
+        << "Device does not support blitting to linear tiled images, using copy instead of blit!"
+        << std::endl;
+    return false;
+  }
+  return true;
+}
+
+static  void image_barrier_copy(VkCommandBuffer copyCmd, VKTexture *tex, ImgState &state, bool is_src,int mip) {
+  state.img = tex->get_image();
+  state.layout = tex->get_image_layout(mip);
+
+  if (state.layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
+    state.acs = (VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+    state.stg = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    state.iacs = VK_IMAGE_ASPECT_COLOR_BIT;
+  }
+  else if (state.layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+
+    state.acs = (VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                 VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+    state.stg = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+    state.iacs = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+  }
+  else {
+    state.acs = VK_ACCESS_MEMORY_READ_BIT;
+    state.stg = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    if (state.layout == VK_IMAGE_LAYOUT_UNDEFINED) {
+      if (tex->info.usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) {
+        state.iacs = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+      }
+      else {
+        state.iacs = VK_IMAGE_ASPECT_COLOR_BIT;
+      }
+    }
+    
+  };
+  insert_image_memory_barrier(
+      copyCmd,
+      state.img,
+      state.acs,
+      (is_src) ? VK_ACCESS_TRANSFER_READ_BIT : VK_ACCESS_TRANSFER_WRITE_BIT,
+      state.layout,
+      (is_src) ? VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL : VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+      state.stg,
+      VK_PIPELINE_STAGE_TRANSFER_BIT,
+      VkImageSubresourceRange{state.iacs, (uint32_t)mip, 1, 0, 1});
+
+};
+
+static void image_barrier2_copy(VkCommandBuffer copyCmd, ImgState &state, bool is_src,int mip) {
+  if (state.layout == VK_IMAGE_LAYOUT_UNDEFINED) {
+
+    if (state.iacs == VK_IMAGE_ASPECT_COLOR_BIT) {
+      state.acs = (VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+      state.stg = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+      state.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    }
+    else {
+      state.acs = (VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                   VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+      state.stg = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+      state.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    }
+
+  }
+
+  insert_image_memory_barrier(
+      copyCmd,
+      state.img,
+      (is_src) ? VK_ACCESS_TRANSFER_READ_BIT : VK_ACCESS_TRANSFER_WRITE_BIT,
+      state.acs,
+      (is_src) ? VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL : VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+      state.layout,
+      VK_PIPELINE_STAGE_TRANSFER_BIT,
+      state.stg,
+      VkImageSubresourceRange{state.iacs, (uint32_t)mip, 1, 0, 1});
+};
+
+
+
+
+static void sampler2attachment(VKTexture *tex,
+                               int mip,
+                               VkImageLayout dst_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+{
+  VkImageLayout src_layout = tex->get_image_layout(mip);
+  if (src_layout == dst_layout) {
+    return;
+  }
+
+  VkAccessFlags src_acs_flag; 
+  const VkImageLayout Shader_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  if (src_layout & VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+    src_acs_flag = VK_ACCESS_SHADER_READ_BIT;
+  }
+  else if (src_layout & VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
+    src_acs_flag = VK_ACCESS_MEMORY_READ_BIT;
+  }
+
+  BLI_assert((dst_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) ||
+                (dst_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL));
+
+  VkAccessFlags acs_flag = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+                           VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+  if (dst_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+    acs_flag = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+               VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+  }
+
+  VkCommandBuffer cmd = VK_NULL_HANDLE;
+  VKContext *context = VKContext::get();
+
+  VkImage src_image = tex->get_image();
+
+  context->begin_submit_simple(cmd);
+
+  blender::vulkan::GHOST_ImageTransition(cmd,
+                                         src_image,
+                                         tex->info.format,
+                                         dst_layout,
+                                         acs_flag,
+                                         VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM,
+                                         src_acs_flag,
+                                         src_layout);
+
+  context->end_submit_simple();
+  tex->set_image_layout(dst_layout, mip);
+
+
+};
+
+
+
+    /// <summary>
 /// @SaschaWillems , Vulkan Samples-1
 /// https://github.com/Mandar-Shinde/Vulkan-Samples-1/blob/master/samples/api/texture_mipmap_generation/texture_mipmap_generation_tutorial.md
 /// </summary>
+///
+///
+
 void insert_image_memory_barrier(VkCommandBuffer command_buffer,
                                  VkImage image,
                                  VkAccessFlags src_access_mask,
@@ -84,6 +251,7 @@ static VkDeviceSize get_size_fromformat(VkFormat format, uint32_t w_, uint32_t h
     case VK_FORMAT_R8G8_UINT:
     case VK_FORMAT_R8G8_SINT:
     case VK_FORMAT_R8G8_SRGB:
+    case VK_FORMAT_R16_SFLOAT:
       size = 2 * w_ * h_ * d_;
       break;
     case VK_FORMAT_R8G8B8_UNORM:
@@ -138,6 +306,7 @@ static VkDeviceSize get_size_fromformat(VkFormat format, uint32_t w_, uint32_t h
     case VK_FORMAT_X8_D24_UNORM_PACK32:
       size = 4 * w_ * h_ * d_;
       break;
+
     default:
       /*TODO :: rest type*/
       BLI_assert(false);
@@ -306,6 +475,8 @@ void VKTexture::generate_mipmaps(const void *data)
 void VKTexture::TextureSubImage(int mip, int offset[3], int extent[3], const void *data)
 {
 
+  uint32_t row_pitch = ((VKStateManager*)VKContext::get()->state_manager)->unpack_row_length;
+
   int dim = dimensions_count();
 
   BLI_assert(vk_image_);
@@ -320,8 +491,14 @@ void VKTexture::TextureSubImage(int mip, int offset[3], int extent[3], const voi
     extent[2] = 1;
     offset[2] = 0;
   }
+  VkDeviceSize size = 0; 
+  if (row_pitch != 0 ) {
+    size = get_size_fromformat(info.format, row_pitch, extent[1], extent[2]);
+  }
+  else {
+    size = get_size_fromformat(info.format, extent[0], extent[1], extent[2]);
+  }
 
-  VkDeviceSize size = get_size_fromformat(info.format, extent[0], extent[1], extent[2]);
   VkImageAspectFlagBits aspect_flag = VK_IMAGE_ASPECT_COLOR_BIT;
   VkImageLayout dst_layout;
   VkAccessFlags dst_access = 0;
@@ -391,6 +568,8 @@ void VKTexture::TextureSubImage(int mip, int offset[3], int extent[3], const voi
   buffer_copy_region.imageOffset.x = offset[0];
   buffer_copy_region.imageOffset.y = offset[1];
   buffer_copy_region.imageOffset.z = offset[2];
+  buffer_copy_region.bufferRowLength = row_pitch;
+
 
   vkCmdCopyBufferToImage(cmd,
                          buffer->get_vk_buffer(),
@@ -417,8 +596,6 @@ void VKTexture::TextureSubImage(int mip, int offset[3], int extent[3], const voi
 VKTexture::VKTexture(const char *name, VKContext *context) : Texture(name)
 {
 
-  printf("VKTexture     name         %s  \n",name);
-
   context_ = context;
 
   mip_max_ = 0;
@@ -432,17 +609,10 @@ VKTexture::~VKTexture(void)
 
   for (VkImageView view : views_) {
     if (view != VK_NULL_HANDLE) {
-      if (vk_image_view_ == view) {
-        vk_image_view_ = VK_NULL_HANDLE;
-      };
       vkDestroyImageView(device, view, nullptr);
     }
   }
   views_.clear();
-  if (vk_image_view_ != VK_NULL_HANDLE) {
-    vkDestroyImageView(device, vk_image_view_, nullptr);
-    vk_image_view_ = VK_NULL_HANDLE;
-  }
 
   if (vk_image_ != VK_NULL_HANDLE) {
     VmaAllocator mem_allocator = context_->mem_allocator_get();
@@ -737,16 +907,103 @@ void VKTexture::swizzle_set(const char swizzle_mask[4])
   }
 }
 
+void VKTexture::copy_to(Texture *dst_){
+
+
+    int mip = 0;
+    VKTexture *dst = static_cast<VKTexture *>(dst_);
+    VKTexture *src = this;
+  VKContext *context = VKContext::get();
+  BLI_assert(context);
+
+
+  auto srcFormat = src->info.format;
+  auto dstFormat = dst->info.format;
+  BLI_assert(srcFormat == dstFormat);
+  bool supportsBlit = check_canBlit(srcFormat, dstFormat);
+
+
+  VkImage srcImage = src->get_image();
+  VkImage dstImage = dst->get_image();
+
+  VkCommandBuffer copyCmd = VK_NULL_HANDLE;
+
+  context->begin_submit_simple(copyCmd);
+
+  ImgState src_state,dst_state;
+
+
+
+  image_barrier_copy(copyCmd,src, src_state, true,mip);
+  image_barrier_copy(copyCmd,dst, dst_state, false,mip);
+
+  if (supportsBlit) {
+    // Define the region to blit (we will blit the whole swapchain image)
+    VkOffset3D blitSize;
+    blitSize.x = src->info.extent.width;
+    blitSize.y = src->info.extent.height;
+    blitSize.z = 1;
+    VkImageBlit imageBlitRegion{};
+    imageBlitRegion.srcSubresource.aspectMask = src_state.iacs;
+    imageBlitRegion.srcSubresource.layerCount = 1;
+    imageBlitRegion.srcOffsets[1] = blitSize;
+    imageBlitRegion.dstSubresource.aspectMask = dst_state.iacs;
+    imageBlitRegion.dstSubresource.layerCount = 1;
+    imageBlitRegion.dstOffsets[1] = blitSize;
+
+    // Issue the blit command
+    vkCmdBlitImage(copyCmd,
+                   srcImage,
+                   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                   dstImage,
+                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                   1,
+                   &imageBlitRegion,
+                   VK_FILTER_NEAREST);
+  }
+  else {
+    // Otherwise use image copy (requires us to manually flip components)
+    VkImageCopy imageCopyRegion{};
+    imageCopyRegion.srcSubresource.aspectMask = src_state.iacs;
+    imageCopyRegion.srcSubresource.layerCount = 1;
+    imageCopyRegion.dstSubresource.aspectMask = dst_state.iacs;
+    imageCopyRegion.dstSubresource.layerCount = 1;
+    imageCopyRegion.extent.width = src->info.extent.width;
+    imageCopyRegion.extent.height = src->info.extent.height;
+    imageCopyRegion.extent.depth = 1;
+
+    // Issue the copy command
+    vkCmdCopyImage(copyCmd,
+                   srcImage,
+                   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                   dstImage,
+                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                   1,
+                   &imageCopyRegion);
+  }
+
+
+  image_barrier2_copy(copyCmd, src_state, true, mip);
+  image_barrier2_copy(copyCmd, dst_state, false, mip);
+
+  context->end_submit_simple();
+
+
+}
+
+
+
 VkImageView VKTexture::create_image_view(int mip, int layer, int mipcount = 1, int levelcount = 1)
 {
   BLI_assert(mip >= 0);
   BLI_assert(layer >= 0);
   VkDevice device = context_->device_get();
-
-  if (vk_image_view_ != VK_NULL_HANDLE) {
-    vkDestroyImageView(device, vk_image_view_, nullptr);
-    vk_image_view_ = VK_NULL_HANDLE;
-  };
+  int view_id = mip * (layer_count() + 1) + layer + 1;
+  VkImageView &view = views_[view_id];
+  if (view != VK_NULL_HANDLE) {
+    vkDestroyImageView(device, view, nullptr);
+    view = VK_NULL_HANDLE;
+  }
 
   VkImageSubresourceRange range;
   range.aspectMask = to_vk(format_flag_);
@@ -766,15 +1023,13 @@ VkImageView VKTexture::create_image_view(int mip, int layer, int mipcount = 1, i
                      VK_COMPONENT_SWIZZLE_A};
 
   info.subresourceRange = range;
-  printf(
-      "Create imageVIew ===================================================================     "
-      "%llx     NAME   %s  \n",
-      (uintptr_t)vk_image_,
-      name_);
-  vkCreateImageView(device, &info, nullptr, &vk_image_view_);
-  desc_info_.imageView = vk_image_view_;
 
-  return vk_image_view_;
+  vkCreateImageView(device, &info, nullptr, &view);
+
+
+  desc_info_.imageView = view;
+
+  return view;
 }
 
 VkImageView VKTexture::vk_image_view_get(int mip)
@@ -782,13 +1037,22 @@ VkImageView VKTexture::vk_image_view_get(int mip)
   return this->vk_image_view_get(mip, 0);
 }
 
-VkImageView VKTexture::vk_image_view_get(int mip, int layer)
+VkImageView VKTexture::vk_image_view_get(int mip, int layer,bool force )
 {
   int view_id = mip * (layer_count() + 1) + layer + 1;
-  VkImageView view = views_[view_id];
-  if (current_view_id_ == view_id) {
-    BLI_assert(view != VK_NULL_HANDLE);
-    return view;
+  VkDevice device = context_->device_get();
+  VkImageView& view = views_[view_id];
+  if (force) {
+    if (view != VK_NULL_HANDLE) {
+      vkDestroyImageView(device, view, nullptr);
+      view = VK_NULL_HANDLE;
+    };
+  }
+  else {
+    if (current_view_id_ == view_id) {
+      BLI_assert(view != VK_NULL_HANDLE);
+      return view;
+    }
   }
 
   needs_update_descriptor_ = true;
@@ -849,6 +1113,35 @@ VKAttachment::~VKAttachment()
   clear();
 };
 
+void VKAttachment::bind(bool force )
+{
+
+  bool tran = force;
+
+  int mip = 0;
+  for (auto &tex : vtex_) {
+    auto layout = tex->get_image_layout(0);
+    if (layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ||
+        (layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)) {
+      sampler2attachment(tex, mip, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+      tran = true;
+    };
+  }
+
+  for (auto &tex : vtex_ds_) {
+    auto layout = tex->get_image_layout(0);
+    if (layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+      sampler2attachment(tex, mip, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+      tran = true;
+    };
+  }
+
+  if (tran) {
+    fb_->update_attachments();
+  }
+
+
+};
 void VKAttachment::clear()
 {
 
@@ -875,6 +1168,8 @@ void VKAttachment::clear()
   extent_ = {0, 0, 0};
   renderpass_ = VK_NULL_HANDLE;
   framebuffer_.clear();
+  vtex_.clear();
+  vtex_ds_.clear();
 };
 
 /* naive implementation. Can subpath be used effectively? */
@@ -934,7 +1229,9 @@ void VKAttachment::create_framebuffer()
   auto device = context_->device_get();
 
   if (renderpass_ == VK_NULL_HANDLE) {
-
+    if (vref_color_.size() == 0) {
+      return;
+    }
     VkSubpassDescription subpassDescription = {};
     subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpassDescription.colorAttachmentCount = static_cast<uint32_t>(vref_color_.size());
@@ -1009,7 +1306,7 @@ void VKAttachment::create_framebuffer()
     fb_create_info.width = extent_.width;
     fb_create_info.height = extent_.height;
     fb_create_info.layers = 1;
-    printf("Create ====================================-     %llx   \n", (uintptr_t)view_[0]);
+   
     VK_CHECK2(vkCreateFramebuffer(device, &fb_create_info, nullptr, &framebuffer_[i]));
     i++;
   };
@@ -1048,7 +1345,7 @@ void VKAttachment::append_from_swapchain(int swapchain_idx)
   VkAttachmentDescription colorAttachment = {};
   colorAttachment.format = context_->getImageFormat();
   colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-  colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;  // VK_ATTACHMENT_LOAD_OP_LOAD;//
+  colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;  // VK_ATTACHMENT_LOAD_OP_CLEAR;  // 
   colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
   colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
   colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -1106,8 +1403,7 @@ void VKAttachment::append_from_swapchain(int swapchain_idx)
   renderPassInfo.dependencyCount = 2;
   renderPassInfo.pDependencies = subpassDependencies;
   VK_CHECK2(vkCreateRenderPass(device_, &renderPassInfo, NULL, &renderpass_));
-  printf("Swapchain Renderpass =================================================-- %llu  \n",
-         (uint64_t)renderpass_);
+ 
   num_++;
 };
 

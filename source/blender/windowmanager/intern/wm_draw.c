@@ -62,7 +62,12 @@
 #ifdef WITH_OPENSUBDIV
 #  include "BKE_subsurf.h"
 #endif
-
+#define __EXIT__ \
+  { \
+  GPU_context_end_frame(GPU_context_active_get());\
+  GPU_context_main_unlock();\
+  WM_exit(C);\
+  }
 /* -------------------------------------------------------------------- */
 /** \name Internal Utilities
  * \{ */
@@ -758,6 +763,7 @@ static void wm_draw_region_blit(ARegion *region, int view)
 
   if (region->draw_buffer->viewport) {
     GPU_viewport_draw_to_screen(region->draw_buffer->viewport, view, &region->winrct);
+    //GPU_context_end_frame(GPU_context_active_get());
   }
   else {
     GPU_offscreen_draw_to_screen(
@@ -893,11 +899,11 @@ static void wm_draw_window_offscreen(bContext *C, wmWindow *win, bool stereo)
     GPU_debug_group_begin(wm_area_name(area));
     if (area->spacetype == SPACE_VIEW3D) {
 
-      
+      /*
       GPU_context_end_frame(win->gpuctx);
         GPU_context_main_unlock();
         WM_exit(C);
-      
+      */
       
       printf(
           "View 3D Draw ==========================================================>>>>>>>>>>>>> "
@@ -1000,6 +1006,8 @@ static void wm_draw_window_offscreen(bContext *C, wmWindow *win, bool stereo)
       region->type->layout(C, region);
     }
 
+
+
     wm_draw_region_buffer_create(region, false, false);
     wm_draw_region_bind(region, 0);
     GPU_clear_color(0.0f, 0.0f, 0.0f, 0.0f);
@@ -1008,13 +1016,11 @@ static void wm_draw_window_offscreen(bContext *C, wmWindow *win, bool stereo)
 
     GPU_debug_group_end();
 
+
     region->do_draw = false;
     CTX_wm_menu_set(C, NULL);
   }
 
-  GPU_context_end_frame(win->gpuctx);
-  GPU_context_main_unlock();
-  WM_exit(C);
 
 }
 
@@ -1101,6 +1107,10 @@ static void wm_draw_window_onscreen(bContext *C, wmWindow *win, int view)
     wm_draw_region_blend(region, 0, true);
   }
 
+  GPU_context_end_frame(GPU_context_active_get());
+  GPU_context_main_unlock();
+  WM_exit(C);
+      
   /* always draw, not only when screen tagged */
   if (win->gesture.first) {
     wm_gesture_draw(win);

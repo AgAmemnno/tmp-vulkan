@@ -365,5 +365,15 @@ template<typename T> inline T *MEM_cnew(const char *allocation_name, const T &ot
     }
 
 #endif /* __cplusplus */
+#ifdef __cplusplus
+extern "C" {
+#endif
+#define STACK_TRACE
+extern void MEM_PrintInfo();
+extern void MEM_StackInfo(void *ptr, const char *str, uint64_t len);
+extern void MEM_PopInfo(void *ptr);
+#ifdef __cplusplus
+};
+#endif
 
 #endif /* __MEM_GUARDEDALLOC_H__ */

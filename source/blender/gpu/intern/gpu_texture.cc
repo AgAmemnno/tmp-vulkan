@@ -1050,4 +1050,37 @@ size_t GPU_texture_dataformat_size(eGPUDataFormat data_format)
   return to_bytesize(data_format);
 }
 
-/** \} */
+
+
+#include "vk_framebuffer.hh"
+#include "vk_state.hh"
+#include "vk_texture.hh"
+int GPU_texture_save(const GPUTexture *tex_)
+{
+
+  VKFrameBuffer *fb = (VKFrameBuffer *)GPU_framebuffer_active_get();
+  VKTexture *tex = (VKTexture *)tex_;
+  std::string filename = std::string(tex->get_name()) + std::string(".png");
+  saveTexture(filename, fb, tex_, 0);
+  return 0;
+};
+
+
+int GPU_rect_save(
+    void *data, int w, int h, eGPUTextureFormat tex_format, eGPUDataFormat data_format)
+{
+  static int cnt = 0;
+  std::string filename =  "rect_save_No." + std::to_string(cnt) + std::string(".png");
+  saveRect(filename,
+           data,
+           w,
+           h,
+        tex_format,
+     data_format);
+
+
+  cnt++;
+  return 0;
+};
+
+  /** \} */

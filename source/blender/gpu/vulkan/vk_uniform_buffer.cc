@@ -49,8 +49,7 @@ VKUniformBuf::VKUniformBuf(size_t size, const char *name) : UniformBuf(size, nam
 
 VKUniformBuf::~VKUniformBuf()
 {
-  printf(" UBO ========================================= destroy      %llu ",
-         ubo->get_buffer_size());
+
   VKContext::get()->buf_free(ubo);
 }
 
@@ -126,6 +125,14 @@ void VKUniformBuf::bind(int slot)
   info.offset = 0;
   info.range = VK_WHOLE_SIZE;
   VKShader *shader = VKContext::get()->pipeline_state.active_shader;
+  #if 0
+  char *d = (char*)ubo->get_host_ptr();
+  printf("BIND ================== set  %d  slot %d  size  %zu  host Pointer     %llx  \n",
+         setID,
+         slot,
+         size_in_bytes_,
+    (uintptr_t) d);
+  #endif
   shader->append_write_descriptor(setID, slot_, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, info);
 
 #if 0

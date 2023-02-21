@@ -77,7 +77,7 @@ static void free(void * user_data, void *memory)
   {
     return;
   }
- //return _aligned_free(memory);
+
   return MEM_freeN(memory);
   //printf("Free Vk Allocator %llx   %llx   \n", (uintptr_t)user_data, (uintptr_t)memory);
 
@@ -140,9 +140,20 @@ void gpu::VKBuffer::Create(uint64_t size, uint alignment , VKResourceOptions& op
 {
   BLI_assert(alignment > 0);
   BLI_assert(vk_buffer_ == VK_NULL_HANDLE);
+  if (!context_) {
+    context_ = VKContext::get();
+  }
+  #if 0
+  switch (BufferNums) {
+    case 176:
+      printf("unfreed\n");
+      break;
+      default:
+        break;
+  }
+  #endif
+  std::string  Name  = (std::string("VKBuffer_") + std::to_string(BufferNums++));
 
-  auto Name  = ("VKBuffer_" + std::to_string(BufferNums)).c_str();
- 
   options.bufferInfo.size = size;
   options.allocInfo = {};
   
@@ -151,7 +162,7 @@ void gpu::VKBuffer::Create(uint64_t size, uint alignment , VKResourceOptions& op
   options.allocCreateInfo.flags = VMA_ALLOCATION_CREATE_STRATEGY_BEST_FIT_BIT;
   if (size > 0)
   {
-    VmaAllocator mem_allocator = ((VKContext*)Context::get())->mem_allocator_get();
+    VmaAllocator mem_allocator = context_->mem_allocator_get();
 
     vmaCreateBufferWithAlignment(mem_allocator,
       &options.bufferInfo,
@@ -161,7 +172,8 @@ void gpu::VKBuffer::Create(uint64_t size, uint alignment , VKResourceOptions& op
       &allocation,
       &options.allocInfo);
     BLI_assert(size <= allocation->GetSize());
-    vmaSetAllocationName(mem_allocator, allocation, Name);
+    vmaSetAllocationName(mem_allocator, allocation, Name.c_str());
+    printf("CreateVMA  %s\n", allocation->GetName());
     if (options.allocInfo.pUserData != nullptr)
     {
       can_mapped_ = true;
@@ -179,7 +191,9 @@ void gpu::VKBuffer::free()
 {
  
   if (vk_buffer_ != VK_NULL_HANDLE) {
-      VmaAllocator mem_allocator = ((VKContext*)Context::get())->mem_allocator_get();
+      unmap(); 
+      VmaAllocator mem_allocator = context_->mem_allocator_get();
+      printf("DestroyVMA  %s\n", allocation->GetName());
       vmaDestroyBuffer(mem_allocator, vk_buffer_, allocation);
      vk_buffer_ = VK_NULL_HANDLE;
      options_.bufferInfo.size = 0;
@@ -191,7 +205,7 @@ void gpu::VKBuffer::free()
 void gpu::VKBuffer::Flush()
 {
   if (allocation) {
-    VmaAllocator mem_allocator = ((VKContext*)Context::get())->mem_allocator_get();
+    VmaAllocator mem_allocator = context_->mem_allocator_get();
     VK_CHECK(vmaFlushAllocation(mem_allocator, allocation, 0, VK_WHOLE_SIZE));
   }
 
@@ -201,19 +215,19 @@ void gpu::VKBuffer::Fill(uint32_t val) {
 
   BLI_assert(vk_buffer_ != VK_NULL_HANDLE);
 
-  VKContext* context = VKContext::get();
+
   VkCommandBuffer cmd = VK_NULL_HANDLE;
-  context->begin_submit_simple(cmd);
+  context_->begin_submit_simple(cmd);
 
   vkCmdFillBuffer(cmd, vk_buffer_, 0, VK_WHOLE_SIZE, val);
 
-  context->end_submit_simple();
+  context_->end_submit_simple();
 
 };
 
 void gpu::VKBuffer::Resize(VkDeviceSize size, uint alignment){
 
-  VmaAllocator mem_allocator = ((VKContext *)Context::get())->mem_allocator_get();
+  VmaAllocator mem_allocator = context_->mem_allocator_get();
   auto cursize = options_.bufferInfo.size;
   if (cursize == 0) {
     Create(size, alignment, options_);
@@ -253,20 +267,26 @@ uint64_t VKBuffer::get_buffer_size() const {
 
 };
 void *VKBuffer::get_host_ptr() const {
-  void *mappedData = nullptr;
+  if (mapped_) {
+    return mapped_;
+  }
+
   VmaAllocator mem_allocator = ((VKContext *)Context::get())->mem_allocator_get();
-  VK_CHECK(vmaMapMemory(mem_allocator, allocation, &mappedData));
-  return mappedData;
+  VK_CHECK(vmaMapMemory(mem_allocator, allocation, (void**) & mapped_));
+
+  return (void*)mapped_;
 };
 
-void VKBuffer::unmap() const
+void VKBuffer::unmap() 
 {
-  VmaAllocator mem_allocator = ((VKContext *)Context::get())->mem_allocator_get();
-  vmaUnmapMemory(mem_allocator, allocation);
+  if (mapped_) {
+    VmaAllocator mem_allocator = context_->mem_allocator_get();
+    vmaUnmapMemory(mem_allocator, allocation);
+    mapped_ = nullptr;
+  }
 };
 void VKBuffer::Copy(void *data, VkDeviceSize size, VkDeviceSize ofs)
 {
-  VKContext* context_ = VKContext::get();
   BLI_assert(context_);
 
   if (size == 0) {

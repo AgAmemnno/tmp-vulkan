@@ -1079,6 +1079,8 @@ const char *WM_init_state_app_template_get(void)
 /** \name Read Startup & Preferences Blend-File API
  * \{ */
 
+
+
 void wm_homefile_read_ex(bContext *C,
                          const struct wmHomeFileRead_Params *params_homefile,
                          ReportList *reports,
@@ -1402,13 +1404,16 @@ void wm_homefile_read_ex(bContext *C,
       CTX_wm_window_set(C, nullptr);
     }
   }
+
 }
+
 
 void wm_homefile_read(bContext *C,
                       const struct wmHomeFileRead_Params *params_homefile,
                       ReportList *reports)
 {
   wm_homefile_read_ex(C, params_homefile, reports, nullptr);
+  
 }
 
 void wm_homefile_read_post(struct bContext *C,

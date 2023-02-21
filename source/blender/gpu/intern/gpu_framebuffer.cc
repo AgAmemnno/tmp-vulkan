@@ -615,6 +615,8 @@ static GPUFrameBuffer *gpu_offscreen_fb_get(GPUOffScreen *ofs)
 GPUOffScreen *GPU_offscreen_create(
     int width, int height, bool depth, eGPUTextureFormat format, char err_out[256])
 {
+
+
   GPUOffScreen *ofs = MEM_cnew<GPUOffScreen>(__func__);
 
   /* Sometimes areas can have 0 height or width and this will

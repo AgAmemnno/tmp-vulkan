@@ -25,6 +25,7 @@
 
 #include "MEM_guardedalloc.h"
 
+
 #include <vulkan/vulkan.h>
 #define WITH_VULKAN_SHADER_COMPILATION
 
@@ -124,7 +125,7 @@ class VKShader : public Shader {
   {
     return true;
   };
-  VkPipeline get_pipeline()
+  VkPipeline& get_pipeline()
   {
 
     return pipe;
@@ -155,13 +156,29 @@ class VKShader : public Shader {
   void append_write_descriptor(uint setid, uint binding, VkDescriptorType type, T &info)
   {
 
-    int swapID = context_->get_current_image_index();
+
     auto vkinterface = (VKShaderInterface *)(interface);
-    auto Set = vkinterface->sets_vec_[setid][swapID];
+    auto Set = vkinterface->get_desc_set(setid);
+
+ 
+    auto desc_pre = write_descs_[setid];
+    write_descs_[setid].clear();
+    for (auto &desc : desc_pre) {
+      if ((desc.dstSet == Set) && ( desc.dstBinding == binding))
+      {
+        BLI_assert(desc.descriptorType == type);
+        BLI_assert(desc.descriptorCount == 1);
+      }
+      else {
+        write_descs_[setid].append(desc);
+      }
+       
+    }
+
 
     VkWriteDescriptorSet writeDescriptorSet{};
-    write_descs_.append(writeDescriptorSet);
-    auto &desc = write_descs_.last();
+    write_descs_[setid].append(writeDescriptorSet);
+    auto &desc = write_descs_[setid].last();
     desc.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     desc.descriptorType = type;
 
@@ -200,7 +217,8 @@ class VKShader : public Shader {
 
     // vkUpdateDescriptorSets(VK_DEVICE, write_descs_.size(), write_descs_.data(), 0, NULL);
   };
-  bool update_descriptor_set();
+
+  bool update_descriptor_set(VkCommandBuffer cmd, VkPipelineLayout layout);
 
   void uniform_float(int location, int comp_len, int array_size, const float *data) override;
   void uniform_int(int location, int comp_len, int array_size, const int *data) override;
@@ -215,13 +233,14 @@ class VKShader : public Shader {
 
   VkCommandBuffer current_cmd_ = VK_NULL_HANDLE;
   VkPipelineLayout current_layout_ = VK_NULL_HANDLE;
-  Vector<VkWriteDescriptorSet> write_descs_;
+  Vector<VkWriteDescriptorSet> write_descs_[VK_LAYOUT_SET_MAX];
   Vector<VkWriteDescriptorSetInlineUniformBlockEXT> write_iub_;
   uint16_t attr_mask_unbound_;
   VKUniformBuf *push_ubo = nullptr;
 
  private:
   bool is_valid_ = false;
+  Vector<VkDescriptorSet> bind_cache;
   GHOST_TSuccess compile_source(Span<const char *> sources, VKShaderStageType stage);
   VkShaderModule create_shader_module(MutableSpan<const char *> sources, VKShaderStageType stage);
 

@@ -14,6 +14,7 @@
 #include "vk_backend.hh"
 #include "vk_state.hh"
 #include "vk_immediate.hh"
+#include "vk_vertex_buffer.hh"
 
 #include "GHOST_C-api.h"
 #include "GPU_common_types.h"
@@ -63,15 +64,47 @@ VKContext::VKContext(void *ghost_window,
     : shared_orphan_list_(shared_orphan_list)
 {
 
+
+
+
   for (int i = 0; i < GPU_SAMPLER_MAX; i++) 
     sampler_state_cache_[i] = VK_NULL_HANDLE;
   init(ghost_window, ghost_context);
+  buffer_manager_ = new VKStagingBufferManager(*this);
 
-   buffer_manager_ = new VKStagingBufferManager(*this);
+  auto ctx_ = GPU_context_active_get();
+
+  GPU_context_active_set((GPUContext*)this);
+
+
+  float data[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+  VKResourceOptions options;
+  options.setDeviceLocal(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+
+
+  GPUVertFormat format = {0};
+  GPU_vertformat_attr_add(&format, "default_attr", GPU_COMP_F32, 4, GPU_FETCH_FLOAT);
+  auto default_attr_vbo = GPU_vertbuf_create_with_format_ex(&format, GPU_USAGE_STATIC);
+  default_attr_vbo_ = (VKVertBuf *)default_attr_vbo;
+  GPU_vertbuf_data_alloc(default_attr_vbo, 1);
+  void *dst = GPU_vertbuf_get_data(default_attr_vbo);
+  memcpy(dst, data, 16);
+  default_attr_vbo_->bind();
+
+
+
+  GPU_context_active_set(ctx_);
+
+  
+
 };
 
 VKContext::~VKContext()
 {
+   
+  GPUVertBuf *vbo = ((GPUVertBuf *)default_attr_vbo_);
+  GPU_VERTBUF_DISCARD_SAFE( vbo);
+
 #define DELE(a) \
   if (a) { \
     delete a; \
@@ -255,15 +288,15 @@ void VKContext::init(void *ghost_window, void *ghost_context)
 
   if (is_swapchain_) {
     auto func_sb= [&]() {
-    
-    if (is_inside_frame_) {
+      GHOST_ContextVK *gcontext = (GHOST_ContextVK *)this->ghost_context_;
+      if (gcontext ->is_inside_frame()) {
       static_cast<VKFrameBuffer*>(this->active_fb)->render_end();
-      GHOST_ContextVK* gcontext = (GHOST_ContextVK*)this->ghost_context_;
+      
       gcontext->finalize_image_layout();
       end_frame();
     }
 
-    printf("Call;back  ->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>..     \n");
+
     };
     auto f_sb = std::function<void(void)>(func_sb);
     gcontext->set_fb_sb_cb(f_sb);
@@ -287,14 +320,21 @@ void VKContext::init(void *ghost_window, void *ghost_context)
   
       fb->render_end();
 
-      printf("Call;back  ->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>..     \n");
+
 
     };
 
     auto f_sb2 = std::function<void(void)>(func_sb2);
     gcontext->set_fb_sb2_cb(f_sb2);
 
+
+    auto ctx_ = GPU_context_active_get();
+
+    GPU_context_active_set((GPUContext *)this);
+
     clear_draw_test(gcontext);
+
+    GPU_context_active_set(ctx_);
   }
 
   
@@ -362,7 +402,9 @@ void VKContext::orphans_clear()
 }
  void VKContext::buf_free(VKBuffer* buf) {
 
-   BLI_assert(buf);
+   if (!buf) {
+     return;
+   };
    /* Any context can free. */
    if (VKContext::get()) {
      if (buf) {
@@ -378,15 +420,15 @@ void VKContext::orphans_clear()
 
  void VKContext::vao_free(VKVAOty buf) {
 
+   if (!buf) {
+     return;
+   }
+
    if (this == VKContext::get()) {
-     if (buf) {
        delete buf;
-     }
    }
    else {
-
      orphans_add(orphaned_vertarrays_, lists_mutex_, buf);
-   
    }
 
  };
@@ -471,17 +513,16 @@ void VKContext::fail_transition() {
 
 void VKContext::begin_frame()
 {
-  if (is_inside_frame_)return;
 
   auto context = ((GHOST_ContextVK*)ghost_context_);
-
+  if (context->is_inside_frame()) {
+    return;
+  }
+   
   if (is_swapchain_ ) {
     context->acquireCustom();
+    nums_submit_ = 0;
   }
-
-
-  is_inside_frame_ = true;
-
 
 };
 
@@ -507,20 +548,17 @@ void VKContext::get_command_buffer(VkCommandBuffer& cmd) {
 void VKContext::end_frame()
 {
   auto context = ((GHOST_ContextVK *)ghost_context_);
-  if (is_swapchain_) {
 
-    static_cast<VKFrameBuffer*>(this->active_fb)->render_end();
-    context->finalize_onetime_submit();
-    if (context->presentCustom() == GHOST_kFailure) {
-      /*  recreate swapbuffer  */
-
-    };
+  if (context->is_inside_frame()) {
+    if (is_swapchain_) {
+      static_cast<VKFrameBuffer *>(this->active_fb)->render_end();
+      context->finalize_sw_submit();
+      if (context->presentCustom() == GHOST_kFailure) {
+        /*  recreate swapbuffer  */
+      };
+    }
   }
 
-  is_inside_frame_ = false;
-
-
-  
 }
 void VKContext::begin_render_pass(VkCommandBuffer &cmd, int i)
 {
@@ -542,31 +580,51 @@ void VKContext::begin_submit(int N)
   auto context = ((GHOST_ContextVK *)ghost_context_);
   context->begin_submit(N);
 };
+void VKContext::end_submit()
+{
+  auto context = ((GHOST_ContextVK *)ghost_context_);
+  context->end_submit();
+
+  context->finalize_image_layout();
+};
+void VKContext::begin_submit_simple(VkCommandBuffer &cmd, bool ofscreen)
+{
+  auto context = ((GHOST_ContextVK *)ghost_context_);
+  context->begin_submit_simple(cmd, ofscreen);
+};
+void VKContext::end_submit_simple()
+{
+  auto context = ((GHOST_ContextVK *)ghost_context_);
+  context->end_submit_simple();
+};
+
+
 int VKContext::begin_onetime_submit(VkCommandBuffer cmd) {
   auto context = ((GHOST_ContextVK*)ghost_context_);
-  if (is_onetime_commit_ == false) {
-    context->initialize_onetime_submit();
-    is_onetime_commit_ = true;
-  }
+
 
   return context->begin_onetime_submit(cmd);
 
 };
-void VKContext::begin_submit_simple(VkCommandBuffer& cmd) {
-  auto context = ((GHOST_ContextVK*)ghost_context_);
-  context->begin_submit_simple(cmd);
-};
-void VKContext::end_submit_simple() {
-   auto context = ((GHOST_ContextVK*)ghost_context_);
-   context->end_submit_simple();
-};
-
 void  VKContext::end_onetime_submit(int i ) {
   auto context = ((GHOST_ContextVK*)ghost_context_);
   context->end_onetime_submit(i);
   is_onetime_commit_ = false;
  
 }
+bool VKContext::begin_blit_submit(VkCommandBuffer &cmd)
+{
+  auto context = ((GHOST_ContextVK *)ghost_context_);
+  return (bool)context->begin_blit_submit(cmd);
+};
+bool VKContext::end_blit_submit(VkCommandBuffer &cmd, std::vector<VkSemaphore> batch_signal)
+{
+  auto context = ((GHOST_ContextVK *)ghost_context_);
+  return (bool)context->end_blit_submit(cmd, batch_signal);
+};
+
+
+
 int    VKContext::begin_offscreen_submit(VkCommandBuffer cmd) {
   auto context = ((GHOST_ContextVK*)ghost_context_);
   context->begin_offscreen_submit(cmd);
@@ -576,13 +634,7 @@ void  VKContext::end_offscreen_submit(VkCommandBuffer& cmd, VkSemaphore wait, Vk
   auto context = ((GHOST_ContextVK*)ghost_context_);
   context->end_offscreen_submit(cmd,wait,signal);
 };
-void VKContext::end_submit()
-{
-  auto context = ((GHOST_ContextVK *)ghost_context_);
-  context->end_submit();
 
-  context->finalize_image_layout();
-};
 
 void VKContext::submit()
 {
@@ -637,15 +689,7 @@ uint32_t VKContext::get_current_image_index() {
     context->set_layout(layout);
   };
 
-  bool VKContext::begin_blit_submit(VkCommandBuffer& cmd) {
-    auto context = ((GHOST_ContextVK*)ghost_context_);
-    return (bool)context->begin_blit_submit(cmd);
-  };
 
-  bool VKContext::end_blit_submit(VkCommandBuffer& cmd, std::vector<VkSemaphore> batch_signal) {
-    auto context = ((GHOST_ContextVK*)ghost_context_);
-    return (bool)context->end_blit_submit(cmd, batch_signal);
-  };
   bool VKContext::is_support_format(VkFormat format, VkFormatFeatureFlagBits flag, bool linear) {
     /* Check if the device supports blitting to linear images */
     /* reference => https://github.com/SaschaWillems/Vulkan/blob/79d0c5e436623436b6297a8c81fb3ee8ff78d804/examples/screenshot/screenshot.cpp#L194 */

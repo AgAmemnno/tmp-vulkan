@@ -13,6 +13,7 @@
 
 #include "GPU_capabilities.h"
 
+
 #include "vk_context.hh"
 
 #include "vk_backend.hh"
@@ -22,6 +23,7 @@
 
 #include "vk_state.hh"
 #include "vk_layout.hh"
+#include "intern/GHOST_ContextVK.h"
 
 namespace blender::gpu {
 
@@ -56,7 +58,7 @@ VKStateManager::VKStateManager(VKContext *_ctx) : ctx_(_ctx)
 {
   
   texture_unbind_all();
-
+  unpack_row_length = 0;
 
   dynamicStateEnables.clear();
   dynamicStateEnables.push_back(VK_DYNAMIC_STATE_VIEWPORT);
@@ -146,6 +148,8 @@ VKStateManager::VKStateManager(VKContext *_ctx) : ctx_(_ctx)
   dynamic.pDynamicStates = dynamicStateEnables.data();
   dynamic.dynamicStateCount = (uint32_t)dynamicStateEnables.size();
 
+  current_pipeline_.depthstencil.minDepthBounds = 0.f;
+  current_pipeline_.depthstencil.maxDepthBounds = 1.f;
   
   ///set_mutable_state(mutable_state);
 }
@@ -202,7 +206,7 @@ void VKStateManager::apply_state()
   }
   /* This is needed by gpu_py_offscreen. */
   active_fb->apply_state();
-
+  set_color_blend_from_fb(active_fb);
   
 };
 
@@ -560,9 +564,9 @@ void VKStateManager::set_logic_op(const bool enable)
 void VKStateManager::set_facing(const bool invert)
 {
   auto &rast = current_pipeline_.rasterization;
-  rast.frontFace = (invert) ? VK_FRONT_FACE_CLOCKWISE : VK_FRONT_FACE_COUNTER_CLOCKWISE;
+  // rast.frontFace = (invert) ? VK_FRONT_FACE_CLOCKWISE : VK_FRONT_FACE_COUNTER_CLOCKWISE;
+  rast.frontFace = (invert) ? VK_FRONT_FACE_COUNTER_CLOCKWISE : VK_FRONT_FACE_CLOCKWISE;
   ///glFrontFace((invert) ? GL_CW : GL_CCW);
-  
 }
 
 void VKStateManager::set_backface_culling(const eGPUFaceCullTest test)
@@ -806,9 +810,11 @@ void VKStateManager::set_color_blend_from_fb(VKFrameBuffer* fb) {
   cb.attachmentCount = 0;
 
   for (auto desc : fb->get_attach_desc()) {
-    if (desc.finalLayout != VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
+    if (  !(desc.finalLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL ||
+        desc.finalLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) ){
       continue;
     };
+    
     cb.attachmentCount++;
     VkPipelineColorBlendAttachmentState att_state = att_state_last;
     if (cb.attachmentCount  > (size_atta)) {
@@ -818,6 +824,17 @@ void VKStateManager::set_color_blend_from_fb(VKFrameBuffer* fb) {
     else {
       current_pipeline_.colorblend_attachment[cb.attachmentCount-1] = att_state_last;
     }
+    /*
+    * vkCreateGraphicsPipelines(): pipeline.pColorBlendState.pAttachments[2].blendEnable is VK_TRUE but format VK_FORMAT_R16_UINT of the corresponding attachment description (subpass 0, attachment 2) does not support VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT. The Vulkan spec states: If renderPass is not VK_NULL_HANDLE, and the pipeline is being created with fragment output interface state, then for each color attachment in the subpass, if the potential format features of the format of the corresponding attachment description do not contain VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT, then the blendEnable member of the corresponding element of the pAttachments member of pColorBlendState must be VK_FALSE (https://vulkan.lunarg.com/doc/view/1.3.231.1/windows/1.3-extensions/vkspec.html#VUID-VkGraphicsPipelineCreateInfo-renderPass-06041)
+    */
+    switch (desc.format) {
+      case VK_FORMAT_R16_UINT:
+        current_pipeline_.colorblend_attachment.last().blendEnable = VK_FALSE;
+        break;
+        default:
+        break;
+    }
+
 
     }
 
@@ -835,6 +852,61 @@ void VKStateManager::set_color_blend_from_fb(VKFrameBuffer* fb) {
 /** \name Texture State Management
  * \{ */
 
+
+static void attachment2sampler(VKTexture* tex,int mip)
+{
+  const VkImageLayout dst_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  VkImageLayout src_layout = tex->get_image_layout(mip);
+  if (src_layout == dst_layout) {
+    tex->desc_info_.imageLayout = dst_layout;
+    /*All views are newly created because the system is a bit cryptic. */
+    tex->desc_info_.imageView = tex->vk_image_view_get(0, 0, true);
+    return;
+  }
+
+  BLI_assert((src_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) ||
+             (src_layout == VK_IMAGE_LAYOUT_UNDEFINED) || 
+   ( src_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) );
+
+
+  VkAccessFlags acs_flag = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+                           VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+  if (src_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+    acs_flag = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+               VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+  }
+  else if (src_layout == VK_IMAGE_LAYOUT_UNDEFINED) {
+    acs_flag = VK_ACCESS_NONE_KHR;
+  }
+
+  VkCommandBuffer cmd = VK_NULL_HANDLE;
+  VKContext *context = VKContext::get();
+
+  VkImage src_image = tex->get_image();
+
+  context->begin_submit_simple(cmd,true);
+
+
+    blender::vulkan::GHOST_ImageTransition(
+        cmd,
+        src_image,
+        tex->info.format,
+        dst_layout,
+        VK_ACCESS_SHADER_READ_BIT,
+        VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM,
+        acs_flag,
+        src_layout);
+
+  context->end_submit_simple();
+    tex->set_image_layout(dst_layout, mip);
+
+
+
+  tex->desc_info_.imageLayout = dst_layout;
+  tex->desc_info_.imageView = tex->vk_image_view_get(0);
+};
+
 void VKStateManager::texture_bind(Texture *tex_, eGPUSamplerState sampler_type, int binding)
 {
   BLI_assert(binding < GPU_max_textures());
@@ -842,8 +914,10 @@ void VKStateManager::texture_bind(Texture *tex_, eGPUSamplerState sampler_type, 
   if (G.debug & G_DEBUG_GPU) {
     tex->check_feedback_loop();
   }
-  
 
+
+  attachment2sampler(tex, 0);
+      
   auto shader = VKContext::get()->pipeline_state.active_shader;
   shader->append_write_descriptor(tex, sampler_type,binding);
   /* Eliminate redundant binds. */
@@ -934,7 +1008,10 @@ void VKStateManager::texture_bind_apply()
 void VKStateManager::texture_unpack_row_length_set(uint len)
 {
   ///glPixelStorei(GL_UNPACK_ROW_LENGTH, len);
+  /* https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkBufferImageCopy.html */
+  unpack_row_length = len;
 }
+
 
 uint64_t VKStateManager::bound_texture_slots()
 {

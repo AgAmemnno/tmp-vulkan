@@ -106,7 +106,8 @@ class VKImmediate;
 class VKShaderInterface;
 class VKTexture;
 class VKVaoCache;
-/* Metal Context Render Pass State -- Used to track active RenderCommandEncoder state based on
+class VKVertBuf;
+    /* Metal Context Render Pass State -- Used to track active RenderCommandEncoder state based on
  * bound MTLFrameBuffer's.Owned by MTLContext. */
 class VKRenderPassState {
   friend class VKContext;
@@ -230,7 +231,7 @@ class VKContext : public Context {
   uint32_t graphic_queue_familly_ = 0;
   /** Allocator used for texture and buffers and other resources. */
  // VmaAllocator mem_allocator_ = VK_NULL_HANDLE;
-
+ 
 
   /** Mutex for the below structures. */
   std::mutex lists_mutex_;
@@ -241,16 +242,17 @@ class VKContext : public Context {
   VKSharedOrphanLists &shared_orphan_list_;
   uint32_t current_frame_index_;
 
-  bool is_inside_frame_ = false;
+
   bool is_initialized_      = false;
 
   VkSampler sampler_state_cache_[GPU_SAMPLER_MAX];
   VkSampler default_sampler_state_;
 
+   int nums_submit_ = 0;
 
 
  public:
-
+  VKVertBuf *default_attr_vbo_;
    /*  Capabilities. */
    static uint32_t    max_cubemap_size;
    static uint32_t    max_ubo_size;
@@ -295,7 +297,7 @@ class VKContext : public Context {
   void deactivate() override;
   void begin_frame() override;
   void end_frame() override;
-  void begin_submit_simple(VkCommandBuffer& cmd);
+  void begin_submit_simple(VkCommandBuffer& cmd,bool ofscreen= false);
   void end_submit_simple();
 
   void begin_submit(int N);
@@ -392,10 +394,7 @@ class VKContext : public Context {
 
 
 
-  bool get_inside_frame()
-  {
-    return is_inside_frame_;
-  }
+
   /** Dummy Resources */
   /* Maximum of 32 texture types. Though most combinations invalid. */
   VKTexture *dummy_textures_[GPU_TEXTURE_BUFFER] = {nullptr};

@@ -302,6 +302,8 @@ if(WITH_VULKAN_BACKEND)
     if(WITH_VULKAN_GUARDEDALLOC)
       add_definitions(-DWITH_VULKAN_GUARDEDALLOC)
     endif()
+
+    set(INC ${INC}   ${IMATH_INCLUDE_DIR})
     set(INC ${INC}    ../../../extern/spirv_cross/src)
 
 
@@ -311,6 +313,7 @@ if(WITH_VULKAN_BACKEND)
     list(APPEND INC_SYS
       ${VULKAN_INCLUDE_DIRS}
       ${SHADERC_INCLUDE_DIRS}
+      ${IMATH_LIBRARIES}
     )
     list(APPEND SRC
       ${VULKAN_SRC}

@@ -3229,6 +3229,7 @@ void DRW_opengl_context_disable_ex(bool restore)
      * called outside of an existing render loop. */
     GPU_render_end();
 
+
     BLI_ticket_mutex_unlock(DST.gl_context_mutex);
   }
 }

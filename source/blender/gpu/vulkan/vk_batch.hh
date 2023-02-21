@@ -9,6 +9,7 @@
 
 #include "gpu_batch_private.hh"
 #include "vk_context.hh"
+#include "vk_vertex_array.hh"
 
 namespace blender::gpu {
   const  uint32_t  VK_GPU_VAO_STATIC_LEN = 3;
@@ -27,7 +28,7 @@ class VKVaoCache {
     /** Last interface this batch was drawn with. */
     VKShaderInterface* interface_ = nullptr;
     /** Cached VAO for the last interface. */
-    VKVAOty vao_id_ = nullptr;
+    VKVao vao_id_ = {};
     /** Used when arb_base_instance is not supported. */
     VKVAOty vao_base_instance_ = nullptr;
     
@@ -38,31 +39,32 @@ class VKVaoCache {
       /** Static handle count */
       struct {
         const VKShaderInterface* interfaces[VK_GPU_VAO_STATIC_LEN];
-        VKVAOty vao_ids[VK_GPU_VAO_STATIC_LEN];
+        VKVao vao_ids[VK_GPU_VAO_STATIC_LEN];
       } static_vaos;
       /** Dynamic handle count */
       struct {
         uint32_t count;
         const VKShaderInterface** interfaces;
-        VecVKVAOty  vao_ids;
+        VKVao* vao_ids;
       } dynamic_vaos;
     };
 
   public:
+    bool is_dirty = false;
     VKVaoCache();
     ~VKVaoCache();
 
-    VKVAOty vao_get(GPUBatch* batch);
+    VKVao& vao_get(GPUBatch *batch);
     VKVAOty base_instance_vao_get(GPUBatch* batch, int i_first);
 
     /**
      * Return nullptr on cache miss (invalid VAO).
      */
-    VKVAOty lookup(const VKShaderInterface* interface);
+    VKVao& lookup(const VKShaderInterface *interface);
     /**
      * Create a new VAO object and store it in the cache.
      */
-    void insert(const VKShaderInterface* interface, VKVAOty  vao_id);
+    void insert(const VKShaderInterface *interface, VKVao& vao_id);
     void remove(const VKShaderInterface* interface);
     void clear();
 
@@ -79,9 +81,13 @@ class VKVaoCache {
 class VKBatch : public Batch {
 private:
   VKVaoCache vao_cache_;
- public:
 
-   void bind(int i_first);
+ public:
+  ~VKBatch()
+  {
+    
+  }
+  VKVao& bind(int i_first);
   void draw(int v_first, int v_count, int i_first, int i_count) override;
   void draw_indirect(GPUStorageBuf *indirect_buf, intptr_t offset) override;
   void multi_draw_indirect(GPUStorageBuf *indirect_buf,

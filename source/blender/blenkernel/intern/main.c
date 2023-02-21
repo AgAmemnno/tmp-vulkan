@@ -50,16 +50,26 @@ void BKE_main_free(Main *mainvar)
                          LIB_ID_FREE_NO_USER_REFCOUNT | LIB_ID_FREE_NO_DEG_TAG);
 
   MEM_SAFE_FREE(mainvar->blen_thumb);
-
+  ID *winid = 0;
+  ID *scrid = 0;
   a = set_listbasepointers(mainvar, lbarray);
   while (a--) {
     ListBase *lb = lbarray[a];
     ID *id, *id_next;
-
+  
     for (id = lb->first; id != NULL; id = id_next) {
       id_next = id->next;
 #if 1
-      BKE_id_free_ex(mainvar, id, free_flag, false);
+      if( strcmp(id->name,"WMWinMan") == 0) {
+        winid = id;
+        //BKE_id_free_ex(mainvar, id, free_flag, false);
+      }else if(GS(id->name) == ID_SCR){
+        //scrid = id;
+        BKE_id_free_ex(mainvar, id, free_flag, false);
+      }
+      else {
+        BKE_id_free_ex(mainvar, id, free_flag, false);
+      }
 #else
       /* errors freeing ID's can be hard to track down,
        * enable this so valgrind will give the line number in its error log */
@@ -175,8 +185,14 @@ void BKE_main_free(Main *mainvar)
       }
 #endif
     }
+
     BLI_listbase_clear(lb);
   }
+
+  if (winid) {
+    BKE_id_free_ex(mainvar, winid, free_flag, false);
+  }
+
 
   if (mainvar->relations) {
     BKE_main_relations_free(mainvar);

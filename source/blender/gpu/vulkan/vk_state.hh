@@ -65,6 +65,9 @@ class VKStateManager : public StateManager {
   GLenum formats_[8] = {0};
   uint8_t dirty_image_binds_ = 0;
   VKContext *ctx_;
+
+  
+
  public:
 
   VKStateManager(VKContext *_ctx);
@@ -84,6 +87,7 @@ class VKStateManager : public StateManager {
 
   void texture_unpack_row_length_set(uint len) override;
 
+
   void texture_bind_temp(VKTexture* tex);
 
   void set_color_blend_from_fb(VKFrameBuffer *fb);
@@ -96,7 +100,8 @@ class VKStateManager : public StateManager {
   static void cmd_dynamic_state(VkCommandBuffer &cmd);
 
   static void set_raster_discard();
- 
+  uint32_t unpack_row_length=0;
+
  private:
 
 

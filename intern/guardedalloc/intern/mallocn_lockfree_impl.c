@@ -20,6 +20,15 @@
 #include "atomic_ops.h"
 #include "mallocn_intern.h"
 
+/* to ensure strict conversions */
+#include "../../source/blender/blenlib/BLI_strict_flags.h"
+
+#include "atomic_ops.h"
+#include "mallocn_intern.h"
+
+
+
+
 typedef struct MemHead {
   /* Length of allocated memory block. */
   size_t len;
@@ -77,6 +86,9 @@ void MEM_lockfree_freeN(void *vmemh)
   if (UNLIKELY(leak_detector_has_run)) {
     print_error("%s\n", free_after_leak_detection_message);
   }
+#ifdef STACK_TRACE
+  MEM_PopInfo(vmemh);
+#endif
 
   if (UNLIKELY(vmemh == NULL)) {
     print_error("Attempt to free NULL pointer\n");
@@ -88,6 +100,7 @@ void MEM_lockfree_freeN(void *vmemh)
 
   MemHead *memh = MEMHEAD_FROM_PTR(vmemh);
   size_t len = MEMHEAD_LEN(memh);
+
 
   memory_usage_block_free(len);
 
@@ -211,6 +224,9 @@ void *MEM_lockfree_callocN(size_t len, const char *str)
     memh->len = len;
     memory_usage_block_alloc(len);
 
+#ifdef STACK_TRACE
+    MEM_StackInfo(PTR_FROM_MEMHEAD(memh), str, len);
+#endif
     return PTR_FROM_MEMHEAD(memh);
   }
   print_error("Calloc returns null: len=" SIZET_FORMAT " in %s, total %u\n",
@@ -246,6 +262,7 @@ void *MEM_lockfree_mallocN(size_t len, const char *str)
 
   memh = (MemHead *)malloc(len + sizeof(MemHead));
 
+
   if (LIKELY(memh)) {
     if (UNLIKELY(malloc_debug_memset && len)) {
       memset(memh + 1, 255, len);
@@ -253,7 +270,9 @@ void *MEM_lockfree_mallocN(size_t len, const char *str)
 
     memh->len = len;
     memory_usage_block_alloc(len);
-
+#ifdef STACK_TRACE
+    MEM_StackInfo(PTR_FROM_MEMHEAD(memh), str, len);
+#endif
     return PTR_FROM_MEMHEAD(memh);
   }
   print_error("Malloc returns null: len=" SIZET_FORMAT " in %s, total %u\n",
@@ -323,6 +342,9 @@ void *MEM_lockfree_mallocN_aligned(size_t len, size_t alignment, const char *str
     memh->alignment = (short)alignment;
     memory_usage_block_alloc(len);
 
+#ifdef STACK_TRACE
+    MEM_StackInfo(PTR_FROM_MEMHEAD(memh), str, len);
+#endif
     return PTR_FROM_MEMHEAD(memh);
   }
   print_error("Malloc returns null: len=" SIZET_FORMAT " in %s, total %u\n",

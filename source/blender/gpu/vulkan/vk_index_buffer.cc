@@ -49,8 +49,15 @@ void VKIndexBuf::bind()
 
 }
 void VKIndexBuf::vk_bind(VkCommandBuffer cmd, VkDeviceSize offset ) {
-
-  vkCmdBindIndexBuffer(cmd, ibo_id_->get_vk_buffer(), offset, to_vk(index_type_));
+  VkBuffer buf = VK_NULL_HANDLE; 
+  if (is_subrange_) {
+    buf = static_cast<VKIndexBuf *>(src_)->ibo_id_->get_vk_buffer();
+  }
+  else {
+    buf = ibo_id_->get_vk_buffer();
+  }
+  BLI_assert(buf != VK_NULL_HANDLE);
+  vkCmdBindIndexBuffer(cmd, buf, offset, to_vk(index_type_));
 
 }
 void VKIndexBuf::bind_as_ssbo(uint binding)

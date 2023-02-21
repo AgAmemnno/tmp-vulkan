@@ -383,7 +383,7 @@ class GHOST_ContextVK : public GHOST_Context {
     return GHOST_kSuccess;
 
   }
-   GHOST_TSuccess begin_frame(VkCommandBuffer &cmd,int i=-1)
+  GHOST_TSuccess begin_frame(VkCommandBuffer &cmd,int i=-1)
     {
 
 #if 0
@@ -429,6 +429,17 @@ class GHOST_ContextVK : public GHOST_Context {
       return GHOST_kSuccess;
     };
 
+
+  static const int sema_stock_nums = 2;
+
+  /* Toggle two semaphores to control the blocking submit of the swap chain render pipeline.*/
+  VkSemaphore wait_sema_sw_, signal_sema_sw_;
+
+  int num_submit_ = 0;
+  int num_submit_bl_ = 0;
+  VkSemaphore sema_stock_[sema_stock_nums];
+
+
   void set_layout(VkImageLayout layout) {
      m_current_layouts[m_currentImage] = layout;
    }
@@ -447,7 +458,13 @@ class GHOST_ContextVK : public GHOST_Context {
 
     };
 
-    GHOST_TSuccess begin_submit_simple(VkCommandBuffer& cmd) {
+    GHOST_TSuccess begin_submit_simple(VkCommandBuffer& cmd,bool ofscreen = false) {
+      /*todo::thread safe on cpu.*/
+      if ( !ofscreen  && num_submit_ == 0 && m_swapchain_id > 0) {
+        initialize_sw_submit();
+      }
+     
+
         cmd = getCommandBuffers(m_currentCommand);
         VkCommandBufferBeginInfo cmdBufInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
         vkResetCommandBuffer(cmd, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
@@ -509,8 +526,8 @@ class GHOST_ContextVK : public GHOST_Context {
 
    std::vector<VkCommandBuffer> onetime_commands_ ;
 
-    GHOST_TSuccess  initialize_onetime_submit();
-    GHOST_TSuccess  finalize_onetime_submit();
+    GHOST_TSuccess  initialize_sw_submit();
+    GHOST_TSuccess  finalize_sw_submit();
     int current_wait_sema_ = 0;
     int pipeline_sema_idx_ = 0;
     GHOST_TSuccess submit_nonblocking();
@@ -667,7 +684,7 @@ VkFormat getDepthFormat()
   GHOST_TSuccess acquireCustom();
   GHOST_TSuccess waitCustom();
   GHOST_TSuccess beginCustom(int i= -1);
-  GHOST_TSuccess submitCustom2();
+
   GHOST_TSuccess submitCustom();
   GHOST_TSuccess presentCustom();
 
@@ -742,7 +759,10 @@ VkFormat getDepthFormat()
     fb_sb2_cb = func;
   }
   std::function<void(void)> fb_cb, fb_sb_cb, fb_sb2_cb;
-
+  bool is_inside_frame()
+  {
+    return m_swapchain_acquires;
+  }
  private:
 
 
@@ -807,9 +827,10 @@ VkFormat getDepthFormat()
   /** Image index in the swapchain. Used as index for render objects. */
   uint32_t m_currentImage = 0;
   /** Used to unique framebuffer ids to return when swapchain is recreated. */
-  uint32_t m_swapchain_id = 0;
+ uint32_t m_swapchain_id = 0;
   bool is_initialized = false;
-
+  bool is_init_sw_ = false;
+  bool is_final_sw_ = false;
   const char *getPlatformSpecificSurfaceExtension() const;
   GHOST_TSuccess pickPhysicalDevice(std::vector<const char *> required_exts);
 

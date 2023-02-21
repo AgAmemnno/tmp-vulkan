@@ -50,6 +50,16 @@ static const char *includefiles[] = {
     /* Empty string to indicate end of include files. */
     "",
 };
+void MEM_StackInfo(void *ptr, const char *str, uint64_t len)
+{
+
+}
+void MEM_PopInfo(void *ptr)
+{
+};
+void MEM_PrintInfo()
+{
+};
 
 /* -------------------------------------------------------------------- */
 /** \name Variables

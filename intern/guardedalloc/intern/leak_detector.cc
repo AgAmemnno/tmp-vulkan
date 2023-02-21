@@ -25,6 +25,9 @@ class MemLeakPrinter {
  public:
   ~MemLeakPrinter()
   {
+#ifdef STACK_TRACE
+    MEM_PrintInfo();
+#endif
     if (ignore_memleak) {
       return;
     }
@@ -33,6 +36,9 @@ class MemLeakPrinter {
     if (leaked_blocks == 0) {
       return;
     }
+
+    
+
     const size_t mem_in_use = MEM_get_memory_in_use();
     printf("Error: Not freed memory blocks: %u, total unfreed memory %f MB\n",
            leaked_blocks,

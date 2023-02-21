@@ -20,6 +20,7 @@
 
 #include "vk_framebuffer.hh"
 #include "vk_shader.hh"
+#include "vk_batch.hh"
 
 #include "BLI_blenlib.h"
 #include "BLI_math_base.h"
@@ -92,6 +93,44 @@ void VKDescriptorInputs::finalise()
   vkPVISci.pVertexAttributeDescriptions = attributes.data();
 }
 
+void VKDescriptorInputs::finalise(VKVao& vao,VkCommandBuffer cmd)
+{
+
+
+  Vector<bool> Bind;
+  Bind.resize(vao.bindings.size());
+  for (auto &b : Bind) {
+    b = false;
+  }
+
+  bindings.clear();
+  attributes.clear();
+  VkDeviceSize offsets[1] = {0};
+  for (auto &attr: vao.attributes) {
+    if (attr.location != UINT_MAX) {
+      attributes.append(attr);
+      if (!Bind[attr.binding]) {
+        Bind[attr.binding] = true;
+        VkBuffer vbo_ = vao.vbos[attr.binding]->get_vk_buffer();
+        vkCmdBindVertexBuffers(cmd, attr.binding, 1, &vbo_, offsets);
+        bindings.append(vao.bindings[attr.binding]);
+      }
+    }
+  }
+
+  BLI_assert(bindings.size() > 0);
+  BLI_assert(attributes.size() > 0);
+
+  vkPVISci.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+  vkPVISci.pNext = NULL;  // TODO Divisor
+  vkPVISci.flags = 0;     // VUID-VkPipelineVertexInputStateCreateInfo-flags-zerobitmask
+  vkPVISci.vertexBindingDescriptionCount = static_cast<uint32_t>(bindings.size());
+  vkPVISci.pVertexBindingDescriptions = bindings.data();
+  vkPVISci.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributes.size());
+  vkPVISci.pVertexAttributeDescriptions = attributes.data();
+
+}
+
 VKShaderInterface::VKShaderInterface()
 {
   max_inline_ubo_ = 0;
@@ -117,7 +156,13 @@ VKShaderInterface::VKShaderInterface()
 };
 VKShaderInterface ::~VKShaderInterface()
 {
-  printf("destroy %s  \n", sc_info_->name_.c_str());
+
+  for (auto *ref : refs_) {
+    if (ref != nullptr) {
+      ref->remove(this);
+    }
+  }
+
   MEM_SAFE_FREE(push_cache_);
   destroy();
 };
@@ -155,7 +200,7 @@ void VKShaderInterface::destroy()
 #undef DESTROYER
 }
 
-uint16_t VKShaderInterface::vbo_bind(VKVertBuf *vbo,
+uint16_t VKShaderInterface::vbo_bind(VKVao& vao, VKVertBuf *vbo,
                                      VkCommandBuffer cmd,
                                      const GPUVertFormat *format,
                                      uint v_first,
@@ -166,41 +211,28 @@ uint16_t VKShaderInterface::vbo_bind(VKVertBuf *vbo,
   uint16_t enabled_attrib = 0;
   const uint attr_len = format->attr_len;
 
+
   if (attr_len_ <= 0) {
     return enabled_attrib;
   }
 
+  Vector<VkVertexInputBindingDescription> &bindings = vao.bindings;
+
+  Vector<VkVertexInputAttributeDescription>  tmp_attributes;
+  VkVertexInputBindingDescription vk_bind = {};
+  vk_bind.binding = bindings.size();
+
+
   blender::gpu::VKDescriptorInputs &dinputs = desc_inputs_.last();
+ 
   BLI_assert(dinputs.is_block);
 
-  uint stride = format->stride;
-  bool recreate = false;
-  for (auto &bind : dinputs.bindings) {
-    if (bind.binding == 0) {
-      BLI_assert(bind.inputRate == VK_VERTEX_INPUT_RATE_VERTEX);
-      if (stride != 0 && bind.stride != stride) {
-        bind.stride = stride;
-        recreate = true;
-      }
-    }
-  }
-
-  if (recreate) {
-    /* Need to generate the pipeline again.
-    However, it can be avoided if more detailed layout information about input attribute can be
-    described in shadercreateinfo. */
-    VKContext *context = VKContext::get();
-    auto fb = static_cast<VKFrameBuffer *>(context->active_fb);
-    auto shader = context->pipeline_state.active_shader;
-    shader->CreatePipeline(fb);
-  }
-
-  // uint offset = 0;
-  // GLuint divisor = (use_instancing) ? 1 : 0;
+  uint     stride = format->stride;
+  uint     offset = 0;
+  //GLuint divisor = (use_instancing) ? 1 : 0;
 
   for (uint a_idx = 0; a_idx < attr_len; a_idx++) {
     const GPUVertAttr *a = &format->attrs[a_idx];
-    /*
     if (format->deinterleaved) {
       offset += ((a_idx == 0) ? 0 : format->attrs[a_idx - 1].size) * v_len;
       stride = a->size;
@@ -208,23 +240,44 @@ uint16_t VKShaderInterface::vbo_bind(VKVertBuf *vbo,
     else {
       offset = a->offset;
     }
-    */
+
+    vk_bind.stride = stride;
+    vk_bind.inputRate = (use_instancing) ? VK_VERTEX_INPUT_RATE_INSTANCE : VK_VERTEX_INPUT_RATE_VERTEX;
 
     /* This is in fact an offset in memory. */
     // const GLvoid *pointer    = (const GLubyte *)intptr_t(offset + v_first * stride);
-    // const   VkFormat  type = to_vk(static_cast<GPUVertCompType>(a->comp_type));
+
+    const VkFormat type = to_vk(static_cast<GPUVertCompType>(a->comp_type), a->size);
 
     for (uint n_idx = 0; n_idx < a->name_len; n_idx++) {
       const char *name = GPU_vertformat_attr_name_get(format, a, n_idx);
       const ShaderInput *input = attr_get(name);
+     
+      VkVertexInputAttributeDescription vk_attr = {};
+      if (name == std::string("inst_obmat")) {
+        BLI_assert(a->size == 64);
 
-      if (((input == nullptr || input->location == -1)) ||
-          ((use_instancing) && (input->binding != 1)) ||
-          ((!use_instancing) && (input->binding != 0))) {
+        for (int i = 0; i < 4; i++) {
+          vk_attr.binding  = vk_bind.binding;
+          vk_attr.location = 3 + i;
+          vk_attr.format  = type;
+          vk_attr.offset   = offset + 16*i;
+          tmp_attributes.append(vk_attr);
+          enabled_attrib |= (1 << vk_attr.location);
+        }
+        continue;
+
+      }
+
+      if ((input == nullptr) || (input->location == -1)) {
         continue;
       };
-
       enabled_attrib |= (1 << input->location);
+      vk_attr.binding = vk_bind.binding;
+      vk_attr.location = input->location;
+      vk_attr.format  = type;
+      vk_attr.offset  = offset;
+      tmp_attributes.append(vk_attr);
       /*TODO  attrib pointer*/
 #if 0
 
@@ -261,18 +314,33 @@ uint16_t VKShaderInterface::vbo_bind(VKVertBuf *vbo,
   }
 
   if (enabled_attrib) {
-    VkDeviceSize offsets[1] = {0};
-    VkBuffer vbo_ = vbo->get_vk_buffer();
-    if (use_instancing) {
-      vkCmdBindVertexBuffers(cmd, 1, 1, &vbo_, offsets);
+    /* If the location numbers conflict, the newer one takes precedence.*/
+    for (auto & tattr : tmp_attributes) {
+      for (auto &attr : vao.attributes) {
+        if (tattr.location == attr.location){
+          attr.location = UINT_MAX;
+          break;
+        }
+      }
     }
-    else {
-      vkCmdBindVertexBuffers(cmd, 0, 1, &vbo_, offsets);
+    for (auto &tattr : tmp_attributes) {
+      vao.attributes.append(tattr);
     }
-  }
 
+    bindings.append(vk_bind);
+    BLI_assert(vk_bind.binding == vao.vbos.size());
+    vao.vbos.append(vbo);
+
+  }
   return enabled_attrib;
 };
+
+
+
+
+
+
+
 
 uint32_t VKShaderInterface::Set_input_name(ShaderInput *input, char *name, uint32_t name_len) const
 {
@@ -297,14 +365,7 @@ GHOST_TSuccess VKShaderInterface::createSetLayout(uint i)
   else {
     descriptorSetLayoutCreateInfo.pBindings = setlayoutbindings_[i].data();
   }
-  for (auto &setlayout : setlayoutbindings_) {
-    for (auto &set : setlayout) {
-      printf(" setlayout  count %d  type %d binding %d ",
-             set.descriptorCount,
-             set.descriptorType,
-             set.binding);
-    }
-  }
+
   VK_CHECK(vkCreateDescriptorSetLayout(blender::gpu::VKContext::get()->device_get(),
                                        &descriptorSetLayoutCreateInfo,
                                        NULL,
@@ -331,12 +392,14 @@ bool VKShaderInterface::finalize(VkPipelineLayout *playout)
 /// </summary>
 GHOST_TSuccess VKShaderInterface::createPool()
 {
-
+  const uint32_t  MAX_DESC_NUMS = 12;
+  max_descID = MAX_DESC_NUMS;
+  descID_    = 0;
   VkDescriptorPoolCreateInfo descriptorPoolInfo{};
   descriptorPoolInfo.maxSets = 0;
 
   for (auto psize : poolsize_) {
-    psize.descriptorCount *= swapchain_image_nums;
+    psize.descriptorCount *= max_descID;
     descriptorPoolInfo.maxSets += psize.descriptorCount;
   }
 
@@ -716,10 +779,7 @@ bool VKShaderInterface::apply(spirv_cross::CompilerBlender *vert,
   push_cache_ = (char *)MEM_mallocN(push_range_.size, "push_cache");
   BLI_assert(ofs == len_.attr + len_.ubo + len_.image + len_.push + len_.ssbo);
 
-  uint32_t SetNums = VKContext::get()->getImageViewNums();
-  if (SetNums == 0) {
-    SetNums = 2;
-  }
+
   int i = 0;
   for (auto &slb : setlayoutbindings_) {
     if (i == 0) {
@@ -732,7 +792,7 @@ bool VKShaderInterface::apply(spirv_cross::CompilerBlender *vert,
       }
       else {
 
-        for (int j = 0; j < SetNums; j++) {
+        for (int j = 0; j < max_descID; j++) {
           sets_vec_[i].append(VK_NULL_HANDLE);
         }
         setlayouts_[i] = VK_NULL_HANDLE;
@@ -744,7 +804,7 @@ bool VKShaderInterface::apply(spirv_cross::CompilerBlender *vert,
   if (createPool() == GHOST_kFailure) {
     /* no descriptor set. */
     for (int i = 0; i < 2; i++) {
-      for (int j = 0; j < SetNums; j++) {
+      for (int j = 0; j < max_descID; j++) {
         sets_vec_[i].append(VK_NULL_HANDLE);
       }
       setlayouts_[i] = VK_NULL_HANDLE;
@@ -755,10 +815,18 @@ bool VKShaderInterface::apply(spirv_cross::CompilerBlender *vert,
     int i = 0;
     for (auto &slb : setlayoutbindings_) {
       if (i == 0) {
-        allocateDescriptorSets(sets_vec_[i], i, SetNums);
+        allocateDescriptorSets(sets_vec_[i], i, max_descID);
       }
-      else if (slb.size() > 0) {
-        allocateDescriptorSets(sets_vec_[i], i, SetNums);
+      else if (i == 1) {
+
+        if (slb.size() > 0) {
+          allocateDescriptorSets(sets_vec_[i], i, max_descID);
+        }
+        else {
+          for (int j = 0; j < max_descID; j++) {
+            sets_vec_[i].append(VK_NULL_HANDLE);
+          }
+        }
       }
       i++;
     }
@@ -930,10 +998,12 @@ int CompilerBlender::parse_inputs(blender::gpu::ShaderInput *inputs, int ofs)
     attr.binding = (block_attributes) ? binding : attr.location;
 
     const SPIRType spirv_type = get_type(resource.type_id);
-    uint32_t vec_multi = 1;
-    if (is_vector(spirv_type)) {
-      vec_multi = spirv_type.vecsize;
+    uint32_t vec_multi = spirv_type.vecsize;
+    if (vec_multi == 0) {
+      vec_multi = 1;
     };
+    vec_multi *= spirv_type.columns;
+
     uint32_t stride_attr = 0;
     auto float_type = [&]() {
       switch (vec_multi) {
@@ -952,6 +1022,10 @@ int CompilerBlender::parse_inputs(blender::gpu::ShaderInput *inputs, int ofs)
         case 4:
           attr.format = VK_FORMAT_R32G32B32A32_SFLOAT;
           stride_attr = 16;
+          break;
+        case 16:
+          attr.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+          stride_attr = 16*4;
           break;
         default:
           BLI_assert(false);
@@ -1171,7 +1245,7 @@ int CompilerBlender::parse_ubo(blender::gpu::ShaderInput *inputs, int ofs)
                              get_storage_class(resource.id) == spv::StorageClassUniformConstant);
       BLI_assert(is_sized_block);
       auto ranges = get_active_buffer_ranges(resource.id);
-
+      #if 0
       int i = 0;
       for (auto range : ranges) {
         const std::string name = get_member_name(resource.base_type_id, i++);
@@ -1184,6 +1258,7 @@ int CompilerBlender::parse_ubo(blender::gpu::ShaderInput *inputs, int ofs)
       if (setNum == 1) {
         BLI_assert(i <= 1);
       };
+      #endif
 
 #endif
       N++;

@@ -13,6 +13,14 @@
 #include "vk_vertex_array.hh"
 #include "vk_index_buffer.hh"
 
+#include "vk_backend.hh"
+#include "gpu_backend.hh"
+
+#ifdef PRINT_VK_BATCH
+#define print_deb printf
+#else
+#define print_deb(...)
+#endif
 namespace blender::gpu {
   /* -------------------------------------------------------------------- */
 /** \name VAO Cache
@@ -33,25 +41,28 @@ namespace blender::gpu {
 
   void VKVaoCache::init()
   {
-    context_ = nullptr;
+    context_ = VKContext::get();
     interface_ = nullptr;
     is_dynamic_vao_count = false;
     for (int i = 0; i < VK_GPU_VAO_STATIC_LEN; i++) {
       static_vaos.interfaces[i] = nullptr;
-      static_vaos.vao_ids[i] = nullptr;
+      static_vaos.vao_ids[i].is_valid = false;
     }
     vao_base_instance_ = nullptr;
     base_instance_ = 0;
-    vao_id_ = 0;
+    vao_id_.is_valid = false;
   }
 
-  void VKVaoCache::insert(const VKShaderInterface* interface, VKVAOty vao)
+  void VKVaoCache::insert(const VKShaderInterface *interface, VKVao& vao)
   {
+
+    BLI_assert(vao.is_valid);
+
     /* Now insert the cache. */
     if (!is_dynamic_vao_count) {
       int i; /* find first unused slot */
       for (i = 0; i < VK_GPU_VAO_STATIC_LEN; i++) {
-        if (static_vaos.vao_ids[i] == nullptr) {
+        if (static_vaos.vao_ids[i].is_valid == false) {
           break;
         }
       }
@@ -65,7 +76,8 @@ namespace blender::gpu {
         for (int i = 0; i < VK_GPU_VAO_STATIC_LEN; i++) {
           if (static_vaos.interfaces[i] != nullptr) {
             const_cast<VKShaderInterface*>(static_vaos.interfaces[i])->ref_remove(this);
-            context_->vao_free(static_vaos.vao_ids[i]);
+            static_vaos.vao_ids[i].clear();
+            /*  context_->vao_free(static_vaos.vao_ids[i]); */
           }
         }
         /* Not enough place switch to dynamic. */
@@ -74,14 +86,17 @@ namespace blender::gpu {
         dynamic_vaos.count = GPU_BATCH_VAO_DYN_ALLOC_COUNT;
         dynamic_vaos.interfaces = (const VKShaderInterface**)MEM_callocN(
         dynamic_vaos.count * sizeof(VKShaderInterface*), "dyn vaos interfaces");
-        dynamic_vaos.vao_ids = (VKVAOty*)MEM_callocN(dynamic_vaos.count * sizeof(VKVAOty), "dyn vaos ids");
+        dynamic_vaos.vao_ids = (VKVao*)MEM_callocN(dynamic_vaos.count * sizeof(VKVao), "dyn vaos ids");
+        for (int j = 0; j < dynamic_vaos.count; j++) {
+          dynamic_vaos.interfaces[j] = nullptr;
+        }
       }
     }
 
     if (is_dynamic_vao_count) {
       int i; /* find first unused slot */
       for (i = 0; i < dynamic_vaos.count; i++) {
-        if (dynamic_vaos.vao_ids[i] == nullptr) {
+        if (dynamic_vaos.vao_ids[i].is_valid ==false) {
           break;
         }
       }
@@ -92,7 +107,10 @@ namespace blender::gpu {
         dynamic_vaos.count += GPU_BATCH_VAO_DYN_ALLOC_COUNT;
         dynamic_vaos.interfaces = (const VKShaderInterface**)MEM_recallocN(
           (void*)dynamic_vaos.interfaces, sizeof(VKShaderInterface*) * dynamic_vaos.count);
-        dynamic_vaos.vao_ids = (VKVAOty*)MEM_recallocN(dynamic_vaos.vao_ids, sizeof(VKVAOty) * dynamic_vaos.count);
+        dynamic_vaos.vao_ids = (VKVao*)MEM_recallocN(dynamic_vaos.vao_ids, sizeof(VKVao) * dynamic_vaos.count);
+        for (int j = 0; j < GPU_BATCH_VAO_DYN_ALLOC_COUNT; j++) {
+          dynamic_vaos.interfaces[dynamic_vaos.count-j-1] = nullptr;
+        }
        }
 
       dynamic_vaos.interfaces[i] = interface;
@@ -100,19 +118,19 @@ namespace blender::gpu {
     }
 
     const_cast<VKShaderInterface*>(interface)->ref_add(this);
+
   }
 
   void VKVaoCache::remove(const VKShaderInterface* interface)
   {
     const int count = (is_dynamic_vao_count) ? dynamic_vaos.count : VK_GPU_VAO_STATIC_LEN;
-    VecVKVAOty vaos = (is_dynamic_vao_count) ? dynamic_vaos.vao_ids : static_vaos.vao_ids;
+    VKVao* vaos = (is_dynamic_vao_count) ? dynamic_vaos.vao_ids : static_vaos.vao_ids;
     
     const VKShaderInterface** interfaces = (is_dynamic_vao_count) ? dynamic_vaos.interfaces :
       static_vaos.interfaces;
     for (int i = 0; i < count; i++) {
       if (interfaces[i] == interface) {
-        context_->vao_free(vaos[i]);
-        vaos[i] = nullptr;
+        vaos[i].clear();
         interfaces[i] = nullptr;
         break; /* cannot have duplicates */
       }
@@ -124,7 +142,7 @@ namespace blender::gpu {
   {
   
     const int count = (is_dynamic_vao_count) ? dynamic_vaos.count : VK_GPU_VAO_STATIC_LEN;
-    VecVKVAOty vaos = (is_dynamic_vao_count) ? dynamic_vaos.vao_ids :  static_vaos.vao_ids;
+    VKVao* vaos = (is_dynamic_vao_count) ? dynamic_vaos.vao_ids :  static_vaos.vao_ids;
     const VKShaderInterface** interfaces = (is_dynamic_vao_count) ? dynamic_vaos.interfaces : static_vaos.interfaces;
 
     /* Early out, nothing to free. */
@@ -135,9 +153,11 @@ namespace blender::gpu {
 
     /* TODO(fclem): Slow way. Could avoid multiple mutex lock here */
     for (int i = 0; i < count; i++) {
-      context_->vao_free(vaos[i]);
+      vaos[i].clear();
+      //context_->vao_free(vaos[i]);
     }
     context_->vao_free(vao_base_instance_);
+
 
 
     for (int i = 0; i < count; i++) {
@@ -145,6 +165,7 @@ namespace blender::gpu {
         const_cast<VKShaderInterface*>(interfaces[i])->ref_remove(this);
       }
     }
+
 
     if (is_dynamic_vao_count) {
       MEM_freeN((void*)dynamic_vaos.interfaces);
@@ -158,7 +179,7 @@ namespace blender::gpu {
     this->init();
   }
 
-  VKVAOty VKVaoCache::lookup(const VKShaderInterface* interface)
+  VKVao& VKVaoCache::lookup(const VKShaderInterface* interface)
   {
     const int count = (is_dynamic_vao_count) ? dynamic_vaos.count : VK_GPU_VAO_STATIC_LEN;
     const VKShaderInterface** interfaces = (is_dynamic_vao_count) ? dynamic_vaos.interfaces :
@@ -168,7 +189,9 @@ namespace blender::gpu {
         return (is_dynamic_vao_count) ? dynamic_vaos.vao_ids[i] : static_vaos.vao_ids[i];
       }
     }
-    return nullptr;
+    static VKVao vao = {};
+    vao.is_valid = false;
+    return vao;
   }
 
   void VKVaoCache::context_check()
@@ -190,6 +213,8 @@ namespace blender::gpu {
 
   VKVAOty VKVaoCache::base_instance_vao_get(GPUBatch* batch, int i_first)
   {
+    BLI_assert(false);
+
     this->context_check();
     /* Make sure the interface is up to date. */
     Shader* shader = VKContext::get()->shader;
@@ -222,7 +247,7 @@ namespace blender::gpu {
     return vao_base_instance_;
   }
 
-  VKVAOty VKVaoCache::vao_get(GPUBatch* batch)
+  VKVao& VKVaoCache::vao_get(GPUBatch *batch)
   {
     this->context_check();
 
@@ -234,30 +259,44 @@ namespace blender::gpu {
 
     vao_id_ = this->lookup(interface_);
 
-    if (vao_id_ == nullptr) {
+    if  ( !vao_id_.is_valid ) {
       /* Cache miss, create a new VAO. */
-      VKResourceOptions options;
-      options.setDeviceLocal(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-       
-      vao_id_ = new VKVAOty_impl(0, 256, options);
-        
       /*#glGenVertexArrays(1, &vao_id_);*/
+     
+      vao_id_.is_valid = true;
       this->insert(interface_, vao_id_);
-
-       
     }
 
-    BLI_assert(vao_id_);
+
+    vao_id_.clear();
     VKVertArray::update_bindings(vao_id_, batch, interface_, 0);
+    vao_id_.is_valid = true;
 
     return vao_id_;
   }
 
 
 
+  static std::vector<std::string> split(const std::string &s, char seperator)
+  {
+    std::vector<std::string> output;
 
+    std::string::size_type prev_pos = 0, pos = 0;
 
-  void VKBatch::bind(int i_first)
+    while ((pos = s.find(seperator, pos)) != std::string::npos) {
+      std::string substring(s.substr(prev_pos, pos - prev_pos));
+
+      output.push_back(substring);
+
+      prev_pos = ++pos;
+    }
+
+    output.push_back(s.substr(prev_pos, pos - prev_pos));  // Last word
+
+    return output;
+  }
+
+ VKVao& VKBatch::bind(int i_first)
   {
     VKContext::get()->state_manager->apply_state();
 
@@ -279,8 +318,11 @@ namespace blender::gpu {
     /*Too much processing intensive. #glBindVertexArray();*/
     /*Since the vertexbuffer is handled independently, there should be variations in how to upload.
      It is possible to have a direct pointer to the gpu if it is host-visible.*/
-    vao_cache_.vao_get(this);
+    VKVao &vao = vao_cache_.vao_get(this);
+    vao_cache_.is_dirty = (vao.bindings.size() > 0);
 
+
+    return vao;
   }
 
   void VKBatch::draw(int v_first, int  v_count, int  i_first, int  i_count)
@@ -294,52 +336,88 @@ namespace blender::gpu {
     static int cnt = 0;
 
     auto fb_ = static_cast<VKFrameBuffer*>(context_->active_fb);
-    VkCommandBuffer cmd = fb_->render_begin(VK_NULL_HANDLE, VK_COMMAND_BUFFER_LEVEL_PRIMARY, (VkClearValue*)nullptr, false);
-    if (cnt == 109) {
-      printf(
-          "########################This is before we start drawing the "
-          "view3D.#######################");
+
+
+
+    VKShader *shader = (VKShader *)context_->shader;
+    
+    print_deb(
+        "Offscreen render     ( %d  ,%d )     FB    %s     SHADER[%d] =======================    "
+        "%s   =============================\n",
+        w,
+        h,
+        (uint64_t)fb_->name_get(),
+        cnt,
+        shader->name_get());
+
+    if (cnt == 183) {
+      fb_->update_attachments();
     }
-    this->bind(i_first);
 
 
 
+    if (cnt == 182) {
+      GPU_front_facing(false);
+      GPU_face_culling(GPU_CULL_BACK);
+    }
+    if (cnt == 182) {
+      float clear_col[4] = {0.,0.,0.,1.};
+      fb_->clear_color(2, clear_col);
+    }
 
 
-    int w = fb_->get_width();
-    int h = fb_->get_height();
-    printf("Offscreen render     ( %d  ,%d )     FB    %llu \n", w, h, (uint64_t)fb_);
 
+    VkCommandBuffer cmd;
+    if (cnt == 192 || cnt == 196 || cnt == 200) {
 
+      cmd = fb_->render_begin(
+          VK_NULL_HANDLE, VK_COMMAND_BUFFER_LEVEL_PRIMARY, (VkClearValue *)nullptr, false, true);
+    }
+    else if (fb_->is_swapchain_) {
+      if (fb_->is_blit_begin_) {
+        fb_->render_end();
+      }
+      cmd = fb_->render_begin(
+          VK_NULL_HANDLE, VK_COMMAND_BUFFER_LEVEL_PRIMARY, (VkClearValue *)nullptr, false, false);
+    }
+    else {
 
+      cmd = fb_->render_begin(
+          VK_NULL_HANDLE, VK_COMMAND_BUFFER_LEVEL_PRIMARY, (VkClearValue *)nullptr, false, false);
+    };
 
-    auto image_index = context_->get_current_image_index();
-
-
-    /*Here, setting prim_type without fail means that there is a premise that the topology type will be handled dynamically.*/
     VKStateManager::set_prim_type(prim_type);
-    VKShader* vkshader = reinterpret_cast<VKShader*>(shader);
+    VKShader *vkshader = reinterpret_cast<VKShader *>(shader);
+    auto vkinterface = (VKShaderInterface *)vkshader->interface;
+
+
+    auto& vao = this->bind(i_first);
+    if (vao_cache_.is_dirty) {
+      vkinterface->desc_inputs_[0].finalise(vao,cmd);
+      vao_cache_.is_dirty = false;
+    }
+
+
+    /*
+
+    */
+   // GPU_depth_test(GPU_DEPTH_NONE);
+    //GPU_depth_mask(false);
+    //GPU_depth_range(0., 1.f);
+    
+    /*Here, setting prim_type without fail means that there is a premise that the topology type will be handled dynamically.*/
     vkshader->CreatePipeline(fb_);
 
-    auto current_pipe_ = vkshader->get_pipeline();
+   
+    auto& current_pipe_ = vkshader->get_pipeline();
     BLI_assert(current_pipe_ != VK_NULL_HANDLE);
 
-    vkshader->update_descriptor_set();
 
+    vkshader->update_descriptor_set(cmd,vkshader->current_layout_);
 
-    auto vkinterface = (VKShaderInterface*)vkshader->interface;
-    Vector<VkDescriptorSet > Sets;
-    auto descN = 0;
-    for (auto& set : vkinterface->sets_vec_) {
-      if (set[image_index] != VK_NULL_HANDLE) {
-        descN++;
-        Sets.append(set[image_index]);
-      }
-    }
-
-
-
-
+ 
+   
+ 
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, current_pipe_);
 
     VKStateManager::cmd_dynamic_state(cmd);
@@ -353,34 +431,31 @@ namespace blender::gpu {
         vkinterface->push_cache_);
     }
 
-    if (descN > 0) {
-      vkCmdBindDescriptorSets(cmd,
-        VK_PIPELINE_BIND_POINT_GRAPHICS,
-        vkshader->current_layout_,
-        0,
-        descN,
-        Sets.data(),
-        0,
-        NULL);
-    }
-
-
 
     if (elem) {
 
       const VKIndexBuf* el =static_cast<VKIndexBuf*>(elem_());
       auto idx_count = el->index_len_get();
       auto idx_first = el->index_base_;
+      if (cnt == 182) {
+        //idx_count = 6;
+        //idx_first = 6;
+      }
       vkCmdDrawIndexed(cmd, idx_count, i_count, idx_first , v_first, i_first);
       
     }
     else {
       vkCmdDraw(cmd, v_count, i_count, v_first, i_first);
     }
+
     fb_->is_dirty_render_ = true;
 
-
-    fb_->render_end();
+    if (!fb_->is_swapchain_) {
+      fb_->render_end();
+    }
+    else {
+      fb_->move_pipe(current_pipe_);
+    }
    
 
     /*Test by presenting immediately.*/
@@ -395,31 +470,58 @@ namespace blender::gpu {
     case 13:
     case 103:
     case 145:
+    case 164:
+    case 181:
+    case  172:
       save = true;
       break;
     default:
       break;
   }
-
-  if (save) {
-    std::string filename = "vk_frame_" + std::to_string(fb_->get_height()) +
-                           std::to_string(fb_->get_width()) + "No" + std::to_string(cnt) + ".ppm";
-    fb_->save_current_frame(filename.c_str());
+  if (cnt > 181 && cnt < 218) {
+    save = true;
   }
+  
 
-    cnt++;
 
-    if(cnt == -1)
+    if(cnt == -182)
     {
-      VKFrameBuffer* swfb = static_cast<VKFrameBuffer*> (context_->back_left);
+      GPUBackend * be = GPUBackend::get();
+      VKBackend * vkbe = (VKBackend *)be;
+      GPUContext* ctx = GPU_context_active_get();
+
+      GPU_context_active_set((GPUContext *)( vkbe->get_context_main()));
+      GPU_framebuffer_restore();
+     
+      VKFrameBuffer *swfb = (VKFrameBuffer *)GPU_framebuffer_active_get();
+      /*  static_cast<VKFrameBuffer *>(context_->back_left); */
      
       swfb->render_begin(VK_NULL_HANDLE, VK_COMMAND_BUFFER_LEVEL_PRIMARY, nullptr, true);
       swfb->append_wait_semaphore(fb_->get_signal());
       fb_->blit_to(GPU_COLOR_BIT, 0, swfb, 0, 0, 0);
       swfb->render_end();
-    
-    };
 
+      GPU_framebuffer_bind((GPUFrameBuffer *)fb_);
+
+      GPU_context_active_set(ctx);
+
+    };
+    save = false;
+    if (save) {
+
+      std::string filename = std::string(fb_->name_get()) + "_" + vkshader->name_get();
+      auto ve  = split(filename, '>');
+      if (ve.size() == 1) {
+        filename = ve[0] + "No."+ std::to_string(cnt);
+      }
+      else {
+        filename = ve[1] + "No." + std::to_string(cnt);
+      }
+      fb_->save_current_frame(filename.c_str());
+
+    }
+
+    cnt++;
 #endif
 
     VKContext::get()->active_fb = fb_;

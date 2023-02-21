@@ -110,7 +110,6 @@ class VKTexture : public Texture {
   VKContext *context_ = nullptr;
   /* Vulkan object handle. */
   VkImage vk_image_ = VK_NULL_HANDLE;
-  VkImageView vk_image_view_ = VK_NULL_HANDLE;
 
   Vector<VkImageLayout> vk_image_layout_;
   /* GPU Memory allocated by this object. */
@@ -137,9 +136,8 @@ class VKTexture : public Texture {
     if (usage == GPU_TEXTURE_USAGE_GENERAL) {
       if (format_flag_ & GPU_FORMAT_DEPTH) {
 
-        vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
-        vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                                          VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+        vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_SAMPLED_BIT  | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+        vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
       }
       else {
@@ -168,7 +166,7 @@ class VKTexture : public Texture {
      
 
       if (usage & GPU_TEXTURE_USAGE_SHADER_READ) {
-          vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT);
+        vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_SAMPLED_BIT); /*  use subpass =>  VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT */
                                      /// VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR);
       }
 
@@ -232,7 +230,7 @@ class VKTexture : public Texture {
     return vk_image_;
   };
   void generate_mipmap(void) override{};
-  void copy_to(Texture *dst) override{};
+  void copy_to(Texture *dst) override;
   void clear(eGPUDataFormat format, const void *data) override{};
   void swizzle_set(const char swizzle_mask[4]) override;
   void mip_range_set(int min, int max) override{};
@@ -266,13 +264,15 @@ class VKTexture : public Texture {
 
   /* Vulkan specific functions. */
   VkImageView vk_image_view_get(int mip);
-  VkImageView vk_image_view_get(int mip, int layer);
-  VkDescriptorImageInfo *get_image_info(eGPUSamplerState id = (eGPUSamplerState)257)
-  {
+  VkImageView vk_image_view_get(int mip, int layer,bool force= false );
+  VkDescriptorImageInfo *get_image_info(eGPUSamplerState id = (eGPUSamplerState)257,bool force = false){
+
+    int layer = 0;
     /*BLI_assert((int)id <= 257);*/
     int mip = 0;
     desc_info_.imageLayout = vk_image_layout_[mip];
-    desc_info_.imageView = vk_image_view_get(mip);
+    desc_info_.imageView = vk_image_view_get(mip, layer, force);
+
     if (id == 257) {
       desc_info_.sampler = NULL;
     }
@@ -498,6 +498,9 @@ class VKAttachment {
  public:
   VKAttachment(VKFrameBuffer *fb);
   ~VKAttachment();
+
+
+  void bind(bool force = false);
   /* naive implementation. Can subpath be used effectively? */
   void append(GPUAttachment &attach, VkImageLayout layout);
   uint32_t get_nums();
@@ -527,7 +530,7 @@ class VKAttachment {
   {
 
     if (vdesc_.size() > 1) {
-      printf("loadOp\n");
+   
     };
     return vdesc_[0].loadOp;
   };

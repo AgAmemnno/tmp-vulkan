@@ -296,8 +296,10 @@ void WM_init(bContext *C, int argc, const char **argv)
   read_homefile_params.filepath_startup_override = nullptr;
   read_homefile_params.app_template_override = WM_init_state_app_template_get();
 
+  
   wm_homefile_read_ex(C, &read_homefile_params, nullptr, &params_file_read_post);
 
+  
   /* NOTE: leave `G_MAIN->filepath` set to an empty string since this
    * matches behavior after loading a new file. */
   BLI_assert(G_MAIN->filepath[0] == '\0');
@@ -430,7 +432,7 @@ void wm_exit_schedule_delayed(const bContext *C)
 
 void UV_clipboard_free();
 
-void WM_exit_ex(bContext *C, const bool do_python)
+void WM_exit_ex0(bContext *C, const bool do_python)
 {
   wmWindowManager *wm = C ? CTX_wm_manager(C) : nullptr;
 
@@ -650,6 +652,237 @@ void WM_exit_ex(bContext *C, const bool do_python)
   /* Logging cannot be called after exiting (#CLOG_INFO, #CLOG_WARN etc will crash).
    * So postpone exiting until other sub-systems that may use logging have shut down. */
   CLG_exit();
+}
+#include "IMB_imbuf.h"
+void WM_exit_ex(bContext *C, const bool do_python)
+{
+  wmWindowManager *wm = C ? CTX_wm_manager(C) : nullptr;
+  //WorkSpace *workspace = BKE_workspace_active_get(wm->workspace_hook);
+  /* first wrap up running stuff, we assume only the active WM is running */
+  /* modal handlers are on window level freed, others too? */
+  /* NOTE: same code copied in `wm_files.cc`. */
+  if (C && wm) {
+    if (!G.background) {
+      struct MemFile *undo_memfile = wm->undo_stack ?
+                                         ED_undosys_stack_memfile_get_active(wm->undo_stack) :
+                                         nullptr;
+      if (undo_memfile != nullptr) {
+        /* save the undo state as quit.blend */
+        Main *bmain = CTX_data_main(C);
+        char filepath[FILE_MAX];
+        bool has_edited;
+        const int fileflags = G.fileflags & ~G_FILE_COMPRESS;
+
+        BLI_path_join(filepath, sizeof(filepath), BKE_tempdir_base(), BLENDER_QUIT_FILE);
+
+        has_edited = ED_editors_flush_edits(bmain);
+
+        BlendFileWriteParams blend_file_write_params{};
+        if ((has_edited &&
+             BLO_write_file(bmain, filepath, fileflags, &blend_file_write_params, nullptr)) ||
+            BLO_memfile_write_file(undo_memfile, filepath)) {
+          printf("Saved session recovery to '%s'\n", filepath);
+        }
+      }
+    }
+
+    WM_jobs_kill_all(wm);
+
+    LISTBASE_FOREACH (wmWindow *, win, &wm->windows) {
+      CTX_wm_window_set(C, win); /* needed by operator close callbacks */
+      WM_event_remove_handlers(C, &win->handlers);
+      WM_event_remove_handlers(C, &win->modalhandlers);
+      ED_screen_exit(C, win, WM_window_get_active_screen(win));
+    }
+
+    if (!G.background) {
+      if ((U.pref_flag & USER_PREF_FLAG_SAVE) && ((G.f & G_FLAG_USERPREF_NO_SAVE_ON_EXIT) == 0)) {
+        if (U.runtime.is_dirty) {
+          BKE_blendfile_userdef_write_all(nullptr);
+        }
+      }
+      /* Free the callback data used on file-open
+       * (will be set when a recover operation has run). */
+      wm_test_autorun_revert_action_set(nullptr, nullptr);
+    }
+  }
+
+#if defined(WITH_PYTHON) && !defined(WITH_PYTHON_MODULE)
+  /* Without this, we there isn't a good way to manage false-positive resource leaks
+   * where a #PyObject references memory allocated with guarded-alloc, T71362.
+   *
+   * This allows add-ons to free resources when unregistered (which is good practice anyway).
+   *
+   * Don't run this code when built as a Python module as this runs when Python is in the
+   * process of shutting down, where running a snippet like this will crash, see T82675.
+   * Instead use the `atexit` module, installed by #BPY_python_start */
+  const char *imports[2] = {"addon_utils", nullptr};
+  BPY_run_string_eval(C, imports, "addon_utils.disable_all()");
+#endif
+
+  BLI_timer_free();
+
+  WM_paneltype_clear();
+
+  BKE_addon_pref_type_free();
+  BKE_keyconfig_pref_type_free();
+  BKE_materials_exit();
+
+  wm_operatortype_free();
+  wm_surfaces_free();
+  wm_dropbox_free();
+  WM_menutype_free();
+
+  /* all non-screen and non-space stuff editors did, like editmode */
+  if (C) {
+    Main *bmain = CTX_data_main(C);
+    ED_editors_exit(bmain, true);
+  }
+
+  ED_undosys_type_free();
+
+  free_openrecent();
+
+  BKE_mball_cubeTable_free();
+
+  /* render code might still access databases */
+  RE_FreeAllRender();
+  RE_engines_exit();
+
+  ED_preview_free_dbase(); /* frees a Main dbase, before BKE_blender_free! */
+  ED_preview_restart_queue_free();
+  ED_assetlist_storage_exit();
+
+  if (wm) {
+    /* Before BKE_blender_free! - since the ListBases get freed there. */
+    wm_free_reports(wm);
+  }
+
+  SEQ_clipboard_free(); /* sequencer.c */
+  BKE_tracking_clipboard_free();
+  BKE_mask_clipboard_free();
+  BKE_vfont_clipboard_free();
+  ED_node_clipboard_free();
+  UV_clipboard_free();
+
+#ifdef WITH_COMPOSITOR_CPU
+  COM_deinitialize();
+#endif
+
+  BKE_subdiv_exit();
+
+  if (opengl_is_init) {
+    BKE_image_free_unused_gpu_textures();
+  }
+
+ // BKE_blender_free(); /* blender.c, does entire library and spacetypes */
+                      //  BKE_material_copybuf_free();
+
+  /* Free the GPU subdivision data after the database to ensure that subdivision structs used by
+   * the modifiers were garbage collected. */
+  if (opengl_is_init) {
+    DRW_subdiv_free();
+  }
+
+  ANIM_fcurves_copybuf_free();
+  ANIM_drivers_copybuf_free();
+  ANIM_driver_vars_copybuf_free();
+  ANIM_fmodifiers_copybuf_free();
+  ED_gpencil_anim_copybuf_free();
+  ED_gpencil_strokes_copybuf_free();
+
+
+  /* Same for UI-list types. */
+  WM_uilisttype_free();
+
+  BLF_exit();
+
+  BLT_lang_free();
+
+  ANIM_keyingset_infos_exit();
+
+  //  free_txt_data();
+  GPU_exit();
+  BKE_studiolight_free();
+  IMB_exit();
+
+  UI_exit();
+ 
+  BKE_blender_globals_clear();
+  BKE_blender_free();
+    /* free gizmo-maps after freeing blender,
+   * so no deleted data get accessed during cleaning up of areas. */
+  wm_gizmomaptypes_free();
+  wm_gizmogrouptype_free();
+  wm_gizmotype_free();
+
+
+  BKE_spacetypes_free(); /* after free main, it uses space callbacks */
+  DEG_free_node_types();
+  BKE_node_system_exit();
+#ifdef WITH_PYTHON
+  /* option not to close python so we can use 'atexit' */
+  if (do_python && ((C == nullptr) || CTX_py_init_get(C))) {
+    /* NOTE: (old note)
+     * before BKE_blender_free so Python's garbage-collection happens while library still exists.
+     * Needed at least for a rare crash that can happen in python-drivers.
+     *
+     * Update for Blender 2.5, move after #BKE_blender_free because Blender now holds references
+     * to #PyObject's so #Py_DECREF'ing them after Python ends causes bad problems every time
+     * the python-driver bug can be fixed if it happens again we can deal with it then. */
+    BPY_python_end();
+  }
+#else
+  (void)do_python;
+#endif
+
+  ED_file_exit(); /* For file-selector menu data. */
+
+  /* Delete GPU resources and context. The UI also uses GPU resources and so
+   * is also deleted with the context active. */
+  if (opengl_is_init) {
+    DRW_opengl_context_enable_ex(false);
+    UI_exit();
+    GPU_pass_cache_free();
+   // GPU_exit();
+    DRW_opengl_context_disable_ex(false);
+    DRW_opengl_context_destroy();
+  }
+  else {
+    UI_exit();
+  }
+
+  BKE_blender_userdef_data_free(&U, false);
+
+  RNA_exit(); /* should be after BPY_python_end so struct python slots are cleared */
+
+  wm_ghost_exit();
+
+  CTX_free(C);
+
+  GHOST_DisposeSystemPaths();
+
+  DNA_sdna_current_free();
+
+  BLI_threadapi_exit();
+  BLI_task_scheduler_exit();
+
+  /* No need to call this early, rather do it late so that other
+   * pieces of Blender using sound may exit cleanly, see also T50676. */
+  BKE_sound_exit();
+
+  BKE_appdir_exit();
+
+  BKE_blender_atexit();
+
+  wm_autosave_delete();
+
+  BKE_tempdir_session_purge();
+
+  /* Logging cannot be called after exiting (#CLOG_INFO, #CLOG_WARN etc will crash).
+   * So postpone exiting until other sub-systems that may use logging have shut down. */
+  CLG_exit();
+ 
 }
 
 void WM_exit(bContext *C)

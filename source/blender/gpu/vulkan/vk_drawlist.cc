@@ -24,7 +24,12 @@ namespace blender::gpu {
 #define VK_MDI_DISABLED (buffer_size_ == 0)
 #define VK_MDI_INDEXED (base_index_ != UINT_MAX)
 
-VKDrawList::~VKDrawList(){};
+VKDrawList::~VKDrawList(){
+  if (buffer_id_) {
+   delete  buffer_id_;
+    buffer_id_ = nullptr;
+  }
+};
 VKDrawList::VKDrawList(int length)
 {
   BLI_assert(length > 0);
@@ -155,9 +160,13 @@ void VKDrawList::submit()
   auto context_ = VKContext::get();
   static int cnt = 0;
   auto fb_ = static_cast<VKFrameBuffer *>(context_->active_fb);
-  VkCommandBuffer cmd = fb_->render_begin(VK_NULL_HANDLE, VK_COMMAND_BUFFER_LEVEL_PRIMARY, (VkClearValue *)nullptr, false);
-
-
+  bool rebuild = false;
+  if (cnt > 0) {
+    rebuild = true;
+  }
+  cnt++; 
+  VkCommandBuffer cmd = fb_->render_begin(
+      VK_NULL_HANDLE, VK_COMMAND_BUFFER_LEVEL_PRIMARY, (VkClearValue *)nullptr, false,rebuild);
   /* Only do multi-draw indirect if doing more than 2 drawcall. This avoids the overhead of
    * buffer mapping if scene is not very instance friendly. BUT we also need to take into
    * account the case where only a few instances are needed to finish filling a call buffer. */
@@ -172,17 +181,12 @@ void VKDrawList::submit()
     auto current_pipe_ = vkshader->get_pipeline();
     BLI_assert(current_pipe_ != VK_NULL_HANDLE);
 
-    vkshader->update_descriptor_set();
-    auto image_index = context_->get_current_image_index();
+
+
+    vkshader->update_descriptor_set(cmd,vkshader->current_layout_);
+ 
     auto vkinterface = (VKShaderInterface *)vkshader->interface;
-    Vector<VkDescriptorSet> Sets;
-    auto descN = 0;
-    for (auto &set : vkinterface->sets_vec_) {
-      if (set[image_index] != VK_NULL_HANDLE) {
-        descN++;
-        Sets.append(set[image_index]);
-      }
-    }
+
 
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, current_pipe_);
 
@@ -197,16 +201,7 @@ void VKDrawList::submit()
                          vkinterface->push_cache_);
     }
 
-    if (descN > 0) {
-      vkCmdBindDescriptorSets(cmd,
-                              VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              vkshader->current_layout_,
-                              0,
-                              descN,
-                              Sets.data(),
-                              0,
-                              NULL);
-    }
+
 
     batch_->bind(0);
 

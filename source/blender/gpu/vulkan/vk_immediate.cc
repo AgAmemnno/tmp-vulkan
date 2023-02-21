@@ -321,7 +321,24 @@ void VKImmediate::end()
     record();
   }
 }
+static std::vector<std::string> split(const std::string &s, char seperator)
+{
+  std::vector<std::string> output;
 
+  std::string::size_type prev_pos = 0, pos = 0;
+
+  while ((pos = s.find(seperator, pos)) != std::string::npos) {
+    std::string substring(s.substr(prev_pos, pos - prev_pos));
+
+    output.push_back(substring);
+
+    prev_pos = ++pos;
+  }
+
+  output.push_back(s.substr(prev_pos, pos - prev_pos));  // Last word
+
+  return output;
+}
 void VKImmediate::record()
 {
 
@@ -330,28 +347,20 @@ void VKImmediate::record()
   VKShader *vkshader = reinterpret_cast<VKShader *>(shader);
   current_pipe_ = vkshader->get_pipeline();
   BLI_assert(current_pipe_ != VK_NULL_HANDLE);
-
-  vkshader->update_descriptor_set();
-
+  VKFrameBuffer *fb = static_cast<VKFrameBuffer *>(context_->active_fb);
+  vkshader->current_cmd_ = VK_NULL_HANDLE;
+  vkshader->current_cmd_ = fb->render_begin(vkshader->current_cmd_,
+                                              VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+  vkshader->update_descriptor_set(vkshader->current_cmd_, vkshader->current_layout_);
   auto vkinterface = (VKShaderInterface *)vkshader->interface;
-  auto descN = 0;
-  for (auto &set : vkinterface->setlayouts_) {
-    if (set != VK_NULL_HANDLE) {
-      descN++;
-    }
-  }
+
+
+
 
   auto vert = vkbuffer_->get_vk_buffer();
   VkDeviceSize offsets[1] = {0};
-  VKFrameBuffer *fb = static_cast<VKFrameBuffer *>(context_->active_fb);
-  int swapID = context_->get_current_image_index();
 
-  vkshader->current_cmd_ = VK_NULL_HANDLE;
-  vkshader->current_cmd_ = fb->render_begin(vkshader->current_cmd_,
-                                            VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
-  /* To know when we generate a command and start a record but don't use it. It might be better for
-   * the state manager to do it. */
   fb->set_dirty_render(true);
   vkCmdBindPipeline(vkshader->current_cmd_, VK_PIPELINE_BIND_POINT_GRAPHICS, current_pipe_);
 
@@ -365,31 +374,42 @@ void VKImmediate::record()
                        vkinterface->push_range_.size,
                        vkinterface->push_cache_);
   }
-  if (descN == 1) {
-    vkCmdBindDescriptorSets(vkshader->current_cmd_,
-                            VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            vkshader->current_layout_,
-                            0,
-                            1,
-                            &vkinterface->sets_vec_[0][swapID],
-                            0,
-                            NULL);
-  }
-  else if (descN != 0)
-    BLI_assert_msg(false, "Descriptor Set Number is only 0 for now.");
+
+
 
   vkCmdBindVertexBuffers(vkshader->current_cmd_, 0, 1, &vert, offsets);
   vkCmdDraw(vkshader->current_cmd_, vertex_len, 1, 0, 0);
 
   fb->render_end();
-  if (false)
-  {
-    static int cnt = 1000;
-    std::string filename = "vk_frame_" + std::to_string(fb->get_height()) +
-                           std::to_string(fb->get_width()) + "No" + std::to_string(cnt) + ".ppm";
-    fb->save_current_frame(filename.c_str());
-    cnt++;
+
+  static int cnt = 0;
+  bool save = false;
+  /*
+  switch (cnt) {
+    case  
+    default:
+      break;
   }
+  */
+  if (cnt > 34 && cnt  < 41) {
+    save = true;
+  }
+
+  save = false;
+  if (save)
+  {
+    std::string filename = std::string(fb->name_get()) + "_" + vkshader->name_get();
+    auto ve = split(filename, '>');
+    if (ve.size() == 1) {
+      filename = ve[0] + "No." + std::to_string(cnt);
+    }
+    else {
+      filename = ve[1] + "No." + std::to_string(cnt);
+    }
+    fb->save_current_frame(filename.c_str());
+   
+  }
+  cnt++;
 };
 
 /** \} */

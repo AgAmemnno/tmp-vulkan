@@ -176,10 +176,13 @@ set(SRC
   ../../../../intern/clog/clog.c
   ../../../../intern/guardedalloc/intern/leak_detector.cc
   ../../../../intern/guardedalloc/intern/mallocn.c
-  ../../../../intern/guardedalloc/intern/mallocn_guarded_impl.c
-  ../../../../intern/guardedalloc/intern/mallocn_lockfree_impl.c
-  ../../../../intern/guardedalloc/intern/memory_usage.cc
 
+  ../../../../intern/guardedalloc/intern/memory_usage.cc
+   ../../../../intern/guardedalloc/intern/mallocn_guarded_impl.c
+  ../../../../intern/guardedalloc/intern/mallocn_lockfree_impl.c
+  #../../../../intern/guardedalloc/intern/mallocn_guarded_impl.cc
+  .#./../../../intern/guardedalloc/intern/mallocn_lockfree_impl.cc
+    #../../../../intern/guardedalloc/MEM_dbg.cpp
   # Needed for defaults.
   ../../../../release/datafiles/userdef/userdef_default.c
   ../../../../release/datafiles/userdef/userdef_default_theme.c

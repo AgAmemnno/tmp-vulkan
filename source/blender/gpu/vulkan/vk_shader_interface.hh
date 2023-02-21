@@ -36,6 +36,7 @@
 
 #include "gpu_shader_create_info.hh"
 #include "vk_shader_interface_type.hh"
+#include "vk_vertex_array.hh"
 
 /// https://github.com/KhronosGroup/SPIRV-Cross
 /// Dependent packages for reverse engineering and code modifications
@@ -73,6 +74,7 @@ struct VKDescriptorInputs {
   void append(uint32_t stride, uint32_t binding, bool vert);
   void initialise(uint32_t attr_vertex_nums, uint32_t attr_instance_nums, bool block);
   void finalise();
+  void finalise(VKVao &vao,VkCommandBuffer cmd);
 };
 struct _max_name_len {
   uint32_t attr, ubo, ssbo, image, push;
@@ -121,6 +123,7 @@ class VKShaderInterface : public ShaderInterface {
  public:
   VKShaderInterface();
   ~VKShaderInterface();
+
   bool valid = false;
   blender::Vector<VkDescriptorPoolSize> poolsize_;
   int max_inline_ubo_;
@@ -216,14 +219,33 @@ class VKShaderInterface : public ShaderInterface {
   void ref_remove(VKVaoCache *ref);
   void ref_add(VKVaoCache *ref);
 
-  uint16_t vbo_bind(VKVertBuf *vbo,
+  uint16_t vbo_bind(VKVao &vao,
+                    VKVertBuf *vbo,
                     VkCommandBuffer cmd,
                     const GPUVertFormat *format,
                     uint v_first,
                     uint v_len,
                     const bool use_instancing);
+  uint32_t descID_ = 0;
+  uint32_t max_descID = 0;
 
+  VkDescriptorSet get_desc_set(int setid)
+  {
+    if (descID_ >= max_descID) {
+      return VK_NULL_HANDLE;
+    }
+    return sets_vec_[setid][descID_];
+  }
+
+  bool increment_desc_set()
+  {
+    descID_ = (descID_ +1)%max_descID ;
+
+    return true;
+  }
  private:
+
+
   VkShaderStageFlagBits current_stage_;
   int pool_image_index_[3];
   /* Assume that the set number is only 0. */

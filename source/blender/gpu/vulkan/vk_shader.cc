@@ -500,10 +500,12 @@ GHOST_TSuccess VKShader::compile_source(Span<const char *> sources, VKShaderStag
     printf("Shader Context \n\n\n %s ", source.c_str());
   }
   
-  else if (name_get() == std::string("OCIO_Display")){ //gpu_shader_3D_image_color")) { //"gpu_shader_2D_widget_base") {  // overlay_extra")) {  // "workbench_taa")) {    //workbench_effect_outline")) {    //
+  else if (name_get() == std::string("gpu_shader_2D_image_multi_rect_color")) { //OCIO_Display")) {  // gpu_shader_3D_image_color")) {
+                                    // //"gpu_shader_2D_widget_base") {  // overlay_extra")) {  //
+                                    // "workbench_taa")) {    //workbench_effect_outline")) {    //
        // workbench_opaque_mesh_tex_none_no_clip")) { //    workbench_composite_studio ")) { 
-
-  }
+     printf("Shader Context \n\n\n %s ", source.c_str());
+  };
 
   if (!result) {
     return GHOST_kFailure;

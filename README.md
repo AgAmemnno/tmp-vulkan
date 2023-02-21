@@ -20,11 +20,14 @@ BUILD & TEST
 | Windows only, some early development, so be careful.
 | I drew the first screen with vulkan.
 | But there are still many funny things.
+-------
 https://github.com/AgAmemnno/tmp-vulkan/tree/master/tests/png
+-------
 | Added windows backtrace functionality to guarded allocator for debugging purposes.
 | Since the build takes time, it is executed in the callback function.
+-------
 https://github.com/AgAmemnno/tmp-vulkan/blob/d3f8a5259cf87a019acc1b16f8654406b0717a59/source/creator/creator.c#L267
-
+-------
 **You can debug with the solution.**
 **A custom configuration can be found below.**
 https://github.com/AgAmemnno/tmp-vulkan/blob/master/build_files/cmake/config/blender_dev_vulkan.cmake

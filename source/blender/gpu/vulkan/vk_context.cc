@@ -918,21 +918,22 @@ VkSampler VKContext::generate_sampler_from_state(VKSamplerState sampler_state)
     VkSamplerAddressMode clamp_type = (sampler_state.state & GPU_SAMPLER_CLAMP_BORDER) ?
                                           VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER :
                                           VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerCI.addressModeU = (sampler_state.state & GPU_SAMPLER_REPEAT_R) ?
-                                 VK_SAMPLER_ADDRESS_MODE_REPEAT :
+    VkSamplerAddressMode repeat_type = (sampler_state.state & GPU_SAMPLER_MIRROR_REPEAT) ?
+                                           VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT :
+                                           VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerCI.addressModeU = (sampler_state.state & GPU_SAMPLER_REPEAT_R) ? repeat_type :
                                  clamp_type;
-    samplerCI.addressModeV = (sampler_state.state & GPU_SAMPLER_REPEAT_S) ?
-                                 VK_SAMPLER_ADDRESS_MODE_REPEAT :
+    samplerCI.addressModeV = (sampler_state.state & GPU_SAMPLER_REPEAT_S) ? repeat_type :
                                  clamp_type;
-    samplerCI.addressModeW = (sampler_state.state & GPU_SAMPLER_REPEAT_T) ?
-                                 VK_SAMPLER_ADDRESS_MODE_REPEAT :
+    samplerCI.addressModeW = (sampler_state.state & GPU_SAMPLER_REPEAT_T) ? repeat_type :
                                  clamp_type;
-    samplerCI.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+    samplerCI.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;//VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;  //
 
     samplerCI.unnormalizedCoordinates = VK_FALSE;  /// descriptor.normalizedCoordinates = true;
 
     samplerCI.minFilter = (sampler_state.state & GPU_SAMPLER_FILTER) ? VK_FILTER_LINEAR :
                                                                        VK_FILTER_NEAREST;
+
     samplerCI.magFilter = (sampler_state.state & GPU_SAMPLER_FILTER) ? VK_FILTER_LINEAR :
                                                                        VK_FILTER_NEAREST;
 
@@ -948,8 +949,7 @@ VkSampler VKContext::generate_sampler_from_state(VKSamplerState sampler_state)
     float aniso_filter = max_ff(16, U.anisotropic_filter);
     samplerCI.maxAnisotropy = (sampler_state.state & GPU_SAMPLER_MIPMAP) ? aniso_filter : 1;
     samplerCI.compareEnable = (sampler_state.state & GPU_SAMPLER_COMPARE) ? VK_TRUE : VK_FALSE;
-    samplerCI.compareOp = (sampler_state.state & GPU_SAMPLER_COMPARE) ?
-                              VK_COMPARE_OP_LESS_OR_EQUAL :
+    samplerCI.compareOp = (sampler_state.state & GPU_SAMPLER_COMPARE) ? VK_COMPARE_OP_EQUAL :
                               VK_COMPARE_OP_ALWAYS;
 
     /// VKSamplerState  state = [this->device newSamplerStateWithDescriptor:descriptor];
@@ -957,9 +957,19 @@ VkSampler VKContext::generate_sampler_from_state(VKSamplerState sampler_state)
     ///
     ///
     
-    VK_CHECK2( vkCreateSampler(device_, &samplerCI, nullptr, &sampler_state_cache_[(uint)sampler_state]));
+  
 
-   
+     /* Custom sampler for icons. */
+    if (sampler_state.state == GPU_SAMPLER_ICON) {
+      samplerCI.mipLodBias = -0.5f;
+      samplerCI.minFilter = VK_FILTER_LINEAR;
+      samplerCI.magFilter = VK_FILTER_LINEAR;
+      samplerCI.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+
+    }
+
+      VK_CHECK2(
+        vkCreateSampler(device_, &samplerCI, nullptr, &sampler_state_cache_[(uint)sampler_state]));
     return sampler_state_cache_[(uint)sampler_state];
   }
 

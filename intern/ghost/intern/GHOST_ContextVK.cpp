@@ -331,7 +331,8 @@ static VkImageMemoryBarrier makeImageMemoryBarrier(VkImage img,
     VkAccessFlags dstAccess,
     VkImageLayout oldLayout,
     VkImageLayout newLayout,
-    VkImageAspectFlags aspectMask)
+    VkImageAspectFlags aspectMask,
+    int basemip=0,int miplevel=-1)
 {
     VkImageMemoryBarrier barrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
     barrier.srcAccessMask = srcAccess;
@@ -342,8 +343,9 @@ static VkImageMemoryBarrier makeImageMemoryBarrier(VkImage img,
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.image = img;
     barrier.subresourceRange = { 0 };
+    barrier.subresourceRange.baseMipLevel = basemip;
     barrier.subresourceRange.aspectMask = aspectMask;
-    barrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+    barrier.subresourceRange.levelCount =  (miplevel == -1 )?VK_REMAINING_MIP_LEVELS:miplevel;
     barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
 
     return barrier;
@@ -357,7 +359,7 @@ namespace blender::vulkan {
     VkAccessFlags dstAccesses,
     VkImageAspectFlags aspects,
     VkAccessFlags srcAccess ,
-    VkImageLayout srcLayout )  // The ways that the app will be able to access the image.
+    VkImageLayout srcLayout,int basemip ,int miplevel )  // The ways that the app will be able to access the image.
   {
     // Note that in larger applications, we could batch together pipeline
     // barriers for better performance!
@@ -385,7 +387,7 @@ namespace blender::vulkan {
     VkPipelineStageFlags srcPipe = makeAccessMaskPipelineStageFlags(srcAccess);
     VkPipelineStageFlags dstPipe = makeAccessMaskPipelineStageFlags(dstAccesses);
     VkImageMemoryBarrier barrier = makeImageMemoryBarrier(
-      image, srcAccess, dstAccesses, srcLayout, dstLayout, aspectMask);
+        image, srcAccess, dstAccesses, srcLayout, dstLayout, aspectMask, basemip, miplevel);
 
     vkCmdPipelineBarrier(cmd, srcPipe, dstPipe, VK_FALSE, 0, VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 1, &barrier);
     // Update current layout, stages, and accesses

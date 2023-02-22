@@ -58,7 +58,15 @@ void immRectf(uint pos, float x1, float y1, float x2, float y2)
   immVertex2f(pos, x1, y2);
   immEnd();
 }
-
+void immRectf3D(uint pos, float x1, float y1, float x2, float y2)
+{
+  immBegin(GPU_PRIM_TRI_FAN, 4);
+  immVertex3f(pos, x1, y1, 0.);
+  immVertex3f(pos, x2, y1, 0.);
+  immVertex3f(pos, x2, y2, 0.);
+  immVertex3f(pos, x1, y2, 0.);
+  immEnd();
+};
 void immRecti(uint pos, int x1, int y1, int x2, int y2)
 {
   immBegin(GPU_PRIM_TRI_FAN, 4);

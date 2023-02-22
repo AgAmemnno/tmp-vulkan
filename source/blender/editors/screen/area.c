@@ -237,7 +237,7 @@ static void draw_azone_arrow(float x1, float y1, float x2, float y2, AZEdge edge
   }
 
   GPUVertFormat *format = immVertexFormat();
-  uint pos = GPU_vertformat_attr_add(format, "pos", GPU_COMP_F32, 2, GPU_FETCH_FLOAT);
+  uint pos = GPU_vertformat_attr_add(format, "pos", GPU_COMP_F32, 3, GPU_FETCH_FLOAT);
 
   GPU_blend(GPU_BLEND_ALPHA);
   immBindBuiltinProgram(GPU_SHADER_3D_UNIFORM_COLOR);
@@ -246,10 +246,10 @@ static void draw_azone_arrow(float x1, float y1, float x2, float y2, AZEdge edge
   immBegin(GPU_PRIM_TRI_FAN, 6);
   for (int i = 0; i < 6; i++) {
     if (axis == 0) {
-      immVertex2f(pos, center[0] + points[i][0] * size, center[1] + points[i][1] * sign * size);
+      immVertex3f(pos, center[0] + points[i][0] * size, center[1] + points[i][1] * sign * size,0.);
     }
     else {
-      immVertex2f(pos, center[0] + points[i][1] * sign * size, center[1] + points[i][0] * size);
+      immVertex3f(pos, center[0] + points[i][1] * sign * size, center[1] + points[i][0] * size,0.);
     }
   }
   immEnd();

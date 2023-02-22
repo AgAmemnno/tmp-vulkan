@@ -341,15 +341,16 @@ namespace blender::gpu {
 
     VKShader *shader = (VKShader *)context_->shader;
     
-    print_deb(
-        "Offscreen render     ( %d  ,%d )     FB    %s     SHADER[%d] =======================    "
+    //print_deb
+    printf(
+        "Offscreen render FB    %s     SHADER[%d] =======================    "
         "%s   =============================\n",
-        w,
-        h,
         (uint64_t)fb_->name_get(),
         cnt,
         shader->name_get());
-
+    if (cnt == 24) {
+      printf("BP223");
+    }
     if (cnt == 183) {
       fb_->update_attachments();
     }
@@ -454,7 +455,8 @@ namespace blender::gpu {
       fb_->render_end();
     }
     else {
-      fb_->move_pipe(current_pipe_);
+      fb_->render_end();
+      //fb_->move_pipe(current_pipe_);
     }
    
 
@@ -462,6 +464,7 @@ namespace blender::gpu {
 #if 1
   bool save = false;
   switch (cnt){
+
     case 28:
     case 109:
     case 22:
@@ -482,8 +485,10 @@ namespace blender::gpu {
     save = true;
   }
   
-   if (cnt == 12) {
-    save = true;
+   if (cnt > 140 && cnt <= 180) {
+    if (cnt == 165) {
+      save = true;
+    }
    }
 
     if(cnt == -182)
@@ -508,6 +513,8 @@ namespace blender::gpu {
       GPU_context_active_set(ctx);
 
     };
+
+
 
     if (save) {
 

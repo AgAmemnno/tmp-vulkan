@@ -345,9 +345,14 @@ void VKImmediate::record()
   if (vertex_len <= 0)
     return;
   VKShader *vkshader = reinterpret_cast<VKShader *>(shader);
-  current_pipe_ = vkshader->get_pipeline();
-  BLI_assert(current_pipe_ != VK_NULL_HANDLE);
+  VkPipeline& current_pipe = vkshader->get_pipeline();
+  BLI_assert(current_pipe != VK_NULL_HANDLE);
   VKFrameBuffer *fb = static_cast<VKFrameBuffer *>(context_->active_fb);
+  if (fb->is_swapchain_) {
+    if (fb->is_blit_begin_) {
+      fb->render_end();
+    }
+  }
   vkshader->current_cmd_ = VK_NULL_HANDLE;
   vkshader->current_cmd_ = fb->render_begin(vkshader->current_cmd_,
                                               VK_COMMAND_BUFFER_LEVEL_PRIMARY);
@@ -362,7 +367,7 @@ void VKImmediate::record()
 
 
   fb->set_dirty_render(true);
-  vkCmdBindPipeline(vkshader->current_cmd_, VK_PIPELINE_BIND_POINT_GRAPHICS, current_pipe_);
+  vkCmdBindPipeline(vkshader->current_cmd_, VK_PIPELINE_BIND_POINT_GRAPHICS, current_pipe);
 
   VKStateManager::cmd_dynamic_state(vkshader->current_cmd_);
 
@@ -380,7 +385,16 @@ void VKImmediate::record()
   vkCmdBindVertexBuffers(vkshader->current_cmd_, 0, 1, &vert, offsets);
   vkCmdDraw(vkshader->current_cmd_, vertex_len, 1, 0, 0);
 
-  fb->render_end();
+  fb->is_dirty_render_ = true;
+
+  if (!fb->is_swapchain_) {
+    fb->render_end();
+  }
+  else {
+    //fb->move_pipe(current_pipe);
+    fb->render_end();
+  }
+ 
 
   static int cnt = 0;
   bool save = false;

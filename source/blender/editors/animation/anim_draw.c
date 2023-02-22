@@ -58,7 +58,7 @@ void ANIM_draw_cfra(const bContext *C, View2D *v2d, short flag)
   GPU_line_width((flag & DRAWCFRA_WIDE) ? 3.0 : 2.0);
 
   GPUVertFormat *format = immVertexFormat();
-  uint pos = GPU_vertformat_attr_add(format, "pos", GPU_COMP_F32, 2, GPU_FETCH_FLOAT);
+  uint pos = GPU_vertformat_attr_add(format, "pos", GPU_COMP_F32, 3, GPU_FETCH_FLOAT);
 
   immBindBuiltinProgram(GPU_SHADER_3D_UNIFORM_COLOR);
 
@@ -66,8 +66,8 @@ void ANIM_draw_cfra(const bContext *C, View2D *v2d, short flag)
   immUniformThemeColor(TH_CFRAME);
 
   immBegin(GPU_PRIM_LINES, 2);
-  immVertex2f(pos, x, v2d->cur.ymin - 500.0f); /* XXX arbitrary... want it go to bottom */
-  immVertex2f(pos, x, v2d->cur.ymax);
+  immVertex3f(pos, x, v2d->cur.ymin - 500.0f,0.); /* XXX arbitrary... want it go to bottom */
+  immVertex3f(pos, x, v2d->cur.ymax,0.);
   immEnd();
   immUnbindProgram();
 }
@@ -110,23 +110,24 @@ void ANIM_draw_previewrange(const bContext *C, View2D *v2d, int end_frame_width)
 /* *************************************************** */
 /* SCENE FRAME RANGE */
 
+
 void ANIM_draw_framerange(Scene *scene, View2D *v2d)
 {
   /* draw darkened area outside of active timeline frame range */
   GPU_blend(GPU_BLEND_ALPHA);
 
   GPUVertFormat *format = immVertexFormat();
-  uint pos = GPU_vertformat_attr_add(format, "pos", GPU_COMP_F32, 2, GPU_FETCH_FLOAT);
+  uint pos = GPU_vertformat_attr_add(format, "pos", GPU_COMP_F32, 3, GPU_FETCH_FLOAT);
 
   immBindBuiltinProgram(GPU_SHADER_3D_UNIFORM_COLOR);
   immUniformThemeColorShadeAlpha(TH_BACK, -25, -100);
 
   if (scene->r.sfra < scene->r.efra) {
-    immRectf(pos, v2d->cur.xmin, v2d->cur.ymin, (float)scene->r.sfra, v2d->cur.ymax);
-    immRectf(pos, (float)scene->r.efra, v2d->cur.ymin, v2d->cur.xmax, v2d->cur.ymax);
+    immRectf3D(pos, v2d->cur.xmin, v2d->cur.ymin, (float)scene->r.sfra, v2d->cur.ymax);
+    immRectf3D(pos, (float)scene->r.efra, v2d->cur.ymin, v2d->cur.xmax, v2d->cur.ymax);
   }
   else {
-    immRectf(pos, v2d->cur.xmin, v2d->cur.ymin, v2d->cur.xmax, v2d->cur.ymax);
+    immRectf3D(pos, v2d->cur.xmin, v2d->cur.ymin, v2d->cur.xmax, v2d->cur.ymax);
   }
 
   GPU_blend(GPU_BLEND_NONE);
@@ -136,11 +137,11 @@ void ANIM_draw_framerange(Scene *scene, View2D *v2d)
 
   immBegin(GPU_PRIM_LINES, 4);
 
-  immVertex2f(pos, (float)scene->r.sfra, v2d->cur.ymin);
-  immVertex2f(pos, (float)scene->r.sfra, v2d->cur.ymax);
+  immVertex3f(pos, (float)scene->r.sfra, v2d->cur.ymin,0.);
+  immVertex3f(pos, (float)scene->r.sfra, v2d->cur.ymax,0.);
 
-  immVertex2f(pos, (float)scene->r.efra, v2d->cur.ymin);
-  immVertex2f(pos, (float)scene->r.efra, v2d->cur.ymax);
+  immVertex3f(pos, (float)scene->r.efra, v2d->cur.ymin,0.);
+  immVertex3f(pos, (float)scene->r.efra, v2d->cur.ymax,0.);
 
   immEnd();
   immUnbindProgram();

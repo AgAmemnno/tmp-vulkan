@@ -45,16 +45,17 @@ static int get_centered_text_y(const rcti *rect)
   return BLI_rcti_cent_y(rect) - UI_DPI_FAC * 4;
 }
 
+
 static void draw_background(const rcti *rect)
 {
-  uint pos = GPU_vertformat_attr_add(immVertexFormat(), "pos", GPU_COMP_F32, 2, GPU_FETCH_FLOAT);
+  uint pos = GPU_vertformat_attr_add(immVertexFormat(), "pos", GPU_COMP_F32, 3, GPU_FETCH_FLOAT);
   immBindBuiltinProgram(GPU_SHADER_3D_UNIFORM_COLOR);
 
   immUniformThemeColor(TH_TIME_SCRUB_BACKGROUND);
 
   GPU_blend(GPU_BLEND_ALPHA);
 
-  immRectf(pos, rect->xmin, rect->ymin, rect->xmax, rect->ymax);
+  immRectf3D(pos, rect->xmin, rect->ymin, rect->xmax, rect->ymax);
 
   GPU_blend(GPU_BLEND_NONE);
 
@@ -94,14 +95,14 @@ static void draw_current_frame(const Scene *scene,
   /* Draw vertical line from the bottom of the current frame box to the bottom of the screen. */
   const float subframe_x = UI_view2d_view_to_region_x(v2d, BKE_scene_ctime_get(scene));
   GPUVertFormat *format = immVertexFormat();
-  uint pos = GPU_vertformat_attr_add(format, "pos", GPU_COMP_F32, 2, GPU_FETCH_FLOAT);
+  uint pos = GPU_vertformat_attr_add(format, "pos", GPU_COMP_F32, 3, GPU_FETCH_FLOAT);
 
   GPU_blend(GPU_BLEND_ALPHA);
   immBindBuiltinProgram(GPU_SHADER_3D_UNIFORM_COLOR);
 
   /* Outline. */
   immUniformThemeColorShadeAlpha(TH_BACK, -25, -100);
-  immRectf(pos,
+  immRectf3D(pos,
            subframe_x - (line_outline + U.pixelsize),
            scrub_region_rect->ymax - box_padding,
            subframe_x + (line_outline + U.pixelsize),
@@ -109,7 +110,7 @@ static void draw_current_frame(const Scene *scene,
 
   /* Line. */
   immUniformThemeColor(TH_CFRAME);
-  immRectf(pos,
+  immRectf3D(pos,
            subframe_x - U.pixelsize,
            scrub_region_rect->ymax - box_padding,
            subframe_x + U.pixelsize,

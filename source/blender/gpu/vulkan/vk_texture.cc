@@ -304,6 +304,7 @@ static VkDeviceSize get_size_fromformat(VkFormat format, uint32_t w_, uint32_t h
     case VK_FORMAT_A2B10G10R10_UINT_PACK32:
     case VK_FORMAT_A2B10G10R10_SINT_PACK32:
     case VK_FORMAT_X8_D24_UNORM_PACK32:
+    case VK_FORMAT_R32_SFLOAT:
       size = 4 * w_ * h_ * d_;
       break;
 

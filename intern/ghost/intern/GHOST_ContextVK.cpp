@@ -1106,6 +1106,7 @@ int GHOST_ContextVK::begin_onetime_submit(VkCommandBuffer cmd)
   /*todo::thread safe on cpu.*/
   if (num_submit_ == 0) {
     initialize_sw_submit();
+    num_submit_++;
   }
 
   pipeline_sema_idx_++;
@@ -1114,11 +1115,19 @@ int GHOST_ContextVK::begin_onetime_submit(VkCommandBuffer cmd)
   VkCommandBufferResetFlags flag = VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT;
   vkResetCommandBuffer(cmd, flag);
 
+  printf("onetime_commands  >>>>>>>>>>>>>>>>>  CONTEXT %llx    CMD  %llx   ID   %d \n",
+         (uintptr_t)this,
+         (uintptr_t)cmd,
+         pipeline_sema_idx_ - 1);
 
   return pipeline_sema_idx_-1;
 }
 GHOST_TSuccess  GHOST_ContextVK::end_onetime_submit(int registerID)
 {
+
+    printf("end onetime_commands  >>>>>>>>>>>>>>>>>  CONTEXT %llx    ID %d  \n",
+         (uintptr_t)this,
+         (uintptr_t)registerID);
 
   VkPipelineStageFlags wait_stages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
@@ -1149,7 +1158,7 @@ GHOST_TSuccess  GHOST_ContextVK::end_onetime_submit(int registerID)
   waitCustom();
 
   toggle_sema(wait_sema_sw_, signal_sema_sw_);
-  num_submit_++;
+  
   return GHOST_kSuccess;
 }
 
@@ -1347,6 +1356,8 @@ GHOST_TSuccess  GHOST_ContextVK::finalize_sw_submit()
          num_submit_);
   is_init_sw_ = false;
   is_final_sw_ = true;
+
+
   return GHOST_kSuccess;
 }
 

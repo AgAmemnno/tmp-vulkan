@@ -500,7 +500,7 @@ GHOST_TSuccess VKShader::compile_source(Span<const char *> sources, VKShaderStag
     printf("Shader Context \n\n\n %s ", source.c_str());
   }
   
-  else if (name_get() == std::string("gpu_shader_2D_image_multi_rect_color")) { //OCIO_Display")) {  // gpu_shader_3D_image_color")) {
+  else if (name_get() == std::string("gpu_shader_3D_uniform_color")) {  //GPU_SHADER_3D_UNIFORM_COLOR")){   //gpu_shader_2D_image_multi_rect_color")) { //OCIO_Display")) {  // gpu_shader_3D_image_color")) {
                                     // //"gpu_shader_2D_widget_base") {  // overlay_extra")) {  //
                                     // "workbench_taa")) {    //workbench_effect_outline")) {    //
        // workbench_opaque_mesh_tex_none_no_clip")) { //    workbench_composite_studio ")) { 
@@ -1337,8 +1337,13 @@ std::string VKShader::vertex_interface_declare(const shader::ShaderCreateInfo &i
   ss << "\n";
 
 
-  std::string pre_main = "gl_PointSize = 10.0f; \n";
-
+  std::string pre_main = "";
+  post_main += "gl_PointSize = 10.0f; \n";
+  if ("gpu_shader_2D_widget_base" == info.name_) {
+    post_main +=
+        "debugPrintfEXT(\"Here gl_Position  %v4f  WID %i  tria type   %f   triasize12,shaderdir %v3f   VID  %i  "
+        "\",gl_Position,int(widgetID), parameters[widgetID * MAX_PARAM + 11].x,parameters[widgetID * MAX_PARAM + 10].xyz,int(gl_VertexIndex));\n\n";
+  }
   #if DEBUG_PRINTF_APPEND
   
   if (info.name_ == std::string("gpu_shader_3D_image_color")) {
@@ -1445,6 +1450,7 @@ std::string VKShader::vertex_interface_declare(const shader::ShaderCreateInfo &i
   }
   #endif
   post_main += "gl_Position.z = (gl_Position.z + gl_Position.w) / 2.0;\n";
+ // post_main += "gl_Position.y *= -1;\n";
   ss << main_function_wrapper(pre_main, post_main);
   return ss.str();
 }
@@ -1544,7 +1550,12 @@ std::string VKShader::fragment_interface_declare(const shader::ShaderCreateInfo 
 
   /// ss << "layout(location = " << std::to_string(out_index) << " ) out vec4 fragColor;\n";
   std::string post_main = "";
+
 #if DEBUG_PRINTF_APPEND
+  if (info.name_ == "OCIO_Display") {
+    post_main += "fragColor  = vec4( texture(overlay_texture, texCoord_interp.st).rgb,1.);";
+    post_main += " fragColor.rgb *= parameters.scale;";
+  }
   if (pre_main.empty() == false) {
 
     std::string post_main = "";

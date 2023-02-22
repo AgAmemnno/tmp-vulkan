@@ -1051,6 +1051,7 @@ static void wm_draw_window_onscreen(bContext *C, wmWindow *win, int view)
       if (region->overlap == false) {
         /* Blit from off-screen buffer. */
         wm_draw_region_blit(region, view);
+        //wm_window_swap_buffers(win);
       }
     }
   }
@@ -1106,7 +1107,7 @@ static void wm_draw_window_onscreen(bContext *C, wmWindow *win, int view)
     }
     wm_draw_region_blend(region, 0, true);
   }
-
+  
   GPU_context_end_frame(GPU_context_active_get());
   GPU_context_main_unlock();
   WM_exit(C);

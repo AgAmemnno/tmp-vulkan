@@ -330,7 +330,7 @@ static bool addGPULut1D2D(OCIO_GPUTextures &textures,
   }
 
   eGPUTextureFormat format = (channel == GpuShaderCreator::TEXTURE_RGB_CHANNEL) ? GPU_RGB16F :
-                                                                                  GPU_R16F;
+                                                                                  GPU_R32F;
 
   OCIO_GPULutTexture lut;
   /* There does not appear to be an explicit way to check if a texture is 1D or 2D.

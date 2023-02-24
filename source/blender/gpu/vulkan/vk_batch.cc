@@ -345,7 +345,7 @@ namespace blender::gpu {
     printf(
         "Offscreen render FB    %s     SHADER[%d] =======================    "
         "%s   =============================\n",
-        (uint64_t)fb_->name_get(),
+        fb_->name_get(),
         cnt,
         shader->name_get());
     if (cnt == 24) {

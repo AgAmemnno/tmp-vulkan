@@ -1214,6 +1214,28 @@ void GHOST_GetVulkanBackbuffer(GHOST_WindowHandle windowhandle,
                                void *extent,
                                uint32_t *fb_id);
 
+/**
+ * TODO :: COMMENT
+ **/
+const char *GHOST_VulkanErrorAsString(int64_t result);
+
+#define  GHOST_VkCheck(r) \
+{ \
+  if (G.debug & G_DEBUG_GPU) { \
+  if (r != VK_SUCCESS) { \
+    fprintf(stderr, \
+            "Vulkan Error : %s:%d : %s failled with %s\n", \
+            __FILE__, \
+            __LINE__, \
+            __STR(__expression), \
+            GHOST_VulkanErrorAsString(r)); \
+    return GHOST_kFailure; \
+  } \
+  }\
+}
+
+
+
 #endif
 
 #ifdef __cplusplus

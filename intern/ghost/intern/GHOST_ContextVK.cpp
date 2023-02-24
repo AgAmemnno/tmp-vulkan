@@ -22,6 +22,7 @@
 #  endif
 
 #  include <vulkan/extensions_vk.hpp>
+#include  "GHOST_C-api.h"
 
 #include <BLI_math_base.h>
 #include "BLI_assert.h"
@@ -46,14 +47,14 @@ static vector<VkSemaphore> pipeline_sema_;
 
 
 
-const char *vulkan_error_as_string(VkResult result)
+const char *GHOST_VulkanErrorAsString(int64_t result)
 {
 #define FORMAT_ERROR(X) \
   case X: { \
     return "" #X; \
   }
 
-  switch (result) {
+  switch ((VkResult)result) {
     FORMAT_ERROR(VK_NOT_READY);
     FORMAT_ERROR(VK_TIMEOUT);
     FORMAT_ERROR(VK_EVENT_SET);
@@ -95,6 +96,12 @@ const char *vulkan_error_as_string(VkResult result)
       return "Unknown Error";
   }
 }
+
+
+#define __STR(A) "" #A
+
+
+
 
 
 static VkPhysicalDeviceMemoryProperties __memoryProperties;
@@ -740,7 +747,7 @@ void clear_draw_test(GHOST_ContextVK* context_) {
   context_->presentCustom();
 
 }
-
+static bool _is_initialized = false;
 static void Store_Vulkan_Instance(VkInstance &m_instance,
                                   VkPhysicalDevice &m_physical_device,
                                   VkDevice &m_device,
@@ -754,6 +761,18 @@ static void Store_Vulkan_Instance(VkInstance &m_instance,
                                   bool inc)
 {
   static int REFS = 0;
+  static VkInstance _m_instance;
+  static VkPhysicalDevice _m_physical_device;
+  static VkDevice _m_device = VK_NULL_HANDLE;
+  static VkCommandPool _m_command_pool;
+
+  static uint32_t _m_queue_family_graphic;
+  static uint32_t _m_queue_family_present;
+  static uint32_t _m_queue_family_transfer;
+
+  static VkQueue _m_graphic_queue;
+  static VkQueue _m_present_queue;
+  static VkQueue _m_transfer_queue;
   if (inc) {
     REFS++;
   }
@@ -761,7 +780,7 @@ static void Store_Vulkan_Instance(VkInstance &m_instance,
     REFS--;
   }
   if (REFS == 0) {
-
+    BLI_assert(_is_initialized);
     {
       if (m_device) {
         vkDeviceWaitIdle(m_device);
@@ -777,21 +796,25 @@ static void Store_Vulkan_Instance(VkInstance &m_instance,
       if (m_instance != VK_NULL_HANDLE) {
         vkDestroyInstance(m_instance, NULL);
       }
+
+      _is_initialized = false;
+      
+      _m_instance = VK_NULL_HANDLE;
+      _m_physical_device = VK_NULL_HANDLE;
+      _m_device = VK_NULL_HANDLE;
+       _m_command_pool = VK_NULL_HANDLE;
+
+      _m_queue_family_graphic = -1;
+      _m_queue_family_present = -1;
+     _m_queue_family_transfer = -1;
+
+       _m_graphic_queue = VK_NULL_HANDLE;
+      _m_present_queue = VK_NULL_HANDLE;
+       _m_transfer_queue = VK_NULL_HANDLE;
     }
     return;
   }
-  static VkInstance _m_instance;
-  static VkPhysicalDevice _m_physical_device;
-  static VkDevice _m_device = VK_NULL_HANDLE;
-  static VkCommandPool _m_command_pool;
 
-  static uint32_t _m_queue_family_graphic;
-  static uint32_t _m_queue_family_present;
-  static uint32_t _m_queue_family_transfer;
-
-  static VkQueue _m_graphic_queue;
-  static VkQueue _m_present_queue;
-  static VkQueue _m_transfer_queue;
   if (_m_device == VK_NULL_HANDLE) {
     BLI_assert(m_device);
     _m_device = m_device;
@@ -918,7 +941,63 @@ GHOST_ContextVK::GHOST_ContextVK(bool stereoVisual,
                         false);
 }
 
+      GHOST_TSuccess GHOST_ContextVK::end_frame()
+{
+  VkCommandBuffer &cmd = m_command_buffers[m_currentCommand];
+  vkCmdEndRenderPass(cmd);
+  VK_CHECK(vkEndCommandBuffer(cmd));
+  m_currentCommand = (m_currentCommand + 1) % m_command_buffers.size();
+  return GHOST_kSuccess;
+};
 
+GHOST_TSuccess GHOST_ContextVK::begin_submit_simple(VkCommandBuffer &cmd, bool ofscreen )
+{
+  /*todo::thread safe on cpu.*/
+  if (!ofscreen && num_submit_ == 0 && m_swapchain_id > 0) {
+    initialize_sw_submit();
+  }
+
+  cmd = getCommandBuffers(m_currentCommand);
+  VkCommandBufferBeginInfo cmdBufInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+  vkResetCommandBuffer(cmd, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+  VK_CHECK(vkBeginCommandBuffer(cmd, &cmdBufInfo));
+
+  if (m_in_flight_fences.size() <= 0) {
+
+    VkFenceCreateInfo fence_info = {};
+    fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+    m_in_flight_fences.resize(2);
+    for (int i = 0; i < 2; i++) {
+      VK_CHECK(vkCreateFence(m_device, &fence_info, NULL, &m_in_flight_fences[i]));
+    }
+  }
+
+  vkResetFences(m_device, 1, &m_in_flight_fences[m_currentFence]);
+  return GHOST_kSuccess;
+};
+GHOST_TSuccess GHOST_ContextVK::end_submit_simple()
+{
+
+  auto cmd = getCommandBuffers(m_currentCommand);
+  VK_CHECK(vkEndCommandBuffer(cmd));
+  m_currentCommand = (m_currentCommand + 1) % m_command_buffers.size();
+
+  VkSubmitInfo submit_info = {};
+  submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  submit_info.waitSemaphoreCount = 0;
+  submit_info.pWaitSemaphores = nullptr;
+  submit_info.pWaitDstStageMask = nullptr;
+  submit_info.commandBufferCount = 1;
+  submit_info.pCommandBuffers = &cmd;
+  submit_info.signalSemaphoreCount = 0;
+  submit_info.pSignalSemaphores = nullptr;
+  VK_CHECK(vkQueueSubmit(m_graphic_queue, 1, &submit_info, m_in_flight_fences[m_currentFence]));
+
+  waitCustom();
+
+  return GHOST_kSuccess;
+};
 GHOST_TSuccess GHOST_ContextVK::createPipelineCache()
 {
   VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
@@ -972,7 +1051,7 @@ void GHOST_ContextVK::destroyPipelineCache()
   else if (result != VK_SUCCESS) {
     fprintf(stderr,
             "Error: Failed to acquire swap chain image : %s\n",
-            vulkan_error_as_string(result));
+            GHOST_VulkanErrorAsString(result));
     return GHOST_kFailure;
   }
 
@@ -1127,7 +1206,7 @@ GHOST_TSuccess  GHOST_ContextVK::end_onetime_submit(int registerID)
 
     printf("end onetime_commands  >>>>>>>>>>>>>>>>>  CONTEXT %llx    ID %d  \n",
          (uintptr_t)this,
-         (uintptr_t)registerID);
+         registerID);
 
   VkPipelineStageFlags wait_stages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
@@ -1439,7 +1518,7 @@ GHOST_TSuccess GHOST_ContextVK::presentCustom()
     m_current_layouts[m_currentImage] = VK_IMAGE_LAYOUT_MAX_ENUM;
     fprintf(stderr,
             "Error: Failed to present swap chain image : %s\n",
-            vulkan_error_as_string(result));
+            GHOST_VulkanErrorAsString(result));
     return GHOST_kFailure;
   }
   wait_sema_sw_ = signal_sema_sw_ = VK_NULL_HANDLE;
@@ -2341,22 +2420,24 @@ const char *GHOST_ContextVK::getPlatformSpecificSurfaceExtension() const
 
 
 
-bool _is_initialized = false;
+
 GHOST_TSuccess GHOST_ContextVK::initializeDrawingContext()
 {
   m_currentImage = -1;
   if (_is_initialized) {
-
-    Store_Vulkan_Instance(m_instance,
-                          m_physical_device,
-                          m_device,
-                          m_command_pool,
-                          m_queue_family_graphic,
-                          m_queue_family_present,
-                          m_queue_family_transfer,
-                          m_graphic_queue,
-                          m_present_queue,
-                          m_transfer_queue,true);
+    if (m_instance == VK_NULL_HANDLE) {
+      Store_Vulkan_Instance(m_instance,
+                                      m_physical_device,
+                                      m_device,
+                                      m_command_pool,
+                                      m_queue_family_graphic,
+                                      m_queue_family_present,
+                                      m_queue_family_transfer,
+                                      m_graphic_queue,
+                                      m_present_queue,
+                                      m_transfer_queue,
+                                      true);
+    }
     BLI_assert(m_device != VK_NULL_HANDLE);
     return GHOST_kSuccess;
   }

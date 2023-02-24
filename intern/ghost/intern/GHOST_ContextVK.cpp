@@ -47,56 +47,6 @@ static vector<VkSemaphore> pipeline_sema_;
 
 
 
-const char *GHOST_VulkanErrorAsString(int64_t result)
-{
-#define FORMAT_ERROR(X) \
-  case X: { \
-    return "" #X; \
-  }
-
-  switch ((VkResult)result) {
-    FORMAT_ERROR(VK_NOT_READY);
-    FORMAT_ERROR(VK_TIMEOUT);
-    FORMAT_ERROR(VK_EVENT_SET);
-    FORMAT_ERROR(VK_EVENT_RESET);
-    FORMAT_ERROR(VK_INCOMPLETE);
-    FORMAT_ERROR(VK_ERROR_OUT_OF_HOST_MEMORY);
-    FORMAT_ERROR(VK_ERROR_OUT_OF_DEVICE_MEMORY);
-    FORMAT_ERROR(VK_ERROR_INITIALIZATION_FAILED);
-    FORMAT_ERROR(VK_ERROR_DEVICE_LOST);
-    FORMAT_ERROR(VK_ERROR_MEMORY_MAP_FAILED);
-    FORMAT_ERROR(VK_ERROR_LAYER_NOT_PRESENT);
-    FORMAT_ERROR(VK_ERROR_EXTENSION_NOT_PRESENT);
-    FORMAT_ERROR(VK_ERROR_FEATURE_NOT_PRESENT);
-    FORMAT_ERROR(VK_ERROR_INCOMPATIBLE_DRIVER);
-    FORMAT_ERROR(VK_ERROR_TOO_MANY_OBJECTS);
-    FORMAT_ERROR(VK_ERROR_FORMAT_NOT_SUPPORTED);
-    FORMAT_ERROR(VK_ERROR_FRAGMENTED_POOL);
-    FORMAT_ERROR(VK_ERROR_UNKNOWN);
-    FORMAT_ERROR(VK_ERROR_OUT_OF_POOL_MEMORY);
-    FORMAT_ERROR(VK_ERROR_INVALID_EXTERNAL_HANDLE);
-    FORMAT_ERROR(VK_ERROR_FRAGMENTATION);
-    FORMAT_ERROR(VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS);
-    FORMAT_ERROR(VK_ERROR_SURFACE_LOST_KHR);
-    FORMAT_ERROR(VK_ERROR_NATIVE_WINDOW_IN_USE_KHR);
-    FORMAT_ERROR(VK_SUBOPTIMAL_KHR);
-    FORMAT_ERROR(VK_ERROR_OUT_OF_DATE_KHR);
-    FORMAT_ERROR(VK_ERROR_INCOMPATIBLE_DISPLAY_KHR);
-    FORMAT_ERROR(VK_ERROR_VALIDATION_FAILED_EXT);
-    FORMAT_ERROR(VK_ERROR_INVALID_SHADER_NV);
-    FORMAT_ERROR(VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT);
-    FORMAT_ERROR(VK_ERROR_NOT_PERMITTED_EXT);
-    FORMAT_ERROR(VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT);
-    FORMAT_ERROR(VK_THREAD_IDLE_KHR);
-    FORMAT_ERROR(VK_THREAD_DONE_KHR);
-    FORMAT_ERROR(VK_OPERATION_DEFERRED_KHR);
-    FORMAT_ERROR(VK_OPERATION_NOT_DEFERRED_KHR);
-    FORMAT_ERROR(VK_PIPELINE_COMPILE_REQUIRED_EXT);
-    default:
-      return "Unknown Error";
-  }
-}
-
 
 #define __STR(A) "" #A
 
@@ -405,318 +355,6 @@ namespace blender::vulkan {
 
 
 
-  void DebugMaster::ignoreDebugMessage(int32_t msgID)
-  {
-    dbgIgnoreMessages.insert(msgID);
-  }
-
-  void DebugMaster::_setObjectName(uint64_t object, const std::string &name, VkObjectType t)
-  {
-
-      VkDebugUtilsObjectNameInfoEXT s{
-          VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT, nullptr, t, object, name.c_str()};
-      vkSetDebugUtilsObjectNameEXT(device, &s);
-
-  }
-
-#  if VK_NV_ray_tracing
-  void DebugMaster::setObjectName(VkAccelerationStructureNV object, const std::string &name)
-  {
-    _setObjectName((uint64_t)object, name, VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV);
-  }
-#  endif
-  void DebugMaster::setObjectName(VkBuffer object, const std::string &name)
-  {
-    _setObjectName((uint64_t)object, name, VK_OBJECT_TYPE_BUFFER);
-  }
-
-  void DebugMaster::beginLabel(VkCommandBuffer cmdBuf, const std::string &label)
-  {
-
-      VkDebugUtilsLabelEXT s{VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
-                             nullptr,
-                             label.c_str(),
-                             {1.0f, 1.0f, 1.0f, 1.0f}};
-      vkCmdBeginDebugUtilsLabelEXT(cmdBuf, &s);
-
-  }
-  void DebugMaster::endLabel(VkCommandBuffer cmdBuf)
-  {
-
-      vkCmdEndDebugUtilsLabelEXT(cmdBuf);
-
-  }
-  void DebugMaster::insertLabel(VkCommandBuffer cmdBuf, const std::string &label)
-  {
-
-      VkDebugUtilsLabelEXT s{VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
-                             nullptr,
-                             label.c_str(),
-                             {1.0f, 1.0f, 1.0f, 1.0f}};
-      vkCmdInsertDebugUtilsLabelEXT(cmdBuf, &s);
-
-  }
-
-
-
-
-
-
-
-
-
-
-VKAPI_ATTR VkBool32 VKAPI_CALL dbgReportCB(VkDebugReportFlagsEXT msgFlags,
-                                           VkDebugReportObjectTypeEXT objType,
-                                           uint64_t srcObject,
-                                           size_t location,
-                                           int32_t msgCode,
-                                           const char *pLayerPrefix,
-                                           const char *pMsg,
-                                           void *pUserData)
-{
-  std::ostringstream message;
-  message << "DebugReport Callee :: ";
-  if (msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT) {
-    message << "ERROR: ";
-  }
-  else if (msgFlags & VK_DEBUG_REPORT_WARNING_BIT_EXT) {
-    message << "WARNING: ";
-  }
-  else if (msgFlags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT) {
-    message << "PERFORMANCE WARNING: ";
-  }
-  else if (msgFlags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT) {
-    message << "INFO: ";
-  }
-  else if (msgFlags & VK_DEBUG_REPORT_DEBUG_BIT_EXT) {
-    message << "DEBUG: ";
-  }
-  message << "[" << pLayerPrefix << "] Code " << msgCode << " : " << pMsg;
-
-#  ifdef _WIN32
-  //MessageBoxA(NULL, message.str().c_str(), "Alert", MB_OK);
-  std::cout << message.str() << std::endl;
-
-#  else
-  std::cout << message.str() << std::endl;
-#  endif
-
-  /*
-   * false indicates that layer should not bail-out of an
-   * API call that had validation failures. This may mean that the
-   * app dies inside the driver due to invalid parameter(s).
-   * That's what would happen without validation layers, so we'll
-   * keep that behavior here.
-   */
-  return false;
-}
-
-VKAPI_ATTR VkBool32 VKAPI_CALL
-debugUtilsCB(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                            VkDebugUtilsMessageTypeFlagsEXT messageType,
-                            const VkDebugUtilsMessengerCallbackDataEXT *callbackData,
-                            void *userData)
-{
-
-  DebugMaster *ctx = reinterpret_cast<DebugMaster *>(userData);
-  if (ctx->dbgIgnoreMessages.find(callbackData->messageIdNumber) != ctx->dbgIgnoreMessages.end())
-    return VK_FALSE;
-  std::ostringstream message;
-  message << "DebugUtils Callee :: ";
-  // repeating nvprintfLevel to help with breakpoints : so we can selectively break right after the
-  // print
-  if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) {
-   message << ("VERBOSE: %s \n --> %s\n", callbackData->pMessageIdName, callbackData->pMessage);
-  }
-  else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
-     message <<  ("INFO: %s \n --> %s\n", callbackData->pMessageIdName, callbackData->pMessage);
-  }
-  else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-    message << ("WARNING: %s \n --> %s\n", callbackData->pMessageIdName, callbackData->pMessage);
-  }
-  else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-    message << ("ERROR: %s \n --> %s\n", callbackData->pMessageIdName, callbackData->pMessage);
-  }
-  else if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT) {
-    message << ("GENERAL: %s \n --> %s\n", callbackData->pMessageIdName, callbackData->pMessage);
-  }
-  else {
-    message << ("%s \n --> %s\n", callbackData->pMessageIdName, callbackData->pMessage);
-  }
-
-
-#  ifdef _WIN32
-  //MessageBoxA(NULL, message.str().c_str(), "Alert", MB_OK);
-  std::cout << message.str() << std::endl;
-#  else
-  std::cout << message.str() << std::endl;
-#  endif
-  // this seems redundant with the info already in callbackData->pMessage
-#  if 0
-
-	if (callbackData->objectCount > 0)
-	{
-		for (uint32_t object = 0; object < callbackData->objectCount; ++object)
-		{
-			std::string otype = ObjectTypeToString(callbackData->pObjects[object].objectType);
-			LOGI(" Object[%d] - Type %s, Value %p, Name \"%s\"\n", object, otype.c_str(),
-				(void*)(callbackData->pObjects[object].objectHandle), callbackData->pObjects[object].pObjectName);
-		}
-	}
-	if (callbackData->cmdBufLabelCount > 0)
-	{
-		for (uint32_t label = 0; label < callbackData->cmdBufLabelCount; ++label)
-		{
-			LOGI(" Label[%d] - %s { %f, %f, %f, %f}\n", label, callbackData->pCmdBufLabels[label].pLabelName,
-				callbackData->pCmdBufLabels[label].color[0], callbackData->pCmdBufLabels[label].color[1],
-				callbackData->pCmdBufLabels[label].color[2], callbackData->pCmdBufLabels[label].color[3]);
-		}
-#  endif
-  // Don't bail out, but keep going.
-  return VK_FALSE;
-}
-
-static VkDebugReportCallbackEXT debug_report_callback;
-static VkResult CreateDebugReport(VkInstance instance,
-                                  VkDebugReportFlagsEXT flag,
-                                  DebugMaster &deb)
-{
-  PFN_vkCreateDebugReportCallbackEXT dbgCreateDebugReportCallback;
-
-  dbgCreateDebugReportCallback = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(
-      instance, "vkCreateDebugReportCallbackEXT");
-  if (!dbgCreateDebugReportCallback) {
-    std::cout << "GetInstanceProcAddr: Unable to find "
-                 "vkCreateDebugReportCallbackEXT function."
-              << std::endl;
-    exit(1);
-  }
-  /*
-  typedef enum VkDebugReportFlagBitsEXT {
-    VK_DEBUG_REPORT_INFORMATION_BIT_EXT = 0x00000001,
-    VK_DEBUG_REPORT_WARNING_BIT_EXT = 0x00000002,
-    VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT = 0x00000004,
-    VK_DEBUG_REPORT_ERROR_BIT_EXT = 0x00000008,
-    VK_DEBUG_REPORT_DEBUG_BIT_EXT = 0x00000010,
-    VK_DEBUG_REPORT_FLAG_BITS_MAX_ENUM_EXT = 0x7FFFFFFF
-  } VkDebugReportFlagBitsEXT;
-  */
-  VkDebugReportCallbackCreateInfoEXT create_info = {};
-  create_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
-  create_info.pNext = NULL;
-  create_info.flags = flag;
-
-  create_info.pfnCallback = dbgReportCB;
-  create_info.pUserData = NULL;
-
-  VkResult res = dbgCreateDebugReportCallback(
-      instance, &create_info, NULL, &debug_report_callback);
-  return res;
-}
-static VkResult DestroyDebugReport(VkInstance instance, DebugMaster &deb)
-{
-  PFN_vkDestroyDebugReportCallbackEXT dbgDestroyDebugReportCallback = VK_NULL_HANDLE;
-  dbgDestroyDebugReportCallback = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(
-      instance, "vkDestroyDebugReportCallbackEXT");
-  if (!dbgDestroyDebugReportCallback) {
-    std::cout << "GetInstanceProcAddr: Unable to find "
-                 "vkDestroyDebugReportCallbackEXT function."
-              << std::endl;
-    // exit(1);
-    return VK_ERROR_EXTENSION_NOT_PRESENT;
-  }
-
-  dbgDestroyDebugReportCallback(instance, debug_report_callback, NULL);
-  return VK_SUCCESS;
-}
-
-static VkResult CreateDebugUtils(VkInstance instance,
-                                 VkDebugUtilsMessageSeverityFlagsEXT flag,
-                                 DebugMaster& deb)
-{
-  deb.dbgIgnoreMessages.clear();
-  deb.createDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr( instance, "vkCreateDebugUtilsMessengerEXT");
-  deb.destroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-
-  if (deb.createDebugUtilsMessengerEXT != nullptr) {
-    VkDebugUtilsMessengerCreateInfoEXT dbg_messenger_create_info;
-    dbg_messenger_create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-    dbg_messenger_create_info.pNext = nullptr;
-    dbg_messenger_create_info.flags = 0;
-    dbg_messenger_create_info.messageSeverity = flag;
-    dbg_messenger_create_info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-                                            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-                                            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-    dbg_messenger_create_info.pfnUserCallback = debugUtilsCB;
-    dbg_messenger_create_info.pUserData = &deb;
-    return deb.createDebugUtilsMessengerEXT(
-        instance, &dbg_messenger_create_info, nullptr, &deb.dbgMessenger);
-  }
-  return VK_ERROR_UNKNOWN;
-}
-static VkResult DestroyDebugUtils(VkInstance instance, DebugMaster &deb)
-{
-  
-  if (deb.destroyDebugUtilsMessengerEXT) {
-    deb.destroyDebugUtilsMessengerEXT(instance, deb.dbgMessenger, nullptr);
-  }
-  deb.createDebugUtilsMessengerEXT = nullptr;
-  deb.destroyDebugUtilsMessengerEXT = nullptr;
-  deb.dbgIgnoreMessages.clear();
-  deb.dbgMessenger = nullptr;
-
-
-  return VK_SUCCESS;
-}
-
-
-
-static GHOST_TSuccess CreateDebug(VULKAN_DEBUG_TYPE mode,VkInstance instance,DebugMaster& deb)
-{
-  if (mode == VULKAN_DEBUG_REPORT || mode == VULKAN_DEBUG_REPORT_ALL ||
-      mode == VULKAN_DEBUG_BOTH) {
-    VkDebugReportFlagBitsEXT flag =
-        (VkDebugReportFlagBitsEXT)(VK_DEBUG_REPORT_INFORMATION_BIT_EXT |
-                                   VK_DEBUG_REPORT_WARNING_BIT_EXT |
-                                   VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT |
-                                   VK_DEBUG_REPORT_ERROR_BIT_EXT);
-
-    if (mode == VULKAN_DEBUG_REPORT_ALL)
-      flag = (VkDebugReportFlagBitsEXT)(flag |VK_DEBUG_REPORT_DEBUG_BIT_EXT);
-    VK_CHECK(CreateDebugReport(instance, flag,deb));
-
-  }
-  if (mode == VULKAN_DEBUG_UTILS || mode == VULKAN_DEBUG_UTILS_ALL || mode == VULKAN_DEBUG_BOTH) {
-    VkDebugUtilsMessageSeverityFlagsEXT  flag =  VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
-         VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-
-    if (mode == VULKAN_DEBUG_UTILS_ALL)
-      flag = (VkDebugReportFlagBitsEXT)(flag | VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT);
-    
-    VK_CHECK(CreateDebugUtils(instance,flag,deb));
-  
-  
-  }
- 
-
- return GHOST_kSuccess;
-};
-static GHOST_TSuccess DestroyDebug(VULKAN_DEBUG_TYPE mode, VkInstance instance,DebugMaster& deb)
-{
-  {
-    if (mode == VULKAN_DEBUG_REPORT || mode == VULKAN_DEBUG_BOTH)
-      VK_CHECK(DestroyDebugReport(instance,deb));
-
-    if (mode == VULKAN_DEBUG_UTILS || mode == VULKAN_DEBUG_BOTH)
-      VK_CHECK(DestroyDebugUtils(instance,deb));
-
-  }
-  return GHOST_kSuccess;
-};
-
-
 void clear_draw_test(GHOST_ContextVK* context_) {
   context_->acquireCustom();
 
@@ -917,6 +555,7 @@ GHOST_ContextVK::GHOST_ContextVK(bool stereoVisual,
   if (m_surface) {
     destroySwapchain();
   }
+
   destroyPipelineCache();
   if (m_surface != VK_NULL_HANDLE) {
     vkDestroySurfaceKHR(m_instance, m_surface, NULL);
@@ -924,10 +563,8 @@ GHOST_ContextVK::GHOST_ContextVK(bool stereoVisual,
   if (destroyer) {
     destroyer();
   }
-  if (deb.dbgMessenger) {
-    DestroyDebug(m_debugMode, m_instance, deb);
-  }
 
+  GHOST_VulkanDebugUtilsUnregister();
   Store_Vulkan_Instance(m_instance,
                         m_physical_device,
                         m_device,
@@ -939,6 +576,36 @@ GHOST_ContextVK::GHOST_ContextVK(bool stereoVisual,
                         m_present_queue,
                         m_transfer_queue,
                         false);
+}
+static GHOST_TSuccess SubmitVolatileFence(VkDevice device,
+                                          VkQueue queue,
+                                          VkSubmitInfo &submit_info,
+                                          bool nofence = false)
+{
+
+  VkFence fence = VK_NULL_HANDLE;
+  if (!nofence) {
+    VkFenceCreateInfo fence_info = {};
+    fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+    VK_CHECK(vkCreateFence(device, &fence_info, NULL, &fence));
+    printf("Create Fence SubmitVolatileFence  %llx   \n", (uint64_t)fence);
+    vkResetFences(device, 1, &fence);
+  }
+
+  VK_CHECK(vkQueueSubmit(queue, 1, &submit_info, fence));
+  VK_CHECK(vkQueueWaitIdle(queue));
+
+  if (!nofence) {
+    VkResult result;
+    do {
+      result = vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX);
+    } while (result == VK_TIMEOUT);
+    BLI_assert(result == VK_SUCCESS);
+    vkDestroyFence(device, fence, NULL);
+  }
+
+  return GHOST_kSuccess;
 }
 
       GHOST_TSuccess GHOST_ContextVK::end_frame()
@@ -962,18 +629,7 @@ GHOST_TSuccess GHOST_ContextVK::begin_submit_simple(VkCommandBuffer &cmd, bool o
   vkResetCommandBuffer(cmd, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
   VK_CHECK(vkBeginCommandBuffer(cmd, &cmdBufInfo));
 
-  if (m_in_flight_fences.size() <= 0) {
 
-    VkFenceCreateInfo fence_info = {};
-    fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-    m_in_flight_fences.resize(2);
-    for (int i = 0; i < 2; i++) {
-      VK_CHECK(vkCreateFence(m_device, &fence_info, NULL, &m_in_flight_fences[i]));
-    }
-  }
-
-  vkResetFences(m_device, 1, &m_in_flight_fences[m_currentFence]);
   return GHOST_kSuccess;
 };
 GHOST_TSuccess GHOST_ContextVK::end_submit_simple()
@@ -992,9 +648,9 @@ GHOST_TSuccess GHOST_ContextVK::end_submit_simple()
   submit_info.pCommandBuffers = &cmd;
   submit_info.signalSemaphoreCount = 0;
   submit_info.pSignalSemaphores = nullptr;
-  VK_CHECK(vkQueueSubmit(m_graphic_queue, 1, &submit_info, m_in_flight_fences[m_currentFence]));
 
-  waitCustom();
+  SubmitVolatileFence(m_device, m_graphic_queue, submit_info);
+
 
   return GHOST_kSuccess;
 };
@@ -1249,32 +905,6 @@ GHOST_TSuccess GHOST_ContextVK::begin_offscreen_submit(VkCommandBuffer& cmd) {
 };
 
 
-static  GHOST_TSuccess SubmitVolatileFence(VkDevice device, VkQueue queue, VkSubmitInfo& submit_info,bool nofence = false) {
-
-  VkFence fence = VK_NULL_HANDLE;
-  if (!nofence) {
-    VkFenceCreateInfo fence_info = {};
-    fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-    VK_CHECK(vkCreateFence(device, &fence_info, NULL, &fence));
-    vkResetFences(device, 1, &fence);
-  }
-  
-  VK_CHECK(vkQueueSubmit(queue, 1, &submit_info, fence));
-  VK_CHECK(vkQueueWaitIdle(queue));
-
-  if (!nofence) {
-    VkResult result;
-    do {
-      result = vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX);
-    } while (result == VK_TIMEOUT);
-    BLI_assert(result == VK_SUCCESS);
-    vkDestroyFence(device, fence, NULL);
-  }
-
-  return GHOST_kSuccess;
-
-}
 
 GHOST_TSuccess GHOST_ContextVK::end_offscreen_submit(VkCommandBuffer& cmd, VkSemaphore wait,VkSemaphore signal)
 {
@@ -1571,7 +1201,10 @@ GHOST_TSuccess GHOST_ContextVK::destroySwapchain(void)
     vkDestroySemaphore(m_device, sema_stock_[i], NULL);
   }
 
-
+   for (auto fence : m_in_flight_fences) {
+    vkDestroyFence(m_device, fence, NULL);
+  }
+   m_in_flight_fences.clear();
   for (auto semaphore : acquire_sema_) {
     vkDestroySemaphore(m_device, semaphore, NULL);
   }
@@ -1588,12 +1221,10 @@ GHOST_TSuccess GHOST_ContextVK::destroySwapchain(void)
   for (auto semaphore : m_render_finished_semaphores) {
     vkDestroySemaphore(m_device, semaphore, NULL);
   }
-  for (auto fence : m_in_flight_fences) {
-    vkDestroyFence(m_device, fence, NULL);
-  }
+
   m_image_available_semaphores.clear();
   m_render_finished_semaphores.clear();
-  m_in_flight_fences.clear();
+
   /*
   for (auto framebuffer : m_swapchain_framebuffers) {
     vkDestroyFramebuffer(m_device, framebuffer, NULL);
@@ -2378,6 +2009,7 @@ GHOST_TSuccess GHOST_ContextVK::createSwapchain(void)
       fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
       VK_CHECK(vkCreateFence(m_device, &fence_info, NULL, &m_in_flight_fences[i]));
+      printf("Create Fence createSwapchain  %llx   \n", (uint64_t)m_in_flight_fences[i]);
      
     }
     for (int i = 0; i < sema_stock_nums; i++) {
@@ -2416,9 +2048,6 @@ const char *GHOST_ContextVK::getPlatformSpecificSurfaceExtension() const
 #endif
   return NULL;
 }
-
-
-
 
 
 GHOST_TSuccess GHOST_ContextVK::initializeDrawingContext()
@@ -2460,7 +2089,7 @@ GHOST_TSuccess GHOST_ContextVK::initializeDrawingContext()
   }
 #endif
 
-  auto layers_available        =  getLayersAvailable();
+  auto layers_available           =  getLayersAvailable();
   auto extensions_available    =  getExtensionsAvailable();
 
   //vector<const char *> extensions_device;
@@ -2545,7 +2174,7 @@ GHOST_TSuccess GHOST_ContextVK::initializeDrawingContext()
   VK_CHECK(vkCreateInstance(&create_info, NULL, &m_instance));
 
   if(m_debug) {
-       CreateDebug(m_debugMode,m_instance,deb);
+    GHOST_VulkanDebugUtilsRegister((void *)m_instance);
   }
 
   if (use_window_surface) {
@@ -2771,13 +2400,13 @@ GHOST_TSuccess GHOST_ContextVK::initializeDrawingContext()
   }
 
 
-  deb.device = m_device;
+
   load_VK_EXTENSIONS(m_instance, vkGetInstanceProcAddr, m_device, vkGetDeviceProcAddr);
   m_currentFrame = -1;
   
   createCommandBuffers();
 
- Store_Vulkan_Instance(m_instance,
+  Store_Vulkan_Instance(m_instance,
                         m_physical_device,
                         m_device,
                         m_command_pool,

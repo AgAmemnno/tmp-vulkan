@@ -279,45 +279,6 @@ struct ExtensionEntry {
   uint32_t version{0};
 };
 
-#include <sstream>
-#include <unordered_set>
-struct DebugMaster {
-
-  PFN_vkCreateDebugUtilsMessengerEXT createDebugUtilsMessengerEXT = nullptr;
-  PFN_vkDestroyDebugUtilsMessengerEXT destroyDebugUtilsMessengerEXT = nullptr;
-  VkDebugUtilsMessengerEXT dbgMessenger = nullptr;
-  std::unordered_set<int32_t> dbgIgnoreMessages;
-  VkDevice device;
-  void ignoreDebugMessage(int32_t msgID);
-
-  void _setObjectName(uint64_t object, const std::string &name, VkObjectType t);
-
-#if VK_NV_ray_tracing
-  void setObjectName(VkAccelerationStructureNV object, const std::string &name);
-#endif
-  void setObjectName(VkBuffer object, const std::string &name);
-
-  void beginLabel(VkCommandBuffer cmdBuf, const std::string &label);
-  void endLabel(VkCommandBuffer cmdBuf);
-  void insertLabel(VkCommandBuffer cmdBuf, const std::string &label);
-
-#if 0
-  struct ScopedCmdLabel {
-    ScopedCmdLabel(VkCommandBuffer cmdBuf, const std::string &label);
-    ~ScopedCmdLabel();
-    void setLabel(const std::string &label);
-
-   private:
-    VkCommandBuffer m_cmdBuf;
-  };
-
-  ScopedCmdLabel scopeLabel(VkCommandBuffer cmdBuf, const std::string &label);
- #endif
-
- private:
-  static bool s_enabled;
-};
-
 
 
 class GHOST_ContextVK : public GHOST_Context {
@@ -354,7 +315,6 @@ class GHOST_ContextVK : public GHOST_Context {
    * Destructor.
    */
   ~GHOST_ContextVK();
-  DebugMaster deb;
   GHOST_TSuccess  init_image_layout();
   GHOST_TSuccess  finalize_image_layout();
   GHOST_TSuccess  fail_image_layout();

@@ -1217,7 +1217,9 @@ void GHOST_GetVulkanBackbuffer(GHOST_WindowHandle windowhandle,
 /**
  * TODO :: COMMENT
  **/
-const char *GHOST_VulkanErrorAsString(int64_t result);
+extern const char *GHOST_VulkanErrorAsString(int64_t result);
+extern void GHOST_VulkanDebugUtilsRegister(void *r_instance);
+extern void GHOST_VulkanDebugUtilsUnregister();
 
 #define  GHOST_VkCheck(r) \
 { \

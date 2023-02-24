@@ -230,8 +230,7 @@ namespace blender::draw {
    using namespace blender::gpu;
 
    Blender_Init_Stub();
-
-
+ 
   ARegion region;
   region.winx = 1024;// 1415;
   region.winy = 512;// 32;
@@ -245,6 +244,10 @@ namespace blender::draw {
 
   wm_draw_offscreen_texture_parameters(offscreen);
   wm_draw_region_bind(&region, 0);
+
+  
+  
+  
   GPU_clear_color(0.5, 0.1, 0.1, 1.f);
   GPU_blend(GPU_BLEND_ALPHA_PREMULT);
   uchar color[4] = { 200, 200, 200, 200 };
@@ -263,13 +266,14 @@ namespace blender::draw {
   for (int iconId = 780/*16*/; iconId < BIFICONID_LAST; iconId++) {
 
     //UI_icon_draw_cache_begin();
-    
+    bool draw = false;
     Icon* icon = BKE_icon_get(iconId);
 
     /*Offscreen draw.*/
     if (icon && icon->drawinfo && ((int*)icon->drawinfo)[0] == 3)
     {
       GPU_offscreen_bind(offscreen, false);
+
       GPU_clear_color(0.5, 0.1, 0.1, 1.f);
       GPU_scissor(0,0, region.winx, region.winy);
 
@@ -305,21 +309,26 @@ namespace blender::draw {
 
       }
       cnt++;
-      swfb->append_wait_semaphore(ofs_fb->get_signal());
+      draw = true;
     }
+    if (draw) {
 
-    GPU_framebuffer_restore();
+      GPU_framebuffer_restore();
+      /*Blit to swapchain.*/
+      {
 
-    /*Blit to swapchain.*/
-    {
-
-      
-      swfb->render_begin(VK_NULL_HANDLE, VK_COMMAND_BUFFER_LEVEL_PRIMARY, nullptr, true);
-      ofs_fb->blit_to(GPU_COLOR_BIT, 0, swfb, 0, 0, 0);
-      swfb->render_end();
-    };
-
+        GPU_context_begin_frame(GPU_context_active_get());
+        swfb->render_begin(VK_NULL_HANDLE, VK_COMMAND_BUFFER_LEVEL_PRIMARY, nullptr, true);
+        ofs_fb->blit_to(GPU_COLOR_BIT, 0, swfb, 0, 0, 0);
+        swfb->render_end();
+        GPU_context_end_frame(GPU_context_active_get());
+      };
+    }
   }
+
+
+
+ 
 
 
   //UI_icon_draw_cache_end();

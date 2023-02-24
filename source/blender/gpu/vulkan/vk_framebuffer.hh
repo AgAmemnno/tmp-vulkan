@@ -149,7 +149,10 @@ class VKFrameBuffer : public FrameBuffer {
 
   VkSemaphore get_signal()
   {
-    return submit_signal_[signal_index_];
+    if (offscreen_render_times_ > 0) {
+      return submit_signal_[signal_index_];
+    }
+    return VK_NULL_HANDLE;
   }
 
   void create_swapchain_frame_buffer(int);
@@ -184,8 +187,10 @@ class VKFrameBuffer : public FrameBuffer {
 
   void append_wait_semaphore(VkSemaphore sema)
   {
+    if (sema != VK_NULL_HANDLE) {
+      wait_sema.push_back(sema);
+    }
 
-    wait_sema.push_back(sema);
   };
 
   Vector<VkPipeline> cache_pipes;

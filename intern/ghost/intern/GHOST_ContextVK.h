@@ -29,6 +29,7 @@
 #  endif
 #endif
 
+#  include "GHOST_C-api.h"
 
 #include <vector>
 
@@ -41,7 +42,25 @@
 #define VULKAN_ERROR_CHECK
 
 
+#ifndef VK_CHECK
+#  define VK_CHECK(__expression) GHOST_VkCheck(__expression)
+#endif
 
+#ifndef VK_CHECK2
+#  define VK_CHECK2(__expression) \
+    do { \
+      VkResult r = (__expression); \
+      if (r != VK_SUCCESS) { \
+        fprintf(stderr, \
+                "Vulkan Error : %s:%d : %s failled with %s\n", \
+                __FILE__, \
+                __LINE__, \
+                __STR(__expression), \
+                GHOST_VulkanErrorAsString(r)); \
+        exit(-1); \
+      } \
+    } while (0)
+#endif
 
 
 
@@ -90,38 +109,7 @@ class VKFrameBuffer;
 #endif
     } GHOST_TVulkanPlatformType;
 
-    const char *vulkan_error_as_string(VkResult result);
-#define __STR(A) "" #A
-#ifndef VK_CHECK
-#define VK_CHECK(__expression) \
-  do { \
-    VkResult r = (__expression); \
-    if (r != VK_SUCCESS) { \
-      fprintf(stderr, \
-              "Vulkan Error : %s:%d : %s failled with %s\n", \
-              __FILE__, \
-              __LINE__, \
-              __STR(__expression), \
-              vulkan_error_as_string(r)); \
-      return GHOST_kFailure; \
-    } \
-  } while (0)
-#endif
-#ifndef VK_CHECK2
-#define VK_CHECK2(__expression) \
-  do { \
-    VkResult r = (__expression); \
-    if (r != VK_SUCCESS) { \
-      fprintf(stderr, \
-              "Vulkan Error : %s:%d : %s failled with %s\n", \
-              __FILE__, \
-              __LINE__, \
-              __STR(__expression), \
-              vulkan_error_as_string(r)); \
-      exit(-1); \
-    } \
-  } while (0)
-#endif
+
 
   class GHOST_ContextVK;
 
@@ -448,68 +436,10 @@ class GHOST_ContextVK : public GHOST_Context {
     return m_current_layouts[m_currentImage];
   }
 
-    GHOST_TSuccess end_frame()
-    {
-      VkCommandBuffer& cmd = m_command_buffers[m_currentCommand];
-      vkCmdEndRenderPass(cmd);
-      VK_CHECK(vkEndCommandBuffer(cmd));
-      m_currentCommand = (m_currentCommand + 1) % m_command_buffers.size();
-            return GHOST_kSuccess;
+    GHOST_TSuccess end_frame();
 
-    };
-
-    GHOST_TSuccess begin_submit_simple(VkCommandBuffer& cmd,bool ofscreen = false) {
-      /*todo::thread safe on cpu.*/
-      if ( !ofscreen  && num_submit_ == 0 && m_swapchain_id > 0) {
-        initialize_sw_submit();
-      }
-     
-
-        cmd = getCommandBuffers(m_currentCommand);
-        VkCommandBufferBeginInfo cmdBufInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-        vkResetCommandBuffer(cmd, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
-        VK_CHECK(vkBeginCommandBuffer(cmd, &cmdBufInfo));
-
-        if (m_in_flight_fences.size() <=0 ) {
-
-          VkFenceCreateInfo fence_info = {};
-          fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-          fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-          m_in_flight_fences.resize(2);
-          for (int i = 0; i < 2; i++) {
-            VK_CHECK(vkCreateFence(m_device, &fence_info, NULL, &m_in_flight_fences[i]));
-          }
-
-        }
-
-        vkResetFences(m_device, 1, &m_in_flight_fences[m_currentFence]);
-        return GHOST_kSuccess;
-    };
-    GHOST_TSuccess end_submit_simple() {
-
-        auto cmd = getCommandBuffers(m_currentCommand);
-        VK_CHECK(vkEndCommandBuffer(cmd));
-        m_currentCommand = (m_currentCommand + 1) % m_command_buffers.size();
-
-
-        VkSubmitInfo submit_info = {};
-        submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submit_info.waitSemaphoreCount = 0;
-        submit_info.pWaitSemaphores = nullptr;
-        submit_info.pWaitDstStageMask = nullptr;
-        submit_info.commandBufferCount = 1;
-        submit_info.pCommandBuffers = &cmd;
-        submit_info.signalSemaphoreCount = 0;
-        submit_info.pSignalSemaphores = nullptr;
-        VK_CHECK(vkQueueSubmit(m_graphic_queue, 1, &submit_info, m_in_flight_fences[m_currentFence]));
-
-
-        waitCustom();
-
-
-        return GHOST_kSuccess;
-
-    };
+    GHOST_TSuccess begin_submit_simple(VkCommandBuffer &cmd, bool ofscreen = false);
+    GHOST_TSuccess end_submit_simple();
     GHOST_TSuccess begin_offscreen_submit(VkCommandBuffer& cmd);
     GHOST_TSuccess end_offscreen_submit(VkCommandBuffer& cmd, VkSemaphore wait = VK_NULL_HANDLE, VkSemaphore signal = VK_NULL_HANDLE);
     int begin_onetime_submit(VkCommandBuffer cmd);

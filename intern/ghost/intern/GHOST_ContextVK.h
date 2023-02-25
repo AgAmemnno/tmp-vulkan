@@ -65,8 +65,12 @@
 
 
 
+#ifdef PRINT_CONTEXT_VK
+  #define DEBUG_PRINTF(...) printf(__VA_ARGS__);
+#else
+#  define DEBUG_PRINTF(...)
+#endif
 
-#define DEBUG_PRINTF(...) printf(__VA_ARGS__); 
 
 
 

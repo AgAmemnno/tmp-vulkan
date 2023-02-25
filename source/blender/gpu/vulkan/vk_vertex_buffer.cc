@@ -108,7 +108,7 @@ void VKVertBuf::bind()
       else {
         options.setDeviceLocal(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
       }
-      vbo_id_ = new VKVAOty_impl(vbo_size_, VK_BUFFER_DEFAULT_ALIGNMENT, options);
+      vbo_id_ = new VKVAOty_impl(vbo_size_, VK_BUFFER_DEFAULT_ALIGNMENT,"VKVertBuf", options);
     }
     else {
       vbo_id_->Resize(vbo_size_);

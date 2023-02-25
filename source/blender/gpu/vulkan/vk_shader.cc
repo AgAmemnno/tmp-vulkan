@@ -76,7 +76,7 @@ already CPP.
 /// https://github.com/nvpro-samples/nvpro_core/blob/master/nvvk/shadermodulemanager_vk.hpp
 /// </summary>
 #include "vk_shaders.hh"
-
+#include "vk_debug.hh"
 #include "vk_backend.hh"
 #include "vk_framebuffer.hh"
 #include "vk_texture.hh"
@@ -544,8 +544,8 @@ GHOST_TSuccess VKShader::compile_source(Span<const char *> sources, VKShaderStag
   shaders_[(uint32_t)stage].shaderModuleInfo.codeSize = shaderc_result_get_length(result);
   shaders_[(uint32_t)stage].shaderModuleInfo.pCode = (const uint32_t *)shaderc_result_get_bytes(
       result);
-
-  auto vkresult = ::vkCreateShaderModule(VKContext::get()->device_get(),
+  VkDevice device  = VKContext::get()->device_get();
+  auto vkresult = ::vkCreateShaderModule(device,
                                          &shaders_[(uint32_t)stage].shaderModuleInfo,
                                          nullptr,
                                          &shaders_[(uint32_t)stage].module);
@@ -558,6 +558,7 @@ GHOST_TSuccess VKShader::compile_source(Span<const char *> sources, VKShaderStag
     return GHOST_kFailure;
   }
 
+  blender::gpu::debug::object_vk_label(device,shaders_[(uint32_t)stage].module , std::string(name_get()) + "_Stg" +std::to_string((uint32_t)stage) );
   return GHOST_kSuccess;
 }
 
@@ -2050,6 +2051,8 @@ VkPipeline VKShader::CreatePipeline(VKFrameBuffer *fb)
   #endif
   VK_CHECK2(vkCreateGraphicsPipelines(
       device, ctx->get_pipeline_cache(), 1, &ci, vk_allocation_callbacks, &pipe));
+  
+  debug::object_vk_label(device, pipe , std::string(vkinterface->sc_info_->name_) + "_Pipe"); 
 
   return pipe;
 };

@@ -360,14 +360,14 @@ int main(int argc,
     G.debug |= G_DEBUG_GPU;
 
     argv0 = const_cast<char*>(argv[0]);
-
+    /*
     DRAW_TEST_STAND_ALONE_RAW(RangeIter)
     DRAW_TEST_STAND_ALONE_RAW(MempoolIter)
     DRAW_TEST_STAND_ALONE_RAW(ListBaseIter)
     DRAW_TEST_STAND_ALONE_RAW(ParallelInvoke)
     DRAW_TEST_STAND_ALONE_RAW(Task)
     DRAW_TEST_STAND_ALONE(capabilities)
- 
+   */
 
     DRAW_TEST_STAND_ALONE(icon)
     

@@ -237,6 +237,26 @@ namespace blender::draw {
   auto vkcontext = VKContext::get();
   VKFrameBuffer* swfb = static_cast<VKFrameBuffer*> (vkcontext->active_fb);
 
+
+  int CNT = 100;
+  while (CNT--) {
+    if (CNT == 1) {
+
+      std::cout << "整数値を入力してください。" << std::endl;
+      std::cin >> CNT;
+
+      if (std::cin.fail()) {
+        std::cout << "入力エラー！\n" << std::endl;
+        std::cin.clear();
+        std::cin.ignore(1024, '\n');
+        continue;
+      }
+    }
+    GPU_context_begin_frame(GPU_context_active_get());
+
+    GPU_context_end_frame(GPU_context_active_get());
+  }
+ 
   GPUOffScreen* offscreen = GPU_offscreen_create(
     region.winx, region.winy, false, GPU_RGBA8, NULL);
   GPU_offscreen_bind(offscreen, false);
@@ -262,72 +282,84 @@ namespace blender::draw {
   const uchar mono_color[4] = { 217,217 ,217, 255 };
   const bool mono_border = false;
 
-  /* A test to render while toggling the queue. */
-  for (int iconId = 780/*16*/; iconId < BIFICONID_LAST; iconId++) {
+  int number = 0;
+  int CNT1 = 100;
+  while (CNT1--) {
+    if (CNT1 == 1) {
 
-    //UI_icon_draw_cache_begin();
-    bool draw = false;
-    Icon* icon = BKE_icon_get(iconId);
+      std::cout << "Next Loop Nums :: " << std::endl;
+      std::cin >> CNT1;
 
-    /*Offscreen draw.*/
-    if (icon && icon->drawinfo && ((int*)icon->drawinfo)[0] == 3)
-    {
-      GPU_offscreen_bind(offscreen, false);
-
-      GPU_clear_color(0.5, 0.1, 0.1, 1.f);
-      GPU_scissor(0,0, region.winx, region.winy);
-
-      /*VKImmediate draw*/
-      {
-        const int size = 1;
-        UI_icon_draw_preview(-1., -1., iconId, 1.0f, 1.f, size);
-       }
-      /*VKBatch draw*/
-      {
-        GPUTexture* tex = nullptr;
-        DrawInfo* di = static_cast<DrawInfo*>(icon->drawinfo);
-        /* scale width and height according to aspect */
-        icon_verify_datatoc(di->data.buffer.image);
-        int w = (int)(di->data.buffer.image->w);
-        int h = (int)(di->data.buffer.image->h);
-
-        tex = GPU_texture_create_2d("batchtest.tex", w, h, 2, GPU_RGBA8, NULL);
-        GPU_texture_update(tex, GPU_DATA_UBYTE, di->data.buffer.image->rect);
-        const float rgb[3] = { 1.,1.,1. };
-        _icon_draw_texture(0, 0, 1., 1., 1., rgb, tex);
-
-        GPU_texture_unbind(tex);
-        GPU_texture_free(tex);
-        /* }
-          else {
-            if (G.debug & G_DEBUG) {
-              printf("%s: Internal error, no icon for icon ID: %d\n", __func__, iconId);
-            }
-            return;
-          }
-          */
-
+      if (std::cin.fail()) {
+        std::cout << "入力エラー！\n" << std::endl;
+        std::cin.clear();
+        std::cin.ignore(1024, '\n');
+        continue;
       }
-      cnt++;
-      draw = true;
+      
     }
-    if (draw) {
+    /* A test to render while toggling the queue. */
+    for (int iconId = 780 /*16*/; iconId < BIFICONID_LAST; iconId++) {
 
-      GPU_framebuffer_restore();
-      /*Blit to swapchain.*/
-      {
+      // UI_icon_draw_cache_begin();
+      bool draw = false;
+      Icon *icon = BKE_icon_get(iconId);
 
-        GPU_context_begin_frame(GPU_context_active_get());
-        swfb->render_begin(VK_NULL_HANDLE, VK_COMMAND_BUFFER_LEVEL_PRIMARY, nullptr, true);
-        ofs_fb->blit_to(GPU_COLOR_BIT, 0, swfb, 0, 0, 0);
-        swfb->render_end();
-        GPU_context_end_frame(GPU_context_active_get());
-      };
+      /*Offscreen draw.*/
+      if (icon && icon->drawinfo && ((int *)icon->drawinfo)[0] == 3) {
+        GPU_offscreen_bind(offscreen, false);
+
+        GPU_clear_color(0.5, 0.1, 0.1, 1.f);
+        GPU_scissor(0, 0, region.winx, region.winy);
+
+        /*VKImmediate draw*/
+        {
+          const int size = 1;
+          UI_icon_draw_preview(-1., -1., iconId, 1.0f, 1.f, size);
+        }
+        /*VKBatch draw*/
+        {
+          GPUTexture *tex = nullptr;
+          DrawInfo *di = static_cast<DrawInfo *>(icon->drawinfo);
+          /* scale width and height according to aspect */
+          icon_verify_datatoc(di->data.buffer.image);
+          int w = (int)(di->data.buffer.image->w);
+          int h = (int)(di->data.buffer.image->h);
+
+          tex = GPU_texture_create_2d("batchtest.tex", w, h, 2, GPU_RGBA8, NULL);
+          GPU_texture_update(tex, GPU_DATA_UBYTE, di->data.buffer.image->rect);
+          const float rgb[3] = {1., 1., 1.};
+          _icon_draw_texture(0, 0, 1., 1., 1., rgb, tex);
+
+          GPU_texture_unbind(tex);
+          GPU_texture_free(tex);
+          /* }
+            else {
+              if (G.debug & G_DEBUG) {
+                printf("%s: Internal error, no icon for icon ID: %d\n", __func__, iconId);
+              }
+              return;
+            }
+            */
+        }
+        cnt++;
+        draw = true;
+      }
+      if (draw) {
+
+        GPU_framebuffer_restore();
+        /*Blit to swapchain.*/
+        {
+
+          GPU_context_begin_frame(GPU_context_active_get());
+          swfb->render_begin(VK_NULL_HANDLE, VK_COMMAND_BUFFER_LEVEL_PRIMARY, nullptr, true);
+          ofs_fb->blit_to(GPU_COLOR_BIT, 0, swfb, 0, 0, 0);
+          swfb->render_end();
+          GPU_context_end_frame(GPU_context_active_get());
+        };
+      }
     }
-  }
-
-
-
+ }
  
 
 

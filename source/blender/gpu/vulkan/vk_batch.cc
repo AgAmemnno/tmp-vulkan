@@ -14,6 +14,7 @@
 #include "vk_index_buffer.hh"
 
 #include "vk_backend.hh"
+#include "vk_debug.hh"
 #include "gpu_backend.hh"
 
 #ifdef PRINT_VK_BATCH
@@ -341,8 +342,7 @@ namespace blender::gpu {
 
     VKShader *shader = (VKShader *)context_->shader;
     
-    //print_deb
-    printf(
+    print_deb(
         "Offscreen render FB    %s     SHADER[%d] =======================    "
         "%s   =============================\n",
         fb_->name_get(),
@@ -432,7 +432,7 @@ namespace blender::gpu {
         vkinterface->push_cache_);
     }
 
-
+    debug::pushMarker(cmd, std::string("BatchDraw") + shader->name_get());
     if (elem) {
 
       const VKIndexBuf* el =static_cast<VKIndexBuf*>(elem_());
@@ -448,6 +448,7 @@ namespace blender::gpu {
     else {
       vkCmdDraw(cmd, v_count, i_count, v_first, i_first);
     }
+    debug::popMarker(cmd);
 
     fb_->is_dirty_render_ = true;
 

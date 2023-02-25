@@ -111,8 +111,9 @@ namespace blender::gpu {
 
 
 static int BufferNums = 0;
-VKBuffer::VKBuffer(uint64_t size, uint alignment, VmaMemoryUsage usage)
+VKBuffer::VKBuffer(uint64_t size, uint alignment, const char* name,VmaMemoryUsage usage)
 {
+  name_ = name;
   vk_buffer_ = VK_NULL_HANDLE;
   BLI_assert(alignment > 0);
   if (usage == VMA_MEMORY_USAGE_GPU_ONLY) {
@@ -126,8 +127,9 @@ VKBuffer::VKBuffer(uint64_t size, uint alignment, VmaMemoryUsage usage)
 }
 
 /* Construct a gpu::MTLBuffer wrapper around a newly created metal::MTLBuffer. */
-VKBuffer::VKBuffer(uint64_t size, uint alignment, VKResourceOptions& options)
+VKBuffer::VKBuffer(uint64_t size, uint alignment, const char *name, VKResourceOptions &options)
 {
+  name_ = name;
   vk_buffer_ = VK_NULL_HANDLE;
   Create(size, alignment, options);
 
@@ -152,7 +154,6 @@ void gpu::VKBuffer::Create(uint64_t size, uint alignment , VKResourceOptions& op
         break;
   }
   #endif
-  std::string  Name  = (std::string("VKBuffer_") + std::to_string(BufferNums++));
 
   options.bufferInfo.size = size;
   options.allocInfo = {};
@@ -172,15 +173,17 @@ void gpu::VKBuffer::Create(uint64_t size, uint alignment , VKResourceOptions& op
       &allocation,
       &options.allocInfo);
     BLI_assert(size <= allocation->GetSize());
-    vmaSetAllocationName(mem_allocator, allocation, Name.c_str());
-    printf("CreateVMA  %s\n", allocation->GetName());
+    vmaSetAllocationName(mem_allocator, allocation, name_.c_str());
+    
     if (options.allocInfo.pUserData != nullptr)
     {
       can_mapped_ = true;
+      debug::object_vk_label(context_->device_get(), vk_buffer_,  name_ + "_HV" );
     }
     else
     {
       can_mapped_ = false;
+      debug::object_vk_label(context_->device_get(), vk_buffer_, name_ + "_DL");
     }
 
   }
@@ -339,7 +342,10 @@ void VKStagingBufferManager::init()
  
   if (!this->initialised_) {
     for (int sb = 0; sb < vk_max_staging_buffers_; sb++) {
-      staging_buffers_[sb] = new VKBuffer(vk_staging_buffer_initial_size_,vk_staging_buffer_min_alignment,VMA_MEMORY_USAGE_CPU_ONLY);
+      staging_buffers_[sb] = new VKBuffer(vk_staging_buffer_initial_size_,
+                                          vk_staging_buffer_min_alignment,
+                                          "VKStagingBuffer",
+                                          VMA_MEMORY_USAGE_CPU_ONLY);
     }
     current_staging_buffer_ = 0;
     initialised_ = true;

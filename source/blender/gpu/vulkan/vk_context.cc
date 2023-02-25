@@ -521,6 +521,7 @@ void VKContext::begin_frame()
    
   if (is_swapchain_ ) {
     context->acquireCustom();
+    debug::pushMarker( queue_get(graphic_queue_familly_) ,"AcquireSwapImage");
     nums_submit_ = 0;
   }
 
@@ -553,6 +554,8 @@ void VKContext::end_frame()
     if (is_swapchain_) {
       static_cast<VKFrameBuffer *>(this->active_fb)->render_end();
       context->finalize_sw_submit();
+
+      debug::popMarker( queue_get(graphic_queue_familly_));
       if (context->presentCustom() == GHOST_kFailure) {
         /*  recreate swapbuffer  */
       };
@@ -591,11 +594,15 @@ void VKContext::begin_submit_simple(VkCommandBuffer &cmd, bool ofscreen)
 {
   auto context = ((GHOST_ContextVK *)ghost_context_);
   context->begin_submit_simple(cmd, ofscreen);
+  debug::pushMarker(cmd, "SimpleSubmit");
+  current_cmd_ = cmd;
 };
 void VKContext::end_submit_simple()
 {
   auto context = ((GHOST_ContextVK *)ghost_context_);
+  debug::popMarker(current_cmd_);
   context->end_submit_simple();
+  
 };
 
 

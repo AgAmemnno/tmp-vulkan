@@ -9,7 +9,7 @@
 #include "vk_framebuffer.hh"
 #include "vk_state.hh"
 #include "vk_texture.hh"
-
+#include "vk_debug.hh"
 #include "intern/GHOST_ContextVK.h"
 #include "IMB_imbuf.h"
 #include "IMB_imbuf_types.h"
@@ -176,6 +176,7 @@ void VKFrameBuffer::update_attachments()
     VkSemaphore sema = VK_NULL_HANDLE;
     VK_CHECK(vkCreateSemaphore(device, &semaphore_info, NULL, &sema));
     submit_signal_.append(sema);
+    debug::object_vk_label(device,sema , std::string(name_get()));
   }
   VkCommandBuffer cmd = VK_NULL_HANDLE;
   
@@ -385,7 +386,9 @@ static void clearImage(VkCommandBuffer cmd,
     BLI_assert(loadOp == VK_ATTACHMENT_LOAD_OP_LOAD);
     //BLI_assert(!is_render_begin_);
     bool in_frame = is_render_begin_;
-
+    if (vk_attachments_.vtex_.size() <= slot) {
+      return;
+    };
     if (is_render_begin_) {
      
       render_end();
@@ -1692,33 +1695,35 @@ VkCommandBuffer VKFrameBuffer::render_begin(VkCommandBuffer cmd,
       vk_cmd = context_->request_command_buffer();
     };
 
-    cmd_refs = 0;
-    if (blit) {
-      flight_ticket_ = context_->begin_blit_submit(vk_cmd);
-      is_blit_begin_ = true;
-    }
-    else if (is_swapchain_) {
-      flight_ticket_ = context_->begin_onetime_submit(vk_cmd);
-    }
-    else {
-      flight_ticket_ = context_->begin_offscreen_submit(vk_cmd);
-    }
-
     VkCommandBufferBeginInfo begin_info{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-    /*
+    /*TODO :: Secondary Command 
     VkCommandBufferInheritanceInfo inheritance = {
     VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO
     }; inheritance.renderPass = vk_attachments_.renderpass_; inheritance.framebuffer =
     vk_attachments_.framebuffer_; inheritance.pNext = NULL; inheritance.subpass = 0;
+     begin_info.pInheritanceInfo = &inheritance;
     */
-    // begin_info.pInheritanceInfo = &inheritance;
+
     begin_info.pNext = NULL;
     begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT |
                        VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
-
-    /*#vkResetCommandBuffer(vk_cmd, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);*/
-    VK_CHECK2(vkBeginCommandBuffer(vk_cmd, &begin_info));
-
+    cmd_refs = 0;
+    if (blit) {
+      flight_ticket_ = context_->begin_blit_submit(vk_cmd);
+      is_blit_begin_ = true;
+      VK_CHECK2(vkBeginCommandBuffer(vk_cmd, &begin_info));
+      debug::pushMarker(vk_cmd, "BlitFrame");
+    }
+    else if (is_swapchain_) {
+      flight_ticket_ = context_->begin_onetime_submit(vk_cmd);
+      VK_CHECK2(vkBeginCommandBuffer(vk_cmd, &begin_info));
+      debug::pushMarker(vk_cmd, "SwapChainFrame");
+    }
+    else {
+      flight_ticket_ = context_->begin_offscreen_submit(vk_cmd);
+      VK_CHECK2(vkBeginCommandBuffer(vk_cmd, &begin_info));
+      debug::pushMarker(vk_cmd, "OffScreenFrame");
+    }
     is_command_begin_ = true;
   }
 
@@ -1789,9 +1794,13 @@ void VKFrameBuffer::render_end()
   }
 
   if (is_command_begin_) {
+    debug::popMarker(vk_cmd);
     VK_CHECK2(vkEndCommandBuffer(vk_cmd));
+    
+
     is_command_begin_ = false;
     submit = true;
+
   }
 
   if (!is_dirty_render_) {

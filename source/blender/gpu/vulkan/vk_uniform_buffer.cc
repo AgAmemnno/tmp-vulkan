@@ -66,7 +66,7 @@ void VKUniformBuf::init()
   VKResourceOptions options;
   options.setHostVisible(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
   ubo = new VKBuffer(
-      size_in_bytes_, VKStagingBufferManager::vk_staging_buffer_min_alignment, options);
+      size_in_bytes_, VKStagingBufferManager::vk_staging_buffer_min_alignment, "VKUniformBuf",options);
 
   ubo_id_ = (uint64_t)(ubo);
   /* TODO::  #debug::object_label(VK_UNIFORM_BUFFER, ubo_id_, name_);*/

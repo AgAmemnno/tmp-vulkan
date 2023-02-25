@@ -294,7 +294,7 @@ uchar *VKImmediate::begin()
   if (!vkbuffer_) {
     VKResourceOptions options;
     options.setDeviceLocal(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-    vkbuffer_ = new VKBuffer(bytes_needed, 256, options);
+    vkbuffer_ = new VKBuffer(bytes_needed, 256, "VKImmediate::vbo",options);
   }
   else
     vkbuffer_->Resize(bytes_needed, 256);
@@ -383,7 +383,10 @@ void VKImmediate::record()
 
 
   vkCmdBindVertexBuffers(vkshader->current_cmd_, 0, 1, &vert, offsets);
+
+  debug::pushMarker(vkshader->current_cmd_, std::string("ImmDraw") + vkshader->name_get());
   vkCmdDraw(vkshader->current_cmd_, vertex_len, 1, 0, 0);
+  debug::popMarker(vkshader->current_cmd_);
 
   fb->is_dirty_render_ = true;
 

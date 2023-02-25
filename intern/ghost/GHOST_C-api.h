@@ -1221,6 +1221,8 @@ extern const char *GHOST_VulkanErrorAsString(int64_t result);
 extern void GHOST_VulkanDebugUtilsRegister(void *r_instance);
 extern void GHOST_VulkanDebugUtilsUnregister();
 
+
+
 #define  GHOST_VkCheck(r) \
 { \
   if (G.debug & G_DEBUG_GPU) { \

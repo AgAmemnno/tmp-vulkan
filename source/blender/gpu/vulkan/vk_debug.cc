@@ -204,9 +204,154 @@ void destroy_vk_callbacks()
   }
 }
 
+void object_vk_label(VkDevice device, VkObjectType objType, uint64_t obj, const std::string &name)
+{
+ if ( G.debug & G_DEBUG_GPU ) {
+    VkDebugUtilsObjectNameInfoEXT info = {};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    info.objectType = objType;
+    info.objectHandle = obj;
+    info.pObjectName = name.c_str();
+    vkSetDebugUtilsObjectNameEXT(device, &info);
+ }
+}
+
+
+template<> void object_vk_label(VkDevice device, VkPipeline obj, const std::string &name)
+{
+  static int stat = 0;
+  auto name_ = name  + "_" + std::to_string(stat++);
+  object_vk_label(device, VK_OBJECT_TYPE_PIPELINE, (uint64_t)obj, name_);
+}
+template<> void object_vk_label(VkDevice device, VkFramebuffer obj, const std::string &name)
+{
+  static int stat = 0;
+  auto name_ = name + "_" + std::to_string(stat++);
+  object_vk_label(device, VK_OBJECT_TYPE_FRAMEBUFFER, (uint64_t)obj, name_);
+}
+template<> void object_vk_label(VkDevice device, VkImage obj, const std::string &name)
+{
+  static int stat = 0;
+  auto name_ = name + "_" + std::to_string(stat++);
+  object_vk_label(device, VK_OBJECT_TYPE_IMAGE, (uint64_t)obj, name_);
+}
+template<> void object_vk_label(VkDevice device, VkSampler obj, const std::string &name)
+{
+  static int stat = 0;
+  auto name_ = name + "_" + std::to_string(stat++);
+  object_vk_label(device, VK_OBJECT_TYPE_SAMPLER, (uint64_t)obj, name_);
+}
+template<> void object_vk_label(VkDevice device, VkBuffer obj, const std::string &name)
+{
+  static int stat = 0;
+  auto name_ = name + "_" + std::to_string(stat++);
+  object_vk_label(device, VK_OBJECT_TYPE_BUFFER, (uint64_t)obj, name_);
+}
+template<> void object_vk_label(VkDevice device, VkSemaphore obj, const std::string &name)
+{
+  static int stat = 0;
+  auto name_ = name + "_" + std::to_string(stat++);
+  object_vk_label(device, VK_OBJECT_TYPE_SEMAPHORE, (uint64_t)obj, name_);
+}
+template<> void object_vk_label(VkDevice device, VkRenderPass obj, const std::string &name)
+{
+  static int stat = 0;
+  auto name_ = name + "_" + std::to_string(stat++);
+  object_vk_label(device, VK_OBJECT_TYPE_RENDER_PASS, (uint64_t)obj, name_);
+}
+template<> void object_vk_label(VkDevice device, VkFence obj, const std::string &name)
+{
+  static int stat = 0;
+  auto name_ = name + "_" + std::to_string(stat++);
+  object_vk_label(device, VK_OBJECT_TYPE_FENCE, (uint64_t)obj, name_);
+}
+template<> void object_vk_label(VkDevice device, VkDescriptorSet obj, const std::string &name)
+{
+  static int stat = 0;
+  auto name_ = name + "_" + std::to_string(stat++);
+  object_vk_label(device, VK_OBJECT_TYPE_DESCRIPTOR_SET, (uint64_t)obj, name_);
+}
+template<> void object_vk_label(VkDevice device, VkDescriptorSetLayout obj, const std::string &name)
+{
+  static int stat = 0;
+  auto name_ = name + "_" + std::to_string(stat++);
+  object_vk_label(device, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, (uint64_t)obj, name_);
+}
+template<>void object_vk_label(VkDevice device, VkShaderModule obj, const std::string &name)
+{
+  static int stat = 0;
+  auto name_ = name + "_" + std::to_string(stat++);
+  object_vk_label(device, VK_OBJECT_TYPE_SHADER_MODULE, (uint64_t)obj, name_);
+}
+template<> void object_vk_label(VkDevice device, VkQueue obj, const std::string &name)
+{
+  static int stat = 0;
+  auto name_ = name + "_" + std::to_string(stat++);
+  object_vk_label(device, VK_OBJECT_TYPE_QUEUE, (uint64_t)obj, name_);
+}
+template<> void object_vk_label(VkDevice device, VkDescriptorPool obj, const std::string &name)
+{
+  static int stat = 0;
+  auto name_ = name + "_" + std::to_string(stat++);
+  object_vk_label(device, VK_OBJECT_TYPE_DESCRIPTOR_POOL, (uint64_t)obj, name_);
+}
+void pushMarker(VkCommandBuffer cmd, const std::string &name)
+{
+  if (G.debug & G_DEBUG_GPU) {
+    VkDebugUtilsLabelEXT info = {};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+    info.pLabelName = name.c_str();
+    vkCmdBeginDebugUtilsLabelEXT(cmd, &info);
+  }
+}
+void setMarker(VkCommandBuffer cmd, const std::string &name)
+{
+  if (G.debug & G_DEBUG_GPU) {
+    VkDebugUtilsLabelEXT info = {};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+    info.pLabelName = name.c_str();
+    vkCmdInsertDebugUtilsLabelEXT(cmd, &info);
+  }
+}
+void popMarker(VkCommandBuffer cmd)
+{
+  if (G.debug & G_DEBUG_GPU) {
+    vkCmdEndDebugUtilsLabelEXT(cmd);
+  }
+}
+void pushMarker(VkQueue q, const std::string &name)
+{
+  if (G.debug & G_DEBUG_GPU) {
+    VkDebugUtilsLabelEXT info = {};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+    info.pLabelName = name.c_str();
+    vkQueueBeginDebugUtilsLabelEXT(q, &info);
+  }
+}
+void setMarker(VkQueue q, const std::string &name)
+{
+  if (G.debug & G_DEBUG_GPU) {
+    VkDebugUtilsLabelEXT info = {};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+    info.pLabelName = name.c_str();
+    vkQueueInsertDebugUtilsLabelEXT(q, &info);
+  }
+}
+
+void popMarker(VkQueue q)
+{
+  if (G.debug & G_DEBUG_GPU) {
+    vkQueueEndDebugUtilsLabelEXT(q);
+  }
+}
+
+
  void init_vk_debug_layer(){};
 void raise_vk_error(const char *info){};
 void check_vk_resources(const char *info){};
+
+
+
 }  // namespace debug
 }  // namespace gpu
 }  // namespace blender

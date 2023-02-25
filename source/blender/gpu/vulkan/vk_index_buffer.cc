@@ -35,7 +35,7 @@ void VKIndexBuf::bind()
     if (data_ != nullptr) {
       size = this->size_get();
     }
-    ibo_id_ = new VKVAOty_impl(size, 256, options);
+    ibo_id_ = new VKVAOty_impl(size, 256,"VKIndexBuf", options);
 
   }
 

@@ -365,11 +365,14 @@ GHOST_TSuccess VKShaderInterface::createSetLayout(uint i)
   else {
     descriptorSetLayoutCreateInfo.pBindings = setlayoutbindings_[i].data();
   }
-
-  VK_CHECK(vkCreateDescriptorSetLayout(blender::gpu::VKContext::get()->device_get(),
+  VkDevice device  = blender::gpu::VKContext::get()->device_get();
+  VK_CHECK(vkCreateDescriptorSetLayout(device,
                                        &descriptorSetLayoutCreateInfo,
                                        NULL,
                                        &setlayout));
+  
+  debug::object_vk_label(device, setlayout, std::string(sc_info_->name_) + "_SetLayout");
+  
   return GHOST_kSuccess;
 };
 
@@ -421,9 +424,11 @@ GHOST_TSuccess VKShaderInterface::createPool()
     descriptorPoolInfo.pNext = &descriptorPoolInlineUniformBlockCreateInfo;
   }
 #endif
-
+  VkDevice device = blender::gpu::VKContext::get()->device_get();
   VK_CHECK(vkCreateDescriptorPool(
-      blender::gpu::VKContext::get()->device_get(), &descriptorPoolInfo, nullptr, &pool_));
+     device, &descriptorPoolInfo, nullptr, &pool_));
+
+  debug::object_vk_label(device, pool_, std::string(sc_info_->name_) + "_DescriptorPool");
 
   return GHOST_kSuccess;
 };
@@ -437,14 +442,15 @@ GHOST_TSuccess VKShaderInterface::allocateDescriptorSets(blender::Vector<VkDescr
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 
   VkDescriptorSetLayout &layout = setlayouts_[setlayoutID];
-
+  VkDevice device  = blender::gpu::VKContext::get()->device_get();
   if (count == 1) {
     allocInfo.descriptorSetCount = 1;
     Sets.resize(1);
     allocInfo.pSetLayouts = &layout;
     allocInfo.descriptorPool = pool_;
-    VK_CHECK(vkAllocateDescriptorSets(
-        blender::gpu::VKContext::get()->device_get(), &allocInfo, Sets.data()));
+    VK_CHECK(vkAllocateDescriptorSets(device, &allocInfo, Sets.data()));
+    
+    debug::object_vk_label(device, Sets[0] , std::string(sc_info_->name_) + "_DescriptorSet::0");
     return GHOST_kSuccess;
   }
 
@@ -462,7 +468,12 @@ GHOST_TSuccess VKShaderInterface::allocateDescriptorSets(blender::Vector<VkDescr
   allocInfo.descriptorSetCount = count;
   allocInfo.pSetLayouts = layouts.data();
   VK_CHECK(vkAllocateDescriptorSets(
-      blender::gpu::VKContext::get()->device_get(), &allocInfo, Sets.data()));
+     device, &allocInfo, Sets.data()));
+  
+
+  for(int i = 0;i<count;i++){   
+    debug::object_vk_label(device, Sets[i] , std::string(sc_info_->name_) + "_DescriptorSet::" +  std::to_string(i));
+  }
 
   return GHOST_kSuccess;
 };

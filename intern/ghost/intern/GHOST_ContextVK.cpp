@@ -140,7 +140,8 @@ VkResult fillFilteredNameArray(std::vector<const char *> &used,
     }
     else if (!itr.optional) {
       DEBUG_PRINTF("VK_ERROR_EXTENSION_NOT_PRESENT: %s - %d\n", itr.name, itr.version);
-      return VK_ERROR_EXTENSION_NOT_PRESENT;
+      //return VK_ERROR_EXTENSION_NOT_PRESENT;
+      return VK_SUCCESS;
     }
   }
 
@@ -589,7 +590,7 @@ static GHOST_TSuccess SubmitVolatileFence(VkDevice device,
     fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
     VK_CHECK(vkCreateFence(device, &fence_info, NULL, &fence));
-    printf("Create Fence SubmitVolatileFence  %llx   \n", (uint64_t)fence);
+    //object_vk_label(device, fence, "Volatile_Fence"); 
     vkResetFences(device, 1, &fence);
   }
 
@@ -608,7 +609,7 @@ static GHOST_TSuccess SubmitVolatileFence(VkDevice device,
   return GHOST_kSuccess;
 }
 
-      GHOST_TSuccess GHOST_ContextVK::end_frame()
+GHOST_TSuccess GHOST_ContextVK::end_frame()
 {
   VkCommandBuffer &cmd = m_command_buffers[m_currentCommand];
   vkCmdEndRenderPass(cmd);
@@ -695,7 +696,7 @@ void GHOST_ContextVK::destroyPipelineCache()
                                           VK_NULL_HANDLE,
                                           &m_currentImage);
 
-  printf("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<  vkAcquireNextImageKHR  ===>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   m_currentImage %d  m_currentFrame %d  \n", m_currentImage, m_currentFrame);
+  DEBUG_PRINTF("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<  vkAcquireNextImageKHR  ===>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   m_currentImage %d  m_currentFrame %d  \n", m_currentImage, m_currentFrame);
 
   //BLI_assert(m_currentFrame == m_currentImage);
   if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
@@ -773,7 +774,9 @@ GHOST_TSuccess GHOST_ContextVK::begin_submit(int N)
   semaphore_info.flags = 0;
   for (int i = 0; i < N; i++) {
       VK_CHECK(vkCreateSemaphore(m_device, &semaphore_info, NULL, &acquire_sema_[i]));
-    VK_CHECK(vkCreateSemaphore(m_device, &semaphore_info, NULL, &pipeline_sema_[i]));
+      VK_CHECK(vkCreateSemaphore(m_device, &semaphore_info, NULL, &pipeline_sema_[i]));
+      //object_vk_label(device,acquire_sema_[i] , "NonBlockSemaAc");
+      //object_vk_label(device,pipeline_sema_[i] , "NonBlockSemaPi");
   }
  
   VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
@@ -850,7 +853,7 @@ int GHOST_ContextVK::begin_onetime_submit(VkCommandBuffer cmd)
   VkCommandBufferResetFlags flag = VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT;
   vkResetCommandBuffer(cmd, flag);
 
-  printf("onetime_commands  >>>>>>>>>>>>>>>>>  CONTEXT %llx    CMD  %llx   ID   %d \n",
+  DEBUG_PRINTF("onetime_commands  >>>>>>>>>>>>>>>>>  CONTEXT %llx    CMD  %llx   ID   %d \n",
          (uintptr_t)this,
          (uintptr_t)cmd,
          pipeline_sema_idx_ - 1);
@@ -860,7 +863,7 @@ int GHOST_ContextVK::begin_onetime_submit(VkCommandBuffer cmd)
 GHOST_TSuccess  GHOST_ContextVK::end_onetime_submit(int registerID)
 {
 
-    printf("end onetime_commands  >>>>>>>>>>>>>>>>>  CONTEXT %llx    ID %d  \n",
+    DEBUG_PRINTF("end onetime_commands  >>>>>>>>>>>>>>>>>  CONTEXT %llx    ID %d  \n",
          (uintptr_t)this,
          registerID);
 
@@ -953,7 +956,11 @@ GHOST_TSuccess  GHOST_ContextVK::initialize_sw_submit()
   vkResetFences(m_device, 1, &m_in_flight_fences[m_currentFence]);
 
 
-  printf("initialize_onetime_submit ==>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  currentImage  %d  currentframe %d \n", m_currentImage, m_currentFrame);
+  DEBUG_PRINTF(
+      "initialize_onetime_submit ==>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  "
+      "currentImage  %d  currentframe %d \n",
+      m_currentImage,
+      m_currentFrame);
 
   VkPipelineStageFlags wait_stages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
@@ -1060,7 +1067,9 @@ GHOST_TSuccess  GHOST_ContextVK::finalize_sw_submit()
   onetime_commands_.clear();
   pipeline_sema_idx_ = 0;
   wait_sema_sw_ = signal_sema_sw_ = VK_NULL_HANDLE;
-  printf("!!!!!!!!!!!!!!!!!!!!!!!             FINALIZE SUBMIT Swapchain  BLIT  [ %d ]  RP [ %d ]         !!!!!!!!!!!!!!!!!!!!!!!     \n",
+  DEBUG_PRINTF(
+      "!!!!!!!!!!!!!!!!!!!!!!!             FINALIZE SUBMIT Swapchain  BLIT  [ %d ]  RP [ %d ]     "
+      "    !!!!!!!!!!!!!!!!!!!!!!!     \n",
          num_submit_bl_,
          num_submit_);
   is_init_sw_ = false;
@@ -1130,13 +1139,6 @@ GHOST_TSuccess GHOST_ContextVK::presentCustom()
   present_info.pResults = NULL;
 
   VkResult result = vkQueuePresentKHR(m_present_queue, &present_info);
-
-  /*
-  printf("Curent Layout    %d ", m_current_layouts[m_currentImage]);
-  m_current_layouts[m_currentImage] = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-  fail_image_layout();
-  */
-
 
   if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
     /* Swapchain is out of date. Recreate swapchain and skip this frame. */
@@ -1440,6 +1442,7 @@ GHOST_TSuccess GHOST_ContextVK::pickPhysicalDevice(vector<const char*> required_
 
   vector<VkPhysicalDevice> physical_devices(device_count);
   vkEnumeratePhysicalDevices(m_instance, &device_count, physical_devices.data());
+  
 
   int best_device_score = -1;
   for (const auto &physical_device : physical_devices) {
@@ -1450,7 +1453,8 @@ GHOST_TSuccess GHOST_ContextVK::pickPhysicalDevice(vector<const char*> required_
     vkGetPhysicalDeviceFeatures(physical_device, &features);
 
     DEBUG_PRINTF("%s : \n", device_properties.deviceName);
-
+ 
+    
     if (!device_extensions_support(physical_device, required_exts)) {
       DEBUG_PRINTF("  - Device does not support required device extensions.\n");
       continue;
@@ -1544,7 +1548,7 @@ GHOST_TSuccess GHOST_ContextVK::pickPhysicalDevice2(std::vector<ExtensionEntry>&
     VkPhysicalDeviceFeatures features;
     vkGetPhysicalDeviceFeatures(physical_device, &features);
 
-    
+
     uint32_t ext_count;
     vkEnumerateDeviceExtensionProperties(physical_device, NULL, &ext_count, NULL);
 
@@ -1552,10 +1556,11 @@ GHOST_TSuccess GHOST_ContextVK::pickPhysicalDevice2(std::vector<ExtensionEntry>&
     vkEnumerateDeviceExtensionProperties(physical_device, NULL, &ext_count, available_exts.data());
 
     DEBUG_PRINTF("%s : \n", device_properties.deviceName);
-    if(VK_SUCCESS !=fillFilteredNameArray(_enabledDeviceExts, available_exts,
-                          required_exts,
-                          _featureStructs))
-        continue;
+    if (VK_SUCCESS != fillFilteredNameArray(
+                          _enabledDeviceExts, available_exts, required_exts, _featureStructs)) {
+      DEBUG_PRINTF("  - Device does not support enabledDeviceExts.\n");
+      continue;
+    }
                                
  
 
@@ -1613,6 +1618,7 @@ GHOST_TSuccess GHOST_ContextVK::pickPhysicalDevice2(std::vector<ExtensionEntry>&
       best_device_score = device_score;
       featureStructs = _featureStructs;
       enabledDeviceExts = _enabledDeviceExts;
+      
     }
     DEBUG_PRINTF("  - Device suitable.\n");
   }
@@ -1939,6 +1945,7 @@ GHOST_TSuccess GHOST_ContextVK::createSwapchain(void)
 
   m_swapchain_image_views.resize(image_count);
   for (int i = 0; i < image_count; i++) {
+    //object_vk_label(device, m_swapchain_images[i], std::string("SwapchainImage"); 
 
     VkImageViewCreateInfo view_create_info = {};
     view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -2003,22 +2010,25 @@ GHOST_TSuccess GHOST_ContextVK::createSwapchain(void)
           vkCreateSemaphore(m_device, &semaphore_info, NULL, &m_image_available_semaphores[i]));
       VK_CHECK(
           vkCreateSemaphore(m_device, &semaphore_info, NULL, &m_render_finished_semaphores[i]));
-    
+      //object_vk_label(device,m_image_available_semaphores[i] , "AvSema");
+      //object_vk_label(device,m_render_finished_semaphores[i] , "FinSema");
+      
+
       VkFenceCreateInfo fence_info = {};
       fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
       fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
       VK_CHECK(vkCreateFence(m_device, &fence_info, NULL, &m_in_flight_fences[i]));
-      printf("Create Fence createSwapchain  %llx   \n", (uint64_t)m_in_flight_fences[i]);
-     
+      //object_vk_label(device, m_in_flight_fences[i] , "Flight_Fence"); 
     }
     for (int i = 0; i < sema_stock_nums; i++) {
       VkSemaphoreCreateInfo semaphore_info = {};
       semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
         VK_CHECK(
           vkCreateSemaphore(m_device, &semaphore_info, NULL, &sema_stock_[i]));
+      //object_vk_label(device,sema_stock_[i] , "ToggleSema");
     }
-
+    
     vkResetFences(m_device, MAX_FRAMES_IN_FLIGHT, &m_in_flight_fences[0]);
 
     createCommandBuffers();

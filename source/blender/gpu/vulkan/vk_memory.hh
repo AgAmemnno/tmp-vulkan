@@ -125,11 +125,15 @@ class VKBuffer {
   bool  can_mapped_ = true;
   char* mapped_ = nullptr;
   VKContext *context_ = nullptr;
+  std::string name_; 
  public:
 
 
-  VKBuffer(uint64_t size, uint alignment, VKResourceOptions& options);
-  VKBuffer( uint64_t size, uint alignment, VmaMemoryUsage usage = VMA_MEMORY_USAGE_GPU_ONLY);
+  VKBuffer(uint64_t size, uint alignment, const char *name, VKResourceOptions &options);
+  VKBuffer(uint64_t size,
+           uint alignment,
+           const char *name,
+           VmaMemoryUsage usage = VMA_MEMORY_USAGE_GPU_ONLY);
   ~VKBuffer();
 
   void Create(uint64_t size, uint alignment , VKResourceOptions& options);

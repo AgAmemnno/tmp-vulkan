@@ -13,6 +13,7 @@
 #include "gpu_vertex_buffer_private.hh"
 
 #include "vk_state.hh"
+#include "vk_debug.hh"
 #include "vk_drawlist.hh"
 #include "vk_index_buffer.hh"
 #include "vk_framebuffer.hh"
@@ -65,7 +66,7 @@ void VKDrawList::init()
     /* Allocate on first use. */
       VKResourceOptions options;
       options.setHostVisible(VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT);
-      buffer_id_ = new VKBuffer(buffer_size_, VKStagingBufferManager::vk_staging_buffer_min_alignment, options);
+      buffer_id_ = new VKBuffer(buffer_size_, VKStagingBufferManager::vk_staging_buffer_min_alignment, "VKDrawList",options);
       context_ = VKContext::get();
   }
 
@@ -204,7 +205,7 @@ void VKDrawList::submit()
 
 
     batch_->bind(0);
-
+    debug::pushMarker(cmd, std::string("DrawList") + vkshader->name_get());
     if (VK_MDI_INDEXED) {
       vkCmdDrawIndexedIndirect(cmd,
                                buffer_id_->get_vk_buffer(),
@@ -220,7 +221,7 @@ void VKDrawList::submit()
                         command_len_,
                         sizeof(VkDrawIndexedIndirectCommand));
     }
-
+    debug::popMarker(cmd);
 
     buffer_id_->unmap();
     data_ = nullptr;

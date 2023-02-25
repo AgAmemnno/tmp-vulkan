@@ -29,7 +29,7 @@
 
 #include "vk_state.hh"
 #include "vk_texture.hh"
-
+#include "vk_debug.hh"
 #include "vk_framebuffer.hh"
 
 #include "intern/GHOST_ContextVK.h"
@@ -737,6 +737,8 @@ bool VKTexture::init_internal(void)
     layout  = VK_IMAGE_LAYOUT_UNDEFINED;
   }
 
+ 
+  debug::object_vk_label(VKContext::get()->device_get(), vk_image_, name_); 
   return true;
 }
 
@@ -1301,7 +1303,8 @@ void VKAttachment::create_framebuffer()
     renderPassInfo.dependencyCount = depCnt;
     renderPassInfo.pDependencies = dependencies.data();
     VK_CHECK2(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderpass_));
-
+    
+    debug::object_vk_label(device, renderpass_ , std::string(fb_->name_get()) +"_Renderpass"); 
     BLI_assert(framebuffer_.size() == 0);
 
     framebuffer_.resize(vview_.size());
@@ -1324,6 +1327,7 @@ void VKAttachment::create_framebuffer()
     fb_create_info.layers = 1;
    
     VK_CHECK2(vkCreateFramebuffer(device, &fb_create_info, nullptr, &framebuffer_[i]));
+    debug::object_vk_label(device,framebuffer_[i],  std::string(fb_->name_get()) +"_Framebuffer");
     i++;
   };
 
@@ -1419,7 +1423,7 @@ void VKAttachment::append_from_swapchain(int swapchain_idx)
   renderPassInfo.dependencyCount = 2;
   renderPassInfo.pDependencies = subpassDependencies;
   VK_CHECK2(vkCreateRenderPass(device_, &renderPassInfo, NULL, &renderpass_));
- 
+  debug::object_vk_label(device_, renderpass_ , std::string(fb_->name_get()) +"_Renderpass"); 
   num_++;
 };
 

@@ -196,7 +196,6 @@ void gpu::VKBuffer::free()
   if (vk_buffer_ != VK_NULL_HANDLE) {
       unmap(); 
       VmaAllocator mem_allocator = context_->mem_allocator_get();
-      printf("DestroyVMA  %s\n", allocation->GetName());
       vmaDestroyBuffer(mem_allocator, vk_buffer_, allocation);
      vk_buffer_ = VK_NULL_HANDLE;
      options_.bufferInfo.size = 0;

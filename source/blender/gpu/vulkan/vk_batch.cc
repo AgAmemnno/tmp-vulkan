@@ -348,9 +348,6 @@ namespace blender::gpu {
         fb_->name_get(),
         cnt,
         shader->name_get());
-    if (cnt == 24) {
-      printf("BP223");
-    }
     if (cnt == 183) {
       fb_->update_attachments();
     }

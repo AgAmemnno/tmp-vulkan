@@ -1107,11 +1107,7 @@ static void wm_draw_window_onscreen(bContext *C, wmWindow *win, int view)
     }
     wm_draw_region_blend(region, 0, true);
   }
-  
-  GPU_context_end_frame(GPU_context_active_get());
-  GPU_context_main_unlock();
-  WM_exit(C);
-      
+        
   /* always draw, not only when screen tagged */
   if (win->gesture.first) {
     wm_gesture_draw(win);
@@ -1140,79 +1136,92 @@ static void wm_draw_window_onscreen(bContext *C, wmWindow *win, int view)
 
 static void wm_draw_window(bContext *C, wmWindow *win)
 {
-  GPU_context_begin_frame(win->gpuctx);
+  /*Loop over this passage for analysis.*/
+  int CNT = 10;
+  while (CNT--){
 
-  bScreen *screen = WM_window_get_active_screen(win);
-  bool stereo = WM_stereo3d_enabled(win, false);
-
-  /* Avoid any BGL call issued before this to alter the window drawin. */
-  GPU_bgl_end();
-
-  /* Draw area regions into their own frame-buffer. This way we can redraw
-   * the areas that need it, and blit the rest from existing frame-buffers. */
-  wm_draw_window_offscreen(C, win, stereo);
-
-  /* Now we draw into the window frame-buffer, in full window coordinates. */
-  if (!stereo) {
-    /* Regular mono drawing. */
-    wm_draw_window_onscreen(C, win, -1);
-  }
-  else if (win->stereo3d_format->display_mode == S3D_DISPLAY_PAGEFLIP) {
-    /* For page-flip we simply draw to both back buffers. */
-    GPU_backbuffer_bind(GPU_BACKBUFFER_RIGHT);
-    wm_draw_window_onscreen(C, win, 1);
-
-    GPU_backbuffer_bind(GPU_BACKBUFFER_LEFT);
-    wm_draw_window_onscreen(C, win, 0);
-  }
-  else if (ELEM(win->stereo3d_format->display_mode, S3D_DISPLAY_ANAGLYPH, S3D_DISPLAY_INTERLACE)) {
-    /* For anaglyph and interlace, we draw individual regions with
-     * stereo frame-buffers using different shaders. */
-    wm_draw_window_onscreen(C, win, -1);
-  }
-  else {
-    /* For side-by-side and top-bottom, we need to render each view to an
-     * an off-screen texture and then draw it. This used to happen for all
-     * stereo methods, but it's less efficient than drawing directly. */
-    const int width = WM_window_pixels_x(win);
-    const int height = WM_window_pixels_y(win);
-    GPUOffScreen *offscreen = GPU_offscreen_create(width, height, false, GPU_RGBA8, NULL);
-
-    if (offscreen) {
-      GPUTexture *texture = GPU_offscreen_color_texture(offscreen);
-      wm_draw_offscreen_texture_parameters(offscreen);
-
-      for (int view = 0; view < 2; view++) {
-        /* Draw view into offscreen buffer. */
-        GPU_offscreen_bind(offscreen, false);
-        wm_draw_window_onscreen(C, win, view);
-        GPU_offscreen_unbind(offscreen, false);
-
-        /* Draw offscreen buffer to screen. */
-        GPU_texture_bind(texture, 0);
-
-        wmWindowViewport(win);
-        if (win->stereo3d_format->display_mode == S3D_DISPLAY_SIDEBYSIDE) {
-          wm_stereo3d_draw_sidebyside(win, view);
-        }
-        else {
-          wm_stereo3d_draw_topbottom(win, view);
-        }
-
-        GPU_texture_unbind(texture);
-      }
-
-      GPU_offscreen_free(offscreen);
+    if (CNT == 1) {
+      printf("Input next loop >>");
+      scanf("%d",&CNT);
     }
-    else {
-      /* Still draw something in case of allocation failure. */
+
+    GPU_context_begin_frame(win->gpuctx);
+
+    bScreen *screen = WM_window_get_active_screen(win);
+    bool stereo = WM_stereo3d_enabled(win, false);
+
+    /* Avoid any BGL call issued before this to alter the window drawin. */
+    GPU_bgl_end();
+
+    /* Draw area regions into their own frame-buffer. This way we can redraw
+     * the areas that need it, and blit the rest from existing frame-buffers. */
+    wm_draw_window_offscreen(C, win, stereo);
+
+    /* Now we draw into the window frame-buffer, in full window coordinates. */
+    if (!stereo) {
+      /* Regular mono drawing. */
+      wm_draw_window_onscreen(C, win, -1);
+    }
+    else if (win->stereo3d_format->display_mode == S3D_DISPLAY_PAGEFLIP) {
+      /* For page-flip we simply draw to both back buffers. */
+      GPU_backbuffer_bind(GPU_BACKBUFFER_RIGHT);
+      wm_draw_window_onscreen(C, win, 1);
+
+      GPU_backbuffer_bind(GPU_BACKBUFFER_LEFT);
       wm_draw_window_onscreen(C, win, 0);
     }
-  }
+    else if (ELEM(win->stereo3d_format->display_mode, S3D_DISPLAY_ANAGLYPH, S3D_DISPLAY_INTERLACE)) {
+      /* For anaglyph and interlace, we draw individual regions with
+       * stereo frame-buffers using different shaders. */
+      wm_draw_window_onscreen(C, win, -1);
+    }
+    else {
+      /* For side-by-side and top-bottom, we need to render each view to an
+       * an off-screen texture and then draw it. This used to happen for all
+       * stereo methods, but it's less efficient than drawing directly. */
+      const int width = WM_window_pixels_x(win);
+      const int height = WM_window_pixels_y(win);
+      GPUOffScreen *offscreen = GPU_offscreen_create(width, height, false, GPU_RGBA8, NULL);
 
-  screen->do_draw = false;
+      if (offscreen) {
+        GPUTexture *texture = GPU_offscreen_color_texture(offscreen);
+        wm_draw_offscreen_texture_parameters(offscreen);
 
-  GPU_context_end_frame(win->gpuctx);
+        for (int view = 0; view < 2; view++) {
+          /* Draw view into offscreen buffer. */
+          GPU_offscreen_bind(offscreen, false);
+          wm_draw_window_onscreen(C, win, view);
+          GPU_offscreen_unbind(offscreen, false);
+
+          /* Draw offscreen buffer to screen. */
+          GPU_texture_bind(texture, 0);
+
+          wmWindowViewport(win);
+          if (win->stereo3d_format->display_mode == S3D_DISPLAY_SIDEBYSIDE) {
+            wm_stereo3d_draw_sidebyside(win, view);
+          }
+          else {
+            wm_stereo3d_draw_topbottom(win, view);
+          }
+
+          GPU_texture_unbind(texture);
+        }
+
+        GPU_offscreen_free(offscreen);
+      }
+      else {
+        /* Still draw something in case of allocation failure. */
+        wm_draw_window_onscreen(C, win, 0);
+      }
+    }
+
+    screen->do_draw = false;
+
+    GPU_context_end_frame(win->gpuctx);
+}
+
+  GPU_context_main_unlock();
+  WM_exit(C);
 }
 
 /**

@@ -37,6 +37,12 @@
 #include <spirv_cross.hpp>
 #include <spirv_glsl.hpp>
 
+#ifdef DEBUG_PRINT_VKSI
+#define print_vksi printf
+#else
+#define print_vksi
+#endif
+
 namespace blender::gpu {
 const int UNIFORM_SORT_OFS = 1000;
 
@@ -1260,7 +1266,7 @@ int CompilerBlender::parse_ubo(blender::gpu::ShaderInput *inputs, int ofs)
       int i = 0;
       for (auto range : ranges) {
         const std::string name = get_member_name(resource.base_type_id, i++);
-        printf(" UBO member   ===>   %s     index  %d     offset %zd    range %zd \n",
+        print_vksi(" UBO member   ===>   %s     index  %d     offset %zd    range %zd \n",
                name.c_str(),
                range.index,
                range.offset,

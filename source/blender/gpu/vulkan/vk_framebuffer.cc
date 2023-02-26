@@ -21,6 +21,13 @@
 
 #include <fstream>
 
+
+#ifdef DEBUG_PRINT_VKFB
+#define print_vkfb printf
+#else
+#define print_vkfb
+#endif
+
 namespace blender::gpu {
 #define VK_PNEXT_INIT_VAL 0x7777777
 #define SET_VK_PNEXT_INIT(str) str.pNext = (const void *)VK_PNEXT_INIT_VAL;
@@ -275,18 +282,32 @@ static void clearImage(VkCommandBuffer cmd,
 
   BLI_assert((src_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) ||
              (src_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) ||
+             (src_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) ||
              (src_layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR));
 
   bool is_color = asp_flag & VK_IMAGE_ASPECT_COLOR_BIT;
 
-  if (src_layout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+  VkAccessFlags acs_flag = 0; 
+  VkPipelineStageFlags stg_flag;
 
+  if (src_layout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+    if (src_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+      acs_flag = VK_ACCESS_SHADER_READ_BIT;
+      stg_flag = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    }
+    else if (src_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+      acs_flag = (VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                    VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+      stg_flag = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+    }
+    else {
+      acs_flag = (VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+      stg_flag = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+                  
+    }
     VkImageMemoryBarrier imageMemoryBarrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
     imageMemoryBarrier.pNext = NULL;
-    imageMemoryBarrier.srcAccessMask = (is_color) ? (VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-                                                     VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT) :
-                                                    (VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
-                                                     VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+    imageMemoryBarrier.srcAccessMask =
     imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     imageMemoryBarrier.oldLayout = src_layout;
     imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
@@ -294,8 +315,7 @@ static void clearImage(VkCommandBuffer cmd,
     imageMemoryBarrier.subresourceRange = {asp_flag, 0, 1, 0, 1};
 
     vkCmdPipelineBarrier(cmd,
-                         (is_color) ? VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT :
-                         VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+                         stg_flag,
                          VK_PIPELINE_STAGE_TRANSFER_BIT,
                          0,
                          0,
@@ -335,10 +355,7 @@ static void clearImage(VkCommandBuffer cmd,
     VkImageMemoryBarrier imageMemoryBarrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
     imageMemoryBarrier.pNext = NULL;
     imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    imageMemoryBarrier.dstAccessMask = (is_color) ? (VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-                                                     VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT) :
-                                                    (VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
-                                                     VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+    imageMemoryBarrier.dstAccessMask = acs_flag;
     imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     imageMemoryBarrier.newLayout = src_layout;
     imageMemoryBarrier.image = srcImage;
@@ -346,8 +363,7 @@ static void clearImage(VkCommandBuffer cmd,
 
     vkCmdPipelineBarrier(cmd,
                          VK_PIPELINE_STAGE_TRANSFER_BIT,
-                         (is_color) ? VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT :
-                                      VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+                         stg_flag,
                          0,
                          0,
                          nullptr,
@@ -576,18 +592,17 @@ void VKFrameBuffer::readColorAttachment(VKTexture *tex, void *&data, VkDeviceMem
   VkFormatProperties formatProps;
   vkGetPhysicalDeviceFormatProperties(pdevice, colorFormat, &formatProps);
   if (!(formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT)) {
-    std::cerr << "Device does not support blitting from optimal tiled images, using copy instead "
-                 "of blit!"
-              << std::endl;
+    print_vkfb(
+        "Device does not support blitting from optimal tiled images, using copy instead "
+        "of blit! \n");
     supportsBlit = false;
   }
 
   // Check if the device supports blitting to linear images
   vkGetPhysicalDeviceFormatProperties(pdevice, VK_FORMAT_R8G8B8A8_UNORM, &formatProps);
   if (!(formatProps.linearTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT)) {
-    std::cerr
-        << "Device does not support blitting to linear tiled images, using copy instead of blit!"
-        << std::endl;
+    print_vkfb(
+        "Device does not support blitting to linear tiled images, using copy instead of blit!\n");
     supportsBlit = false;
   }
 
@@ -1089,7 +1104,7 @@ void saveRect(std::string &filename, void* data, int w,int h, eGPUTextureFormat 
 
     ibuf->ftype = IMB_FTYPE_PNG;
     IMB_saveiff(ibuf, const_cast<char *>(filename.c_str()), im_flag);
-    std::cout << "Screenshot saved to disk" << std::endl;
+    print_vkfb( "Screenshot saved to disk \n" );
 
 
     IMB_freeImBuf(ibuf);
@@ -1355,7 +1370,7 @@ void saveTexture(std::string &filename, VKFrameBuffer *fb, const GPUTexture *tex
 
     ibuf->ftype = IMB_FTYPE_PNG;
     IMB_saveiff(ibuf, const_cast<char *>(filename.c_str()), im_flag);
-    std::cout << "Screenshot saved to disk" << std::endl;
+    print_vkfb("Screenshot saved to disk \n");
 
 
     vkUnmapMemory(device, dstImageMemory);

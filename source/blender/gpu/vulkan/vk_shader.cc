@@ -2051,8 +2051,8 @@ VkPipeline VKShader::CreatePipeline(VKFrameBuffer *fb)
   #endif
   VK_CHECK2(vkCreateGraphicsPipelines(
       device, ctx->get_pipeline_cache(), 1, &ci, vk_allocation_callbacks, &pipe));
-  
-  debug::object_vk_label(device, pipe , std::string(vkinterface->sc_info_->name_) + "_Pipe"); 
+   
+  debug::object_vk_label(device, pipe , std::string(ctx->pipeline_state.active_shader->name_get()) + "_Pipe");
 
   return pipe;
 };

@@ -48,8 +48,8 @@ class ProjectiveReconstruction;
 
     \sa EuclideanResect, EuclideanIntersect, EuclideanBundle
 */
-bool EuclideanReconstructTwoFrames(const vector<Marker>& markers,
-                                   EuclideanReconstruction* reconstruction);
+bool EuclideanReconstructTwoFrames(const vector<Marker> &markers,
+                                   EuclideanReconstruction *reconstruction);
 
 /*!
     Initialize the \link ProjectiveReconstruction reconstruction \endlink using
@@ -68,8 +68,8 @@ bool EuclideanReconstructTwoFrames(const vector<Marker>& markers,
 
     \sa ProjectiveResect, ProjectiveIntersect, ProjectiveBundle
 */
-bool ProjectiveReconstructTwoFrames(const vector<Marker>& markers,
-                                    ProjectiveReconstruction* reconstruction);
+bool ProjectiveReconstructTwoFrames(const vector<Marker> &markers,
+                                    ProjectiveReconstruction *reconstruction);
 }  // namespace libmv
 
 #endif  // LIBMV_SIMPLE_PIPELINE_INITIALIZE_RECONSTRUCTION_H

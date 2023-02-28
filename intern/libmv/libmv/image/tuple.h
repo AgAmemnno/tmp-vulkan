@@ -26,56 +26,74 @@
 namespace libmv {
 
 // A vector of elements with fixed length and deep copy semantics.
-template <typename T, int N>
-class Tuple {
+template<typename T, int N> class Tuple {
  public:
   enum { SIZE = N };
-  Tuple() {}
-  Tuple(T initial_value) { Reset(initial_value); }
+  Tuple()
+  {
+  }
+  Tuple(T initial_value)
+  {
+    Reset(initial_value);
+  }
 
-  template <typename D>
-  Tuple(D* values) {
+  template<typename D> Tuple(D *values)
+  {
     Reset(values);
   }
 
-  template <typename D>
-  Tuple(const Tuple<D, N>& b) {
+  template<typename D> Tuple(const Tuple<D, N> &b)
+  {
     Reset(b);
   }
 
-  template <typename D>
-  Tuple& operator=(const Tuple<D, N>& b) {
+  template<typename D> Tuple &operator=(const Tuple<D, N> &b)
+  {
     Reset(b);
     return *this;
   }
 
-  template <typename D>
-  void Reset(const Tuple<D, N>& b) {
+  template<typename D> void Reset(const Tuple<D, N> &b)
+  {
     Reset(b.Data());
   }
 
-  template <typename D>
-  void Reset(D* values) {
+  template<typename D> void Reset(D *values)
+  {
     for (int i = 0; i < N; i++) {
       data_[i] = T(values[i]);
     }
   }
 
   // Set all tuple values to the same thing.
-  void Reset(T value) {
+  void Reset(T value)
+  {
     for (int i = 0; i < N; i++) {
       data_[i] = value;
     }
   }
 
   // Pointer to the first element.
-  T* Data() { return &data_[0]; }
-  const T* Data() const { return &data_[0]; }
+  T *Data()
+  {
+    return &data_[0];
+  }
+  const T *Data() const
+  {
+    return &data_[0];
+  }
 
-  T& operator()(int i) { return data_[i]; }
-  const T& operator()(int i) const { return data_[i]; }
+  T &operator()(int i)
+  {
+    return data_[i];
+  }
+  const T &operator()(int i) const
+  {
+    return data_[i];
+  }
 
-  bool operator==(const Tuple<T, N>& other) const {
+  bool operator==(const Tuple<T, N> &other) const
+  {
     for (int i = 0; i < N; ++i) {
       if ((*this)(i) != other(i)) {
         return false;
@@ -83,7 +101,10 @@ class Tuple {
     }
     return true;
   }
-  bool operator!=(const Tuple<T, N>& other) const { return !(*this == other); }
+  bool operator!=(const Tuple<T, N> &other) const
+  {
+    return !(*this == other);
+  }
 
  private:
   T data_[N];

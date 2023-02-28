@@ -38,12 +38,11 @@
 
 namespace libmv {
 
-template <typename Function,
-          typename Jacobian = NumericJacobian<Function>,
-          typename Solver = Eigen::PartialPivLU<
-              Matrix<typename Function::FMatrixType::RealScalar,
-                     Function::XMatrixType::RowsAtCompileTime,
-                     Function::XMatrixType::RowsAtCompileTime>>>
+template<typename Function,
+         typename Jacobian = NumericJacobian<Function>,
+         typename Solver = Eigen::PartialPivLU<Matrix<typename Function::FMatrixType::RealScalar,
+                                                      Function::XMatrixType::RowsAtCompileTime,
+                                                      Function::XMatrixType::RowsAtCompileTime>>>
 class Dogleg {
  public:
   typedef typename Function::XMatrixType::RealScalar Scalar;
@@ -73,7 +72,9 @@ class Dogleg {
     STEEPEST_DESCENT,
   };
 
-  Dogleg(const Function& f) : f_(f), df_(f) {}
+  Dogleg(const Function &f) : f_(f), df_(f)
+  {
+  }
 
   struct SolverParameters {
     SolverParameters()
@@ -81,7 +82,9 @@ class Dogleg {
           relative_step_threshold(1e-16),
           error_threshold(1e-16),
           initial_trust_radius(1e0),
-          max_iterations(500) {}
+          max_iterations(500)
+    {
+    }
     Scalar gradient_threshold;       // eps > max(J'*f(x))
     Scalar relative_step_threshold;  // eps > ||dx|| / ||x||
     Scalar error_threshold;          // eps > ||f(x)||
@@ -96,12 +99,13 @@ class Dogleg {
     Status status;
   };
 
-  Status Update(const Parameters& x,
-                const SolverParameters& params,
-                JMatrixType* J,
-                AMatrixType* A,
-                FVec* error,
-                Parameters* g) {
+  Status Update(const Parameters &x,
+                const SolverParameters &params,
+                JMatrixType *J,
+                AMatrixType *A,
+                FVec *error,
+                Parameters *g)
+  {
     *J = df_(x);
     // TODO(keir): In the case of m = n, avoid computing A and just do J^-1
     // directly.
@@ -110,31 +114,33 @@ class Dogleg {
     *g = (*J).transpose() * *error;
     if (g->array().abs().maxCoeff() < params.gradient_threshold) {
       return GRADIENT_TOO_SMALL;
-    } else if (error->array().abs().maxCoeff() < params.error_threshold) {
+    }
+    else if (error->array().abs().maxCoeff() < params.error_threshold) {
       return ERROR_TOO_SMALL;
     }
     return RUNNING;
   }
 
-  Step SolveDoglegDirection(const Parameters& dx_sd,
-                            const Parameters& dx_gn,
+  Step SolveDoglegDirection(const Parameters &dx_sd,
+                            const Parameters &dx_gn,
                             Scalar radius,
                             Scalar alpha,
-                            Parameters* dx_dl,
-                            Scalar* beta) {
+                            Parameters *dx_dl,
+                            Scalar *beta)
+  {
     Parameters a, b_minus_a;
     // Solve for Dogleg step dx_dl.
     if (dx_gn.norm() < radius) {
       *dx_dl = dx_gn;
       return GAUSS_NEWTON;
-
-    } else if (alpha * dx_sd.norm() > radius) {
+    }
+    else if (alpha * dx_sd.norm() > radius) {
       *dx_dl = (radius / dx_sd.norm()) * dx_sd;
       return STEEPEST_DESCENT;
-
-    } else {
+    }
+    else {
       Parameters a = alpha * dx_sd;
-      const Parameters& b = dx_gn;
+      const Parameters &b = dx_gn;
       b_minus_a = a - b;
       Scalar Mbma2 = b_minus_a.squaredNorm();
       Scalar Ma2 = a.squaredNorm();
@@ -142,7 +148,8 @@ class Dogleg {
       Scalar radius2 = radius * radius;
       if (c <= 0) {
         *beta = (-c + sqrt(c * c + Mbma2 * (radius2 - Ma2))) / (Mbma2);
-      } else {
+      }
+      else {
         *beta = (radius2 - Ma2) / (c + sqrt(c * c + Mbma2 * (radius2 - Ma2)));
       }
       *dx_dl = alpha * dx_sd + (*beta) * (dx_gn - alpha * dx_sd);
@@ -150,13 +157,15 @@ class Dogleg {
     }
   }
 
-  Results minimize(Parameters* x_and_min) {
+  Results minimize(Parameters *x_and_min)
+  {
     SolverParameters params;
     return minimize(params, x_and_min);
   }
 
-  Results minimize(const SolverParameters& params, Parameters* x_and_min) {
-    Parameters& x = *x_and_min;
+  Results minimize(const SolverParameters &params, Parameters *x_and_min)
+  {
+    Parameters &x = *x_and_min;
     JMatrixType J;
     AMatrixType A;
     FVec error;
@@ -175,11 +184,7 @@ class Dogleg {
     printf("iteration     ||f(x)||      max(g)       radius\n");
     int i = 0;
     for (; results.status == RUNNING && i < params.max_iterations; ++i) {
-      printf("%9d %12g %12g %12g",
-             i,
-             f_(x).norm(),
-             g.array().abs().maxCoeff(),
-             radius);
+      printf("%9d %12g %12g %12g", i, f_(x).norm(), g.array().abs().maxCoeff(), radius);
 
       // LG << "iteration: " << i;
       // LG << "||f(x)||: " << f_(x).norm();
@@ -207,8 +212,7 @@ class Dogleg {
 
       // Solve for dogleg direction dx_dl.
       Scalar beta = 0;
-      Step step =
-          SolveDoglegDirection(dx_sd, dx_gn, radius, alpha, &dx_dl, &beta);
+      Step step = SolveDoglegDirection(dx_sd, dx_gn, radius, alpha, &dx_dl, &beta);
 
       Scalar e3 = params.relative_step_threshold;
       if (dx_dl.norm() < e3 * (x.norm() + e3)) {
@@ -221,9 +225,11 @@ class Dogleg {
       Scalar predicted = 0;
       if (step == GAUSS_NEWTON) {
         predicted = f_(x).squaredNorm();
-      } else if (step == STEEPEST_DESCENT) {
+      }
+      else if (step == STEEPEST_DESCENT) {
         predicted = radius * (2 * alpha * g.norm() - radius) / 2 / alpha;
-      } else if (step == DOGLEG) {
+      }
+      else if (step == DOGLEG) {
         predicted = 0.5 * alpha * (1 - beta) * (1 - beta) * g.squaredNorm() +
                     beta * (2 - beta) * f_(x).squaredNorm();
       }
@@ -246,7 +252,8 @@ class Dogleg {
       }
       if (rho > 0.75) {
         radius = std::max(radius, 3 * dx_dl.norm());
-      } else if (rho < 0.25) {
+      }
+      else if (rho < 0.25) {
         radius /= 2;
         if (radius < e3 * (x.norm() + e3)) {
           results.status = TRUST_REGION_TOO_SMALL;
@@ -263,7 +270,7 @@ class Dogleg {
   }
 
  private:
-  const Function& f_;
+  const Function &f_;
   Jacobian df_;
 };
 

@@ -38,8 +38,12 @@ namespace libmv {
     \sa Reconstruction
 */
 struct EuclideanCamera {
-  EuclideanCamera() : image(-1) {}
-  EuclideanCamera(const EuclideanCamera& c) : image(c.image), R(c.R), t(c.t) {}
+  EuclideanCamera() : image(-1)
+  {
+  }
+  EuclideanCamera(const EuclideanCamera &c) : image(c.image), R(c.R), t(c.t)
+  {
+  }
 
   int image;
   Mat3 R;
@@ -55,8 +59,12 @@ struct EuclideanCamera {
     \sa Reconstruction
 */
 struct EuclideanPoint {
-  EuclideanPoint() : track(-1) {}
-  EuclideanPoint(const EuclideanPoint& p) : track(p.track), X(p.X) {}
+  EuclideanPoint() : track(-1)
+  {
+  }
+  EuclideanPoint(const EuclideanPoint &p) : track(p.track), X(p.X)
+  {
+  }
   int track;
   Vec3 X;
 };
@@ -79,9 +87,9 @@ class EuclideanReconstruction {
   EuclideanReconstruction();
 
   /// Copy constructor.
-  EuclideanReconstruction(const EuclideanReconstruction& other);
+  EuclideanReconstruction(const EuclideanReconstruction &other);
 
-  EuclideanReconstruction& operator=(const EuclideanReconstruction& other);
+  EuclideanReconstruction &operator=(const EuclideanReconstruction &other);
 
   /*!
       Insert a camera into the set. If there is already a camera for the given
@@ -93,7 +101,7 @@ class EuclideanReconstruction {
 
       \note You should use the same \a image identifier as in \link Tracks.
   */
-  void InsertCamera(int image, const Mat3& R, const Vec3& t);
+  void InsertCamera(int image, const Mat3 &R, const Vec3 &t);
 
   /*!
       Insert a point into the reconstruction. If there is already a point for
@@ -105,18 +113,18 @@ class EuclideanReconstruction {
 
       \note You should use the same \a track identifier as in \link Tracks.
   */
-  void InsertPoint(int track, const Vec3& X);
+  void InsertPoint(int track, const Vec3 &X);
 
   /// Returns a pointer to the camera corresponding to \a image.
-  EuclideanCamera* CameraForImage(int image);
-  const EuclideanCamera* CameraForImage(int image) const;
+  EuclideanCamera *CameraForImage(int image);
+  const EuclideanCamera *CameraForImage(int image) const;
 
   /// Returns all cameras.
   vector<EuclideanCamera> AllCameras() const;
 
   /// Returns a pointer to the point corresponding to \a track.
-  EuclideanPoint* PointForTrack(int track);
-  const EuclideanPoint* PointForTrack(int track) const;
+  EuclideanPoint *PointForTrack(int track);
+  const EuclideanPoint *PointForTrack(int track) const;
 
   /// Returns all points.
   vector<EuclideanPoint> AllPoints() const;
@@ -139,8 +147,12 @@ class EuclideanReconstruction {
     \sa ProjectiveReconstruction
 */
 struct ProjectiveCamera {
-  ProjectiveCamera() : image(-1) {}
-  ProjectiveCamera(const ProjectiveCamera& c) : image(c.image), P(c.P) {}
+  ProjectiveCamera() : image(-1)
+  {
+  }
+  ProjectiveCamera(const ProjectiveCamera &c) : image(c.image), P(c.P)
+  {
+  }
 
   int image;
   Mat34 P;
@@ -155,8 +167,12 @@ struct ProjectiveCamera {
     \sa Reconstruction
 */
 struct ProjectivePoint {
-  ProjectivePoint() : track(-1) {}
-  ProjectivePoint(const ProjectivePoint& p) : track(p.track), X(p.X) {}
+  ProjectivePoint() : track(-1)
+  {
+  }
+  ProjectivePoint(const ProjectivePoint &p) : track(p.track), X(p.X)
+  {
+  }
   int track;
   Vec4 X;
 };
@@ -185,7 +201,7 @@ class ProjectiveReconstruction {
 
       \note You should use the same \a image identifier as in \link Tracks.
   */
-  void InsertCamera(int image, const Mat34& P);
+  void InsertCamera(int image, const Mat34 &P);
 
   /*!
       Insert a point into the reconstruction. If there is already a point for
@@ -197,18 +213,18 @@ class ProjectiveReconstruction {
 
       \note You should use the same \a track identifier as in \link Tracks.
   */
-  void InsertPoint(int track, const Vec4& X);
+  void InsertPoint(int track, const Vec4 &X);
 
   /// Returns a pointer to the camera corresponding to \a image.
-  ProjectiveCamera* CameraForImage(int image);
-  const ProjectiveCamera* CameraForImage(int image) const;
+  ProjectiveCamera *CameraForImage(int image);
+  const ProjectiveCamera *CameraForImage(int image) const;
 
   /// Returns all cameras.
   vector<ProjectiveCamera> AllCameras() const;
 
   /// Returns a pointer to the point corresponding to \a track.
-  ProjectivePoint* PointForTrack(int track);
-  const ProjectivePoint* PointForTrack(int track) const;
+  ProjectivePoint *PointForTrack(int track);
+  const ProjectivePoint *PointForTrack(int track) const;
 
   /// Returns all points.
   vector<ProjectivePoint> AllPoints() const;

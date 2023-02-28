@@ -39,9 +39,9 @@ namespace libmv {
     Reconstructed cameras and projected bundles would be added to reconstruction
     object.
 */
-void ModalSolver(const Tracks& tracks,
-                 EuclideanReconstruction* reconstruction,
-                 ProgressUpdateCallback* update_callback = NULL);
+void ModalSolver(const Tracks &tracks,
+                 EuclideanReconstruction *reconstruction,
+                 ProgressUpdateCallback *update_callback = NULL);
 
 }  // namespace libmv
 

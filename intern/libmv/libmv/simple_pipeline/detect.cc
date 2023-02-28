@@ -23,8 +23,8 @@
 ****************************************************************************/
 
 #include <memory.h>
-#include <stdlib.h>
 #include <queue>
+#include <stdlib.h>
 
 #include "libmv/base/scoped_ptr.h"
 #include "libmv/image/array_nd.h"
@@ -55,7 +55,8 @@ double kDefaultHarrisThreshold = 1e-5;
 
 class FeatureComparison {
  public:
-  bool operator()(const Feature& left, const Feature& right) const {
+  bool operator()(const Feature &left, const Feature &right) const
+  {
     return right.score > left.score;
   }
 };
@@ -63,17 +64,17 @@ class FeatureComparison {
 // Filter the features so there are no features closer than
 // minimal distance to each other.
 // This is a naive implementation with O(n^2) asymptotic.
-void FilterFeaturesByDistance(const vector<Feature>& all_features,
+void FilterFeaturesByDistance(const vector<Feature> &all_features,
                               int min_distance,
-                              vector<Feature>* detected_features) {
+                              vector<Feature> *detected_features)
+{
   const int min_distance_squared = min_distance * min_distance;
 
   // Use priority queue to sort the features by their score.
   //
   // Do this on copy of the input features to prevent possible
   // distortion in callee function behavior.
-  std::priority_queue<Feature, std::vector<Feature>, FeatureComparison>
-      priority_features;
+  std::priority_queue<Feature, std::vector<Feature>, FeatureComparison> priority_features;
 
   for (int i = 0; i < all_features.size(); i++) {
     priority_features.push(all_features.at(i));
@@ -84,7 +85,7 @@ void FilterFeaturesByDistance(const vector<Feature>& all_features,
     Feature a = priority_features.top();
 
     for (int i = 0; i < detected_features->size(); i++) {
-      Feature& b = detected_features->at(i);
+      Feature &b = detected_features->at(i);
       if (Square(a.x - b.x) + Square(a.y - b.y) < min_distance_squared) {
         ok = false;
         break;
@@ -99,9 +100,10 @@ void FilterFeaturesByDistance(const vector<Feature>& all_features,
   }
 }
 
-void DetectFAST(const FloatImage& grayscale_image,
-                const DetectOptions& options,
-                vector<Feature>* detected_features) {
+void DetectFAST(const FloatImage &grayscale_image,
+                const DetectOptions &options,
+                vector<Feature> *detected_features)
+{
 #ifndef LIBMV_NO_FAST_DETECTOR
   const int min_distance = options.min_distance;
   const int min_trackness = options.fast_min_trackness;
@@ -110,30 +112,22 @@ void DetectFAST(const FloatImage& grayscale_image,
   const int height = grayscale_image.Width() - 2 * margin;
   const int stride = grayscale_image.Width();
 
-  scoped_array<unsigned char> byte_image(
-      FloatImageToUCharArray(grayscale_image));
+  scoped_array<unsigned char> byte_image(FloatImageToUCharArray(grayscale_image));
   const int byte_image_offset = margin * stride + margin;
 
   // TODO(MatthiasF): Support targetting a feature count (binary search
   // trackness)
   int num_features;
-  xy* all = fast9_detect(byte_image.get() + byte_image_offset,
-                         width,
-                         height,
-                         stride,
-                         min_trackness,
-                         &num_features);
+  xy *all = fast9_detect(
+      byte_image.get() + byte_image_offset, width, height, stride, min_trackness, &num_features);
   if (num_features == 0) {
     free(all);
     return;
   }
-  int* scores = fast9_score(byte_image.get() + byte_image_offset,
-                            stride,
-                            all,
-                            num_features,
-                            min_trackness);
+  int *scores = fast9_score(
+      byte_image.get() + byte_image_offset, stride, all, num_features, min_trackness);
   // TODO(MatthiasF): merge with close feature suppression
-  xy* nonmax = nonmax_suppression(all, scores, num_features, &num_features);
+  xy *nonmax = nonmax_suppression(all, scores, num_features, &num_features);
   free(all);
   // Remove too close features
   // TODO(MatthiasF): A resolution independent parameter would be better than
@@ -143,10 +137,8 @@ void DetectFAST(const FloatImage& grayscale_image,
   if (num_features) {
     vector<Feature> all_features;
     for (int i = 0; i < num_features; ++i) {
-      all_features.push_back(Feature((float)nonmax[i].x + margin,
-                                     (float)nonmax[i].y + margin,
-                                     (float)scores[i],
-                                     9.0));
+      all_features.push_back(Feature(
+          (float)nonmax[i].x + margin, (float)nonmax[i].y + margin, (float)scores[i], 9.0));
     }
     FilterFeaturesByDistance(all_features, min_distance, detected_features);
   }
@@ -161,24 +153,19 @@ void DetectFAST(const FloatImage& grayscale_image,
 }
 
 #ifdef __SSE2__
-static unsigned int SAD(const ubyte* imageA,
-                        const ubyte* imageB,
-                        int strideA,
-                        int strideB) {
+static unsigned int SAD(const ubyte *imageA, const ubyte *imageB, int strideA, int strideB)
+{
   __m128i a = _mm_setzero_si128();
   for (int i = 0; i < 16; i++) {
-    a = _mm_adds_epu16(
-        a,
-        _mm_sad_epu8(_mm_loadu_si128((__m128i*)(imageA + i * strideA)),
-                     _mm_loadu_si128((__m128i*)(imageB + i * strideB))));
+    a = _mm_adds_epu16(a,
+                       _mm_sad_epu8(_mm_loadu_si128((__m128i *)(imageA + i * strideA)),
+                                    _mm_loadu_si128((__m128i *)(imageB + i * strideB))));
   }
   return _mm_extract_epi16(a, 0) + _mm_extract_epi16(a, 4);
 }
 #else
-static unsigned int SAD(const ubyte* imageA,
-                        const ubyte* imageB,
-                        int strideA,
-                        int strideB) {
+static unsigned int SAD(const ubyte *imageA, const ubyte *imageB, int strideA, int strideB)
+{
   unsigned int sad = 0;
   for (int i = 0; i < 16; i++) {
     for (int j = 0; j < 16; j++) {
@@ -189,19 +176,19 @@ static unsigned int SAD(const ubyte* imageA,
 }
 #endif
 
-void DetectMORAVEC(const FloatImage& grayscale_image,
-                   const DetectOptions& options,
-                   vector<Feature>* detected_features) {
+void DetectMORAVEC(const FloatImage &grayscale_image,
+                   const DetectOptions &options,
+                   vector<Feature> *detected_features)
+{
   const int distance = options.min_distance;
   const int margin = options.margin;
-  const unsigned char* pattern = options.moravec_pattern;
+  const unsigned char *pattern = options.moravec_pattern;
   const int count = options.moravec_max_count;
   const int width = grayscale_image.Width() - 2 * margin;
   const int height = grayscale_image.Width() - 2 * margin;
   const int stride = grayscale_image.Width();
 
-  scoped_array<unsigned char> byte_image(
-      FloatImageToUCharArray(grayscale_image));
+  scoped_array<unsigned char> byte_image(FloatImageToUCharArray(grayscale_image));
 
   unsigned short histogram[256];
   memset(histogram, 0, sizeof(histogram));
@@ -210,7 +197,7 @@ void DetectMORAVEC(const FloatImage& grayscale_image,
   const int r = 1;  // radius for self similarity comparison
   for (int y = distance; y < height - distance; y++) {
     for (int x = distance; x < width - distance; x++) {
-      const ubyte* s = &byte_image[y * stride + x];
+      const ubyte *s = &byte_image[y * stride + x];
       // low self-similarity with overlapping patterns
       // OPTI: load pattern once
       // clang-format off
@@ -228,7 +215,7 @@ void DetectMORAVEC(const FloatImage& grayscale_image,
       score -= 16;  // translate to score/histogram values
       if (score > 255)
         score = 255;  // clip
-      ubyte* c = &scores[y * width + x];
+      ubyte *c = &scores[y * width + x];
       for (int i = -distance; i < 0; i++) {
         for (int j = -distance; j < distance; j++) {
           int s = c[i * width + j];
@@ -250,7 +237,8 @@ void DetectMORAVEC(const FloatImage& grayscale_image,
         histogram[s]--;
       }
       c[0] = score, histogram[score]++;
-    nonmax : {}  // Do nothing.
+    nonmax : {
+    }  // Do nothing.
     }
   }
   int min = 255, total = 0;
@@ -270,16 +258,16 @@ void DetectMORAVEC(const FloatImage& grayscale_image,
         // Score calculation above uses top left corner of the
         // patch as the origin, here we need to convert this value
         // to a pattrn center by adding 8 pixels.
-        detected_features->push_back(
-            Feature((float)x + 8.0f, (float)y + 8.0f, (float)s, 16.0f));
+        detected_features->push_back(Feature((float)x + 8.0f, (float)y + 8.0f, (float)s, 16.0f));
       }
     }
   }
 }
 
-void DetectHarris(const FloatImage& grayscale_image,
-                  const DetectOptions& options,
-                  vector<Feature>* detected_features) {
+void DetectHarris(const FloatImage &grayscale_image,
+                  const DetectOptions &options,
+                  vector<Feature> *detected_features)
+{
   const double alpha = 0.06;
   const double sigma = 0.9;
 
@@ -316,8 +304,7 @@ void DetectHarris(const FloatImage& grayscale_image,
       double traceA = A.trace();
       double harris_function = detA - alpha * traceA * traceA;
       if (harris_function > threshold) {
-        all_features.push_back(
-            Feature((float)x, (float)y, (float)harris_function, 5.0f));
+        all_features.push_back(Feature((float)x, (float)y, (float)harris_function, 5.0f));
       }
     }
   }
@@ -334,34 +321,41 @@ DetectOptions::DetectOptions()
       fast_min_trackness(kDefaultFastMinTrackness),
       moravec_max_count(0),
       moravec_pattern(NULL),
-      harris_threshold(kDefaultHarrisThreshold) {
+      harris_threshold(kDefaultHarrisThreshold)
+{
 }
 
-void Detect(const FloatImage& image,
-            const DetectOptions& options,
-            vector<Feature>* detected_features) {
+void Detect(const FloatImage &image,
+            const DetectOptions &options,
+            vector<Feature> *detected_features)
+{
   // Currently all the detectors requires image to be grayscale.
   // Do it here to avoid code duplication.
   FloatImage grayscale_image;
   if (image.Depth() != 1) {
     Rgb2Gray(image, &grayscale_image);
-  } else {
+  }
+  else {
     // TODO(sergey): Find a way to avoid such image duplication/
     grayscale_image = image;
   }
 
   if (options.type == DetectOptions::FAST) {
     DetectFAST(grayscale_image, options, detected_features);
-  } else if (options.type == DetectOptions::MORAVEC) {
+  }
+  else if (options.type == DetectOptions::MORAVEC) {
     DetectMORAVEC(grayscale_image, options, detected_features);
-  } else if (options.type == DetectOptions::HARRIS) {
+  }
+  else if (options.type == DetectOptions::HARRIS) {
     DetectHarris(grayscale_image, options, detected_features);
-  } else {
+  }
+  else {
     LOG(FATAL) << "Unknown detector has been passed to featur detection";
   }
 }
 
-std::ostream& operator<<(std::ostream& os, const Feature& feature) {
+std::ostream &operator<<(std::ostream &os, const Feature &feature)
+{
   os << "x: " << feature.x << ", y: " << feature.y;
   os << ", score: " << feature.score;
   os << ", size: " << feature.size;

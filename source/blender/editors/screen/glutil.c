@@ -189,10 +189,6 @@ void immDrawPixelsTexTiled_scaling_clipping(IMMDrawPixelsTexState *state,
 
   GPUTexture *tex = GPU_texture_create_2d("immDrawPixels", tex_w, tex_h, 1, gpu_format, NULL);
 
-
- 
-
-
   GPU_texture_filter_mode(tex, use_filter);
   GPU_texture_wrap_mode(tex, false, true);
 
@@ -216,7 +212,6 @@ void immDrawPixelsTexTiled_scaling_clipping(IMMDrawPixelsTexState *state,
   }
 
   GPU_unpack_row_length_set(img_w);
-
 
   for (subpart_y = 0; subpart_y < nsubparts_y; subpart_y++) {
     for (subpart_x = 0; subpart_x < nsubparts_x; subpart_x++) {
@@ -249,7 +244,6 @@ void immDrawPixelsTexTiled_scaling_clipping(IMMDrawPixelsTexState *state,
           continue;
         }
       }
-
 
       {
         int src_y = subpart_y * offset_y;
@@ -284,8 +278,6 @@ void immDrawPixelsTexTiled_scaling_clipping(IMMDrawPixelsTexState *state,
 #undef DATA
       }
 
-
-
       uint pos = state->pos, texco = state->texco;
 
       GPU_texture_save(tex);
@@ -293,7 +285,7 @@ void immDrawPixelsTexTiled_scaling_clipping(IMMDrawPixelsTexState *state,
       immBegin(GPU_PRIM_TRI_FAN, 4);
       immAttr2f(texco, left / (float)tex_w, bottom / (float)tex_h);
       if (state->dim == 3) {
-        immVertex3f(pos, rast_x + offset_left * xzoom, rast_y + offset_bot * yzoom,0);
+        immVertex3f(pos, rast_x + offset_left * xzoom, rast_y + offset_bot * yzoom, 0);
       }
       else {
         immVertex2f(pos, rast_x + offset_left * xzoom, rast_y + offset_bot * yzoom);
@@ -301,17 +293,15 @@ void immDrawPixelsTexTiled_scaling_clipping(IMMDrawPixelsTexState *state,
 
       immAttr2f(texco, right / (float)tex_w, bottom / (float)tex_h);
       if (state->dim == 3) {
-        immVertex3f(pos, rast_x + right * xzoom * scaleX, rast_y + offset_bot * yzoom,0);
+        immVertex3f(pos, rast_x + right * xzoom * scaleX, rast_y + offset_bot * yzoom, 0);
       }
-      else
-        {
+      else {
         immVertex2f(pos, rast_x + right * xzoom * scaleX, rast_y + offset_bot * yzoom);
-        }
-
+      }
 
       immAttr2f(texco, right / (float)tex_w, top / (float)tex_h);
       if (state->dim == 3) {
-        immVertex3f(pos, rast_x + right * xzoom * scaleX, rast_y + top * yzoom * scaleY,0);
+        immVertex3f(pos, rast_x + right * xzoom * scaleX, rast_y + top * yzoom * scaleY, 0);
       }
       else {
         immVertex2f(pos, rast_x + right * xzoom * scaleX, rast_y + top * yzoom * scaleY);
@@ -319,7 +309,7 @@ void immDrawPixelsTexTiled_scaling_clipping(IMMDrawPixelsTexState *state,
 
       immAttr2f(texco, left / (float)tex_w, top / (float)tex_h);
       if (state->dim == 3) {
-        immVertex3f(pos, rast_x + offset_left * xzoom, rast_y + top * yzoom * scaleY,0);
+        immVertex3f(pos, rast_x + offset_left * xzoom, rast_y + top * yzoom * scaleY, 0);
       }
       else {
         immVertex2f(pos, rast_x + offset_left * xzoom, rast_y + top * yzoom * scaleY);
@@ -345,7 +335,6 @@ void immDrawPixelsTexTiled_scaling_clipping(IMMDrawPixelsTexState *state,
 
   /* Restore default. */
   GPU_unpack_row_length_set(0);
-
 }
 
 void immDrawPixelsTexTiled_scaling(IMMDrawPixelsTexState *state,

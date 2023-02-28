@@ -13,33 +13,34 @@ using libmv::FloatImage;
 
 struct libmv_Features {
   int count;
-  Feature* features;
+  Feature *features;
 };
 
 namespace {
 
-libmv_Features* libmv_featuresFromVector(
-    const libmv::vector<Feature>& features) {
-  libmv_Features* libmv_features = LIBMV_STRUCT_NEW(libmv_Features, 1);
+libmv_Features *libmv_featuresFromVector(const libmv::vector<Feature> &features)
+{
+  libmv_Features *libmv_features = LIBMV_STRUCT_NEW(libmv_Features, 1);
   int count = features.size();
   if (count) {
     libmv_features->features = LIBMV_STRUCT_NEW(Feature, count);
     for (int i = 0; i < count; i++) {
       libmv_features->features[i] = features.at(i);
     }
-  } else {
+  }
+  else {
     libmv_features->features = NULL;
   }
   libmv_features->count = count;
   return libmv_features;
 }
 
-void libmv_convertDetectorOptions(libmv_DetectOptions* options,
-                                  DetectOptions* detector_options) {
+void libmv_convertDetectorOptions(libmv_DetectOptions *options, DetectOptions *detector_options)
+{
   switch (options->detector) {
-#define LIBMV_CONVERT(the_detector)                                            \
-  case LIBMV_DETECTOR_##the_detector:                                          \
-    detector_options->type = DetectOptions::the_detector;                      \
+#define LIBMV_CONVERT(the_detector) \
+  case LIBMV_DETECTOR_##the_detector: \
+    detector_options->type = DetectOptions::the_detector; \
     break;
     LIBMV_CONVERT(FAST)
     LIBMV_CONVERT(MORAVEC)
@@ -56,11 +57,12 @@ void libmv_convertDetectorOptions(libmv_DetectOptions* options,
 
 }  // namespace
 
-libmv_Features* libmv_detectFeaturesByte(const unsigned char* image_buffer,
+libmv_Features *libmv_detectFeaturesByte(const unsigned char *image_buffer,
                                          int width,
                                          int height,
                                          int channels,
-                                         libmv_DetectOptions* options) {
+                                         libmv_DetectOptions *options)
+{
   // Prepare the image.
   FloatImage image;
   libmv_byteBufferToFloatImage(image_buffer, width, height, channels, &image);
@@ -74,15 +76,13 @@ libmv_Features* libmv_detectFeaturesByte(const unsigned char* image_buffer,
   Detect(image, detector_options, &detected_features);
 
   // Convert result to C-API.
-  libmv_Features* result = libmv_featuresFromVector(detected_features);
+  libmv_Features *result = libmv_featuresFromVector(detected_features);
   return result;
 }
 
-libmv_Features* libmv_detectFeaturesFloat(const float* image_buffer,
-                                          int width,
-                                          int height,
-                                          int channels,
-                                          libmv_DetectOptions* options) {
+libmv_Features *libmv_detectFeaturesFloat(
+    const float *image_buffer, int width, int height, int channels, libmv_DetectOptions *options)
+{
   // Prepare the image.
   FloatImage image;
   libmv_floatBufferToFloatImage(image_buffer, width, height, channels, &image);
@@ -96,28 +96,31 @@ libmv_Features* libmv_detectFeaturesFloat(const float* image_buffer,
   Detect(image, detector_options, &detected_features);
 
   // Convert result to C-API.
-  libmv_Features* result = libmv_featuresFromVector(detected_features);
+  libmv_Features *result = libmv_featuresFromVector(detected_features);
   return result;
 }
 
-void libmv_featuresDestroy(libmv_Features* libmv_features) {
+void libmv_featuresDestroy(libmv_Features *libmv_features)
+{
   if (libmv_features->features) {
     LIBMV_STRUCT_DELETE(libmv_features->features);
   }
   LIBMV_STRUCT_DELETE(libmv_features);
 }
 
-int libmv_countFeatures(const libmv_Features* libmv_features) {
+int libmv_countFeatures(const libmv_Features *libmv_features)
+{
   return libmv_features->count;
 }
 
-void libmv_getFeature(const libmv_Features* libmv_features,
+void libmv_getFeature(const libmv_Features *libmv_features,
                       int number,
-                      double* x,
-                      double* y,
-                      double* score,
-                      double* size) {
-  Feature& feature = libmv_features->features[number];
+                      double *x,
+                      double *y,
+                      double *score,
+                      double *size)
+{
+  Feature &feature = libmv_features->features[number];
   *x = feature.x;
   *y = feature.y;
   *score = feature.score;

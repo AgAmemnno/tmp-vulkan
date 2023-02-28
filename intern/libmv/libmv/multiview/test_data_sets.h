@@ -55,16 +55,19 @@ struct NViewDataSet {
 
   int n;  // Actual number of cameras.
 
-  Mat34 P(int i) {
+  Mat34 P(int i)
+  {
     assert(i < n);
     return K[i] * HStack(R[i], t[i]);
   }
-  Mat3 F(int i, int j) {
+  Mat3 F(int i, int j)
+  {
     Mat3 F_;
     FundamentalFromProjections(P(i), P(j), &F_);
     return F_;
   }
-  void Reproject() {
+  void Reproject()
+  {
     for (int i = 0; i < n; ++i) {
       x[i] = Project(P(i), X);
     }
@@ -91,10 +94,9 @@ struct nViewDatasetConfigator {
                          double jitter_amount = 0.01);
 };
 
-NViewDataSet NRealisticCamerasFull(
-    int nviews,
-    int npoints,
-    const nViewDatasetConfigator config = nViewDatasetConfigator());
+NViewDataSet NRealisticCamerasFull(int nviews,
+                                   int npoints,
+                                   const nViewDatasetConfigator config = nViewDatasetConfigator());
 
 // Generates sparse projections (not all points are projected)
 NViewDataSet NRealisticCamerasSparse(

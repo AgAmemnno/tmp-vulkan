@@ -50,9 +50,9 @@ namespace libmv {
  * \note There must be at least 4 non-colinear points.
  */
 bool Homography2DFromCorrespondencesLinear(
-    const Mat& x1,
-    const Mat& x2,
-    Mat3* H,
+    const Mat &x1,
+    const Mat &x2,
+    Mat3 *H,
     double expected_precision = EigenDouble::dummy_precision());
 
 /**
@@ -100,11 +100,10 @@ struct EstimateHomographyOptions {
  * correspondences by doing algebraic estimation first followed with result
  * refinement.
  */
-bool EstimateHomography2DFromCorrespondences(
-    const Mat& x1,
-    const Mat& x2,
-    const EstimateHomographyOptions& options,
-    Mat3* H);
+bool EstimateHomography2DFromCorrespondences(const Mat &x1,
+                                             const Mat &x2,
+                                             const EstimateHomographyOptions &options,
+                                             Mat3 *H);
 
 /**
  * 3D Homography transformation estimation.
@@ -130,9 +129,9 @@ bool EstimateHomography2DFromCorrespondences(
  * \note Points coordinates must be in homogeneous coordinates
  */
 bool Homography3DFromCorrespondencesLinear(
-    const Mat& x1,
-    const Mat& x2,
-    Mat4* H,
+    const Mat &x1,
+    const Mat &x2,
+    Mat4 *H,
     double expected_precision = EigenDouble::dummy_precision());
 
 /**
@@ -140,9 +139,7 @@ bool Homography3DFromCorrespondencesLinear(
  *
  * D(H * x1, x2)^2 + D(H^-1 * x2, x1)
  */
-double SymmetricGeometricDistance(const Mat3& H,
-                                  const Vec2& x1,
-                                  const Vec2& x2);
+double SymmetricGeometricDistance(const Mat3 &H, const Vec2 &x1, const Vec2 &x2);
 
 }  // namespace libmv
 

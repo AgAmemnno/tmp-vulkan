@@ -99,7 +99,7 @@ const double angular_state_transition_data[] = {
 // clang-format on
 #endif
 
-const double* state_transition_data = velocity_state_transition_data;
+const double *state_transition_data = velocity_state_transition_data;
 
 // Observation matrix.
 // clang-format off
@@ -150,7 +150,8 @@ TrackerKalman filter(state_transition_data,
                      process_covariance_data,
                      measurement_covariance_data);
 
-bool OrderByFrameLessThan(const Marker* a, const Marker* b) {
+bool OrderByFrameLessThan(const Marker *a, const Marker *b)
+{
   if (a->frame == b->frame) {
     if (a->clip == b->clip) {
       return a->track < b->track;
@@ -161,13 +162,11 @@ bool OrderByFrameLessThan(const Marker* a, const Marker* b) {
 }
 
 // Predicted must be after the previous markers (in the frame numbering sense).
-void RunPrediction(const vector<Marker*> previous_markers,
-                   Marker* predicted_marker) {
+void RunPrediction(const vector<Marker *> previous_markers, Marker *predicted_marker)
+{
   TrackerKalman::State state;
-  state.mean << previous_markers[0]->center.x(), 0, 0,
-      previous_markers[0]->center.y(), 0, 0;
-  state.covariance =
-      Eigen::Matrix<double, 6, 6, Eigen::RowMajor>(initial_covariance_data);
+  state.mean << previous_markers[0]->center.x(), 0, 0, previous_markers[0]->center.y(), 0, 0;
+  state.covariance = Eigen::Matrix<double, 6, 6, Eigen::RowMajor>(initial_covariance_data);
 
   int current_frame = previous_markers[0]->frame;
   int target_frame = predicted_marker->frame;
@@ -178,23 +177,20 @@ void RunPrediction(const vector<Marker*> previous_markers,
   for (int i = 1; i < previous_markers.size(); ++i) {
     // Step forward predicting the state until it is on the current marker.
     int predictions = 0;
-    for (; current_frame != previous_markers[i]->frame;
-         current_frame += frame_delta) {
+    for (; current_frame != previous_markers[i]->frame; current_frame += frame_delta) {
       filter.Step(&state);
       predictions++;
-      LG << "Predicted point (frame " << current_frame << "): " << state.mean(0)
-         << ", " << state.mean(3);
+      LG << "Predicted point (frame " << current_frame << "): " << state.mean(0) << ", "
+         << state.mean(3);
     }
     // Log the error -- not actually used, but interesting.
-    Vec2 error = previous_markers[i]->center.cast<double>() -
-                 Vec2(state.mean(0), state.mean(3));
-    LG << "Prediction error for " << predictions << " steps: (" << error.x()
-       << ", " << error.y() << "); norm: " << error.norm();
+    Vec2 error = previous_markers[i]->center.cast<double>() - Vec2(state.mean(0), state.mean(3));
+    LG << "Prediction error for " << predictions << " steps: (" << error.x() << ", " << error.y()
+       << "); norm: " << error.norm();
     // Now that the state is predicted in the current frame, update the state
     // based on the measurement from the current frame.
     filter.Update(previous_markers[i]->center.cast<double>(),
-                  Eigen::Matrix<double, 2, 2, Eigen::RowMajor>(
-                      measurement_covariance_data),
+                  Eigen::Matrix<double, 2, 2, Eigen::RowMajor>(measurement_covariance_data),
                   &state);
     LG << "Updated point: " << state.mean(0) << ", " << state.mean(3);
   }
@@ -202,8 +198,8 @@ void RunPrediction(const vector<Marker*> previous_markers,
   // predict until the target frame.
   for (; current_frame != target_frame; current_frame += frame_delta) {
     filter.Step(&state);
-    LG << "Final predicted point (frame " << current_frame
-       << "): " << state.mean(0) << ", " << state.mean(3);
+    LG << "Final predicted point (frame " << current_frame << "): " << state.mean(0) << ", "
+       << state.mean(3);
   }
 
   // The x and y positions are at 0 and 3; ignore acceleration and velocity.
@@ -211,7 +207,7 @@ void RunPrediction(const vector<Marker*> previous_markers,
   predicted_marker->center.y() = state.mean(3);
 
   // Take the patch from the last marker then shift it to match the prediction.
-  const Marker& last_marker = *previous_markers[previous_markers.size() - 1];
+  const Marker &last_marker = *previous_markers[previous_markers.size() - 1];
   predicted_marker->patch = last_marker.patch;
   Vec2f delta = predicted_marker->center - last_marker.center;
   for (int i = 0; i < 4; ++i) {
@@ -225,9 +221,8 @@ void RunPrediction(const vector<Marker*> previous_markers,
 
 }  // namespace
 
-bool PredictMarkerPosition(const Tracks& tracks,
-                           const PredictDirection direction,
-                           Marker* marker) {
+bool PredictMarkerPosition(const Tracks &tracks, const PredictDirection direction, Marker *marker)
+{
   // Get all markers for this clip and track.
   vector<Marker> markers;
   tracks.GetMarkersForTrackInClip(marker->clip, marker->track, &markers);
@@ -238,7 +233,7 @@ bool PredictMarkerPosition(const Tracks& tracks,
   }
 
   // Order the markers by frame within the clip.
-  vector<Marker*> boxed_markers(markers.size());
+  vector<Marker *> boxed_markers(markers.size());
   for (int i = 0; i < markers.size(); ++i) {
     boxed_markers[i] = &markers[i];
   }
@@ -270,13 +265,15 @@ bool PredictMarkerPosition(const Tracks& tracks,
     forward_scan_begin = forward_scan_end = 0;
     backward_scan_begin = markers.size() - 1;
     backward_scan_end = 0;
-  } else if (insert_at != -1) {
+  }
+  else if (insert_at != -1) {
     // Found existing marker; scan before and after it.
     forward_scan_begin = insert_at + 1;
     forward_scan_end = markers.size() - 1;
     backward_scan_begin = insert_at - 1;
     backward_scan_end = 0;
-  } else {
+  }
+  else {
     // Didn't find existing marker but found an insertion point.
     forward_scan_begin = insert_before;
     forward_scan_end = markers.size() - 1;
@@ -300,9 +297,13 @@ bool PredictMarkerPosition(const Tracks& tracks,
       }
       break;
 
-    case PredictDirection::FORWARD: predict_forward = true; break;
+    case PredictDirection::FORWARD:
+      predict_forward = true;
+      break;
 
-    case PredictDirection::BACKWARD: predict_forward = false; break;
+    case PredictDirection::BACKWARD:
+      predict_forward = false;
+      break;
   }
 
   const int max_frames_to_predict_from = 20;
@@ -313,26 +314,26 @@ bool PredictMarkerPosition(const Tracks& tracks,
       return false;
     }
     LG << "Predicting forward";
-    int predict_begin =
-        std::max(backward_scan_begin - max_frames_to_predict_from, 0);
+    int predict_begin = std::max(backward_scan_begin - max_frames_to_predict_from, 0);
     int predict_end = backward_scan_begin;
-    vector<Marker*> previous_markers;
+    vector<Marker *> previous_markers;
     for (int i = predict_begin; i <= predict_end; ++i) {
       previous_markers.push_back(boxed_markers[i]);
     }
     RunPrediction(previous_markers, marker);
     return true;
-  } else {
+  }
+  else {
     if (forward_scan_end - forward_scan_begin < num_consecutive_needed) {
       // Not enough information to do a prediction.
       LG << "Predicting backward impossible, not enough information";
       return false;
     }
     LG << "Predicting backward";
-    int predict_begin = std::min(
-        forward_scan_begin + max_frames_to_predict_from, forward_scan_end);
+    int predict_begin = std::min(forward_scan_begin + max_frames_to_predict_from,
+                                 forward_scan_end);
     int predict_end = forward_scan_begin;
-    vector<Marker*> previous_markers;
+    vector<Marker *> previous_markers;
     for (int i = predict_begin; i >= predict_end; --i) {
       previous_markers.push_back(boxed_markers[i]);
     }

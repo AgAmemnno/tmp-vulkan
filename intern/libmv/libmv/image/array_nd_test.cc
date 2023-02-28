@@ -27,14 +27,16 @@ using libmv::ArrayND;
 
 namespace {
 
-TEST(ArrayND, EmptyConstructor) {
+TEST(ArrayND, EmptyConstructor)
+{
   ArrayND<int, 2> a;
 
   EXPECT_EQ(0, a.Shape(0));
   EXPECT_EQ(0, a.Shape(1));
 }
 
-TEST(ArrayND, IndexConstructor) {
+TEST(ArrayND, IndexConstructor)
+{
   int s[] = {1, 2, 3};
   ArrayND<int, 3>::Index shape(s);
   ArrayND<int, 3> a(shape);
@@ -44,7 +46,8 @@ TEST(ArrayND, IndexConstructor) {
   EXPECT_EQ(3, a.Shape(2));
 }
 
-TEST(ArrayND, PointerConstructor) {
+TEST(ArrayND, PointerConstructor)
+{
   int s[] = {1, 2, 3};
   ArrayND<int, 3> a(s);
 
@@ -53,7 +56,8 @@ TEST(ArrayND, PointerConstructor) {
   EXPECT_EQ(3, a.Shape(2));
 }
 
-TEST(ArrayND, CopyConstructor) {
+TEST(ArrayND, CopyConstructor)
+{
   int s[] = {1, 2, 3};
   ArrayND<int, 3> a(s);
   a(0, 1, 1) = 3;
@@ -67,7 +71,8 @@ TEST(ArrayND, CopyConstructor) {
   EXPECT_EQ(3, a(0, 1, 2));
 }
 
-TEST(ArrayND, Assignation) {
+TEST(ArrayND, Assignation)
+{
   int s[] = {1, 2, 3};
   ArrayND<int, 3> a(s);
   a(0, 1, 1) = 3;
@@ -82,7 +87,8 @@ TEST(ArrayND, Assignation) {
   EXPECT_EQ(3, a(0, 1, 2));
 }
 
-TEST(ArrayND, Fill) {
+TEST(ArrayND, Fill)
+{
   int s[] = {2, 2};
   ArrayND<int, 2> a(s);
   a.Fill(42);
@@ -92,7 +98,8 @@ TEST(ArrayND, Fill) {
   EXPECT_EQ(42, a(1, 1));
 }
 
-TEST(ArrayND, Size) {
+TEST(ArrayND, Size)
+{
   int s[] = {1, 2, 3};
   ArrayND<int, 3>::Index shape(s);
   ArrayND<int, 3> a(shape);
@@ -105,7 +112,8 @@ TEST(ArrayND, Size) {
   EXPECT_FALSE(a.Contains(shape));
 }
 
-TEST(ArrayND, MemorySizeInBytes) {
+TEST(ArrayND, MemorySizeInBytes)
+{
   int s[] = {2, 3};
   ArrayND<int, 2>::Index shape(s);
   ArrayND<int, 2> a(shape);
@@ -114,7 +122,8 @@ TEST(ArrayND, MemorySizeInBytes) {
   EXPECT_EQ(size, a.MemorySizeInBytes());
 }
 
-TEST(ArrayND, Parenthesis) {
+TEST(ArrayND, Parenthesis)
+{
   typedef ArrayND<int, 2>::Index Index;
 
   int s[] = {3, 3};
@@ -129,20 +138,23 @@ TEST(ArrayND, Parenthesis) {
   EXPECT_EQ(5, a(Index(i2)));
 }
 
-TEST(ArrayND, 1DConstructor) {
+TEST(ArrayND, 1DConstructor)
+{
   ArrayND<int, 1> a(3);
 
   EXPECT_EQ(3, a.Shape(0));
 }
 
-TEST(ArrayND, 2DConstructor) {
+TEST(ArrayND, 2DConstructor)
+{
   ArrayND<int, 2> a(1, 2);
 
   EXPECT_EQ(1, a.Shape(0));
   EXPECT_EQ(2, a.Shape(1));
 }
 
-TEST(ArrayND, 3DConstructor) {
+TEST(ArrayND, 3DConstructor)
+{
   ArrayND<int, 3> a(1, 2, 3);
 
   EXPECT_EQ(1, a.Shape(0));
@@ -150,7 +162,8 @@ TEST(ArrayND, 3DConstructor) {
   EXPECT_EQ(3, a.Shape(2));
 }
 
-TEST(ArrayND, 1DAccessor) {
+TEST(ArrayND, 1DAccessor)
+{
   ArrayND<int, 1> a(3);
   a(0) = 1;
   a(1) = 2;
@@ -161,7 +174,8 @@ TEST(ArrayND, 1DAccessor) {
   EXPECT_EQ(2, *(a.Data() + a.Stride(0)));
 }
 
-TEST(ArrayND, 2DAccessor) {
+TEST(ArrayND, 2DAccessor)
+{
   ArrayND<int, 2> a(3, 3);
   a(0, 0) = 1;
   a(1, 1) = 2;
@@ -172,7 +186,8 @@ TEST(ArrayND, 2DAccessor) {
   EXPECT_EQ(2, *(a.Data() + a.Stride(0) + a.Stride(1)));
 }
 
-TEST(ArrayND, 3DAccessor) {
+TEST(ArrayND, 3DAccessor)
+{
   ArrayND<int, 3> a(3, 3, 3);
   a(0, 0, 0) = 1;
   a(1, 1, 1) = 2;
@@ -183,7 +198,8 @@ TEST(ArrayND, 3DAccessor) {
   EXPECT_EQ(2, *(a.Data() + a.Stride(0) + a.Stride(1) + a.Stride(2)));
 }
 
-TEST(ArrayND, CopyFrom) {
+TEST(ArrayND, CopyFrom)
+{
   ArrayND<int, 3> a(2, 2, 1);
   a(0, 0, 0) = 1;
   a(0, 1, 0) = 2;
@@ -197,7 +213,8 @@ TEST(ArrayND, CopyFrom) {
   EXPECT_FLOAT_EQ(4.0f, b(1, 1, 0));
 }
 
-TEST(ArrayND, MultiplyElements) {
+TEST(ArrayND, MultiplyElements)
+{
   ArrayND<int, 3> a(2, 2, 1);
   a(0, 0, 0) = 1;
   a(0, 1, 0) = 2;
@@ -216,7 +233,8 @@ TEST(ArrayND, MultiplyElements) {
   EXPECT_FLOAT_EQ(12, c(1, 1, 0));
 }
 
-TEST(ArrayND, IsEqualOperator) {
+TEST(ArrayND, IsEqualOperator)
+{
   ArrayND<int, 3> a(2, 2, 1);
   a(0, 0, 0) = 1;
   a(0, 1, 0) = 2;
@@ -234,7 +252,8 @@ TEST(ArrayND, IsEqualOperator) {
   EXPECT_FALSE(a == b);
 }
 
-TEST(Array3D, Sizes) {
+TEST(Array3D, Sizes)
+{
   Array3D<int> array;
   EXPECT_EQ(array.Height(), 0);
   EXPECT_EQ(array.Width(), 0);
@@ -242,7 +261,8 @@ TEST(Array3D, Sizes) {
   EXPECT_EQ(array.Shape(0), 0);
 }
 
-TEST(Array3D, CopyConstructor) {
+TEST(Array3D, CopyConstructor)
+{
   Array3D<int> array(10, 10);
   array(0, 0) = 1;
   array(0, 1) = 1;
@@ -255,7 +275,8 @@ TEST(Array3D, CopyConstructor) {
   EXPECT_EQ(array(0, 1), 1);
 }
 
-TEST(Array3D, Assignation) {
+TEST(Array3D, Assignation)
+{
   Array3D<int> array(10, 10);
   array(0, 0) = 1;
   array(0, 1) = 1;
@@ -269,13 +290,15 @@ TEST(Array3D, Assignation) {
   EXPECT_EQ(array(0, 1), 1);
 }
 
-TEST(Array3D, Parenthesis) {
+TEST(Array3D, Parenthesis)
+{
   Array3D<int> array(1, 2, 3);
   array(0, 1, 0) = 3;
   EXPECT_EQ(array(0, 1), 3);
 }
 
-TEST(Array3Df, SplitChannels) {
+TEST(Array3Df, SplitChannels)
+{
   Array3Df array(1, 2, 3);
   array(0, 0, 0) = 1;
   array(0, 1, 0) = 1;
@@ -294,7 +317,8 @@ TEST(Array3Df, SplitChannels) {
   }
 }
 
-TEST(ArrayND, MultiplyElementsGeneric) {
+TEST(ArrayND, MultiplyElementsGeneric)
+{
   ArrayND<double, 5> A;
   ArrayND<int, 5> B;
   ArrayND<double, 5> C;

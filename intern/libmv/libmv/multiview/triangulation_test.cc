@@ -30,7 +30,8 @@
 namespace {
 using namespace libmv;
 
-TEST(Triangulation, TriangulateDLT) {
+TEST(Triangulation, TriangulateDLT)
+{
   TwoViewDataSet d = TwoRealisticCameras();
 
   for (int i = 0; i < d.X.cols(); ++i) {

@@ -294,7 +294,7 @@ uchar *VKImmediate::begin()
   if (!vkbuffer_) {
     VKResourceOptions options;
     options.setDeviceLocal(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-    vkbuffer_ = new VKBuffer(bytes_needed, 256, "VKImmediate::vbo",options);
+    vkbuffer_ = new VKBuffer(bytes_needed, 256, "VKImmediate::vbo", options);
   }
   else
     vkbuffer_->Resize(bytes_needed, 256);
@@ -345,7 +345,7 @@ void VKImmediate::record()
   if (vertex_len <= 0)
     return;
   VKShader *vkshader = reinterpret_cast<VKShader *>(shader);
-  VkPipeline& current_pipe = vkshader->get_pipeline();
+  VkPipeline &current_pipe = vkshader->get_pipeline();
   BLI_assert(current_pipe != VK_NULL_HANDLE);
   VKFrameBuffer *fb = static_cast<VKFrameBuffer *>(context_->active_fb);
   if (fb->is_swapchain_) {
@@ -355,16 +355,12 @@ void VKImmediate::record()
   }
   vkshader->current_cmd_ = VK_NULL_HANDLE;
   vkshader->current_cmd_ = fb->render_begin(vkshader->current_cmd_,
-                                              VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+                                            VK_COMMAND_BUFFER_LEVEL_PRIMARY);
   vkshader->update_descriptor_set(vkshader->current_cmd_, vkshader->current_layout_);
   auto vkinterface = (VKShaderInterface *)vkshader->interface;
 
-
-
-
   auto vert = vkbuffer_->get_vk_buffer();
   VkDeviceSize offsets[1] = {0};
-
 
   fb->set_dirty_render(true);
   vkCmdBindPipeline(vkshader->current_cmd_, VK_PIPELINE_BIND_POINT_GRAPHICS, current_pipe);
@@ -380,8 +376,6 @@ void VKImmediate::record()
                        vkinterface->push_cache_);
   }
 
-
-
   vkCmdBindVertexBuffers(vkshader->current_cmd_, 0, 1, &vert, offsets);
 
   debug::pushMarker(vkshader->current_cmd_, std::string("ImmDraw") + vkshader->name_get());
@@ -394,27 +388,25 @@ void VKImmediate::record()
     fb->render_end();
   }
   else {
-    //fb->move_pipe(current_pipe);
+    // fb->move_pipe(current_pipe);
     fb->render_end();
   }
- 
 
   static int cnt = 0;
   bool save = false;
   /*
   switch (cnt) {
-    case  
+    case
     default:
       break;
   }
   */
-  if (cnt > 34 && cnt  < 41) {
+  if (cnt > 34 && cnt < 41) {
     save = true;
   }
 
   save = false;
-  if (save)
-  {
+  if (save) {
     std::string filename = std::string(fb->name_get()) + "_" + vkshader->name_get();
     auto ve = split(filename, '>');
     if (ve.size() == 1) {
@@ -424,7 +416,6 @@ void VKImmediate::record()
       filename = ve[1] + "No." + std::to_string(cnt);
     }
     fb->save_current_frame(filename.c_str());
-   
   }
   cnt++;
 };

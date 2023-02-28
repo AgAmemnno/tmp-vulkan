@@ -25,7 +25,6 @@
 
 #include "MEM_guardedalloc.h"
 
-
 #include <vulkan/vulkan.h>
 #define WITH_VULKAN_SHADER_COMPILATION
 
@@ -125,7 +124,7 @@ class VKShader : public Shader {
   {
     return true;
   };
-  VkPipeline& get_pipeline()
+  VkPipeline &get_pipeline()
   {
 
     return pipe;
@@ -156,25 +155,20 @@ class VKShader : public Shader {
   void append_write_descriptor(uint setid, uint binding, VkDescriptorType type, T &info)
   {
 
-
     auto vkinterface = (VKShaderInterface *)(interface);
     auto Set = vkinterface->get_desc_set(setid);
 
- 
     auto desc_pre = write_descs_[setid];
     write_descs_[setid].clear();
     for (auto &desc : desc_pre) {
-      if ((desc.dstSet == Set) && ( desc.dstBinding == binding))
-      {
+      if ((desc.dstSet == Set) && (desc.dstBinding == binding)) {
         BLI_assert(desc.descriptorType == type);
         BLI_assert(desc.descriptorCount == 1);
       }
       else {
         write_descs_[setid].append(desc);
       }
-       
     }
-
 
     VkWriteDescriptorSet writeDescriptorSet{};
     write_descs_[setid].append(writeDescriptorSet);

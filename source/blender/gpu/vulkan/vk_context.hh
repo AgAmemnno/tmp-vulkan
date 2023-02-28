@@ -6,7 +6,7 @@
  */
 
 #pragma once
-///Capabilities
+/// Capabilities
 ///
 #define VK_MAX_TEXTURE_SLOTS 128
 #define VK_MAX_SAMPLER_SLOTS VK_MAX_TEXTURE_SLOTS
@@ -27,26 +27,27 @@
 /* Display debug information about missing attributes and incorrect vertex formats. */
 #define VK_DEBUG_SHADER_ATTRIBUTES 0
 
-///Capabilities
-
-
+/// Capabilities
 
 #include "DNA_userdef_types.h"
-#include "vk_mem_alloc.h"
 #include "MEM_guardedalloc.h"
-#include "gpu_context_private.hh"
-#include "GPU_common_types.h"
-#include "GPU_context.h"
-#include "intern/GHOST_Context.h"
-#include "vk_layout.hh"
-#include "vk_memory.hh"
+#include "BLI_set.hh"
+
 #ifdef __APPLE__
 #  include <MoltenVK/vk_mvk_moltenvk.h>
 #else
 #  include <vulkan/vulkan.h>
 #endif
 
-#include "BLI_set.hh"
+#include "GPU_common_types.h"
+#include "GPU_context.h"
+#include "gpu_context_private.hh"
+
+#include "GHOST_C-api.h"
+
+#include "vk_layout.hh"
+#include "vk_mem_alloc.h"
+#include "vk_memory.hh"
 
 
 #include <mutex>
@@ -54,49 +55,46 @@
 namespace blender::gpu {
 
 static VkPrimitiveTopology to_vk(const GPUPrimType prim_type)
-  {
+{
 
-    switch (prim_type) {
-      case GPU_PRIM_POINTS:
-        return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-      case GPU_PRIM_LINES:
-        return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-      case GPU_PRIM_LINES_ADJ:
-        return VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY;
-      case GPU_PRIM_LINE_LOOP:
-        return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-      case GPU_PRIM_LINE_STRIP:
-        return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
-      case GPU_PRIM_LINE_STRIP_ADJ:
-        return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY;
-      case GPU_PRIM_TRIS:
-        return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-      case GPU_PRIM_TRIS_ADJ:
-        return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY;
-      case GPU_PRIM_TRI_FAN:
-        return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
-      case GPU_PRIM_TRI_STRIP:
-        return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-      case GPU_PRIM_NONE:
-        return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
-    };
-    return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
-  }
+  switch (prim_type) {
+    case GPU_PRIM_POINTS:
+      return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+    case GPU_PRIM_LINES:
+      return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+    case GPU_PRIM_LINES_ADJ:
+      return VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY;
+    case GPU_PRIM_LINE_LOOP:
+      return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+    case GPU_PRIM_LINE_STRIP:
+      return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+    case GPU_PRIM_LINE_STRIP_ADJ:
+      return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY;
+    case GPU_PRIM_TRIS:
+      return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    case GPU_PRIM_TRIS_ADJ:
+      return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY;
+    case GPU_PRIM_TRI_FAN:
+      return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
+    case GPU_PRIM_TRI_STRIP:
+      return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+    case GPU_PRIM_NONE:
+      return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
+  };
+  return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
+}
 
 class VKSharedOrphanLists {
  public:
   /** Mutex for the below structures. */
   std::mutex lists_mutex;
   /** Buffers and textures are shared across context. Any context can free them. */
-  Vector<GLuint> textures;
-  Vector<VKBuffer*> buffers;
+  Vector<uint32_t> textures;
+  Vector<VKBuffer *> buffers;
 
  public:
   void orphans_clear();
 };
-
-
-
 
 class VKFrameBuffer;
 class VKCommandBufferManager;
@@ -107,23 +105,21 @@ class VKShaderInterface;
 class VKTexture;
 class VKVaoCache;
 class VKVertBuf;
-    /* Metal Context Render Pass State -- Used to track active RenderCommandEncoder state based on
+/* Metal Context Render Pass State -- Used to track active RenderCommandEncoder state based on
  * bound MTLFrameBuffer's.Owned by MTLContext. */
 class VKRenderPassState {
   friend class VKContext;
 
  public:
   VKRenderPassState(VKContext &context, VKCommandBufferManager &command_buffer_manager)
-      : ctx(context), cmd(command_buffer_manager){
+      : ctx(context), cmd(command_buffer_manager)
+  {
 
     for (int i = 0; i < VK_MAX_TEXTURE_SLOTS; i++) {
       cached_vertex_sampler_state_bindings[i].sampler_state = VK_NULL_HANDLE;
     }
-
   };
-  ~VKRenderPassState()
-  {
-
+  ~VKRenderPassState(){
 
   };
   /* Given a RenderPassState is associated with a live RenderCommandEncoder,
@@ -145,8 +141,8 @@ class VKRenderPassState {
   };
 
   VKBoundShaderState last_bound_shader_state;
-//  VkRenderPipelineStateCreateInfo  bound_pso = nil;
-//  id<MTLDepthStencilState> bound_ds_state = nil;
+  //  VkRenderPipelineStateCreateInfo  bound_pso = nil;
+  //  id<MTLDepthStencilState> bound_ds_state = nil;
   uint last_used_stencil_ref_value = 0;
   VkRect2D last_scissor_rect;
 
@@ -162,14 +158,11 @@ class VKRenderPassState {
   VkDescriptorBufferInfo cached_vertex_buffer_bindings[VK_MAX_UNIFORM_BUFFER_BINDINGS];
   VkDescriptorBufferInfo cached_fragment_buffer_bindings[VK_MAX_UNIFORM_BUFFER_BINDINGS];
 
-
-
-
   struct SamplerStateBindingCached {
-    //MTLSamplerState binding_state;
-    //id<MTLSamplerState> sampler_state;
-    VKSamplerState  binding_state;
-    VkSampler  sampler_state;
+    // MTLSamplerState binding_state;
+    // id<MTLSamplerState> sampler_state;
+    VKSamplerState binding_state;
+    VkSampler sampler_state;
     bool is_arg_buffer_binding;
   };
 
@@ -178,11 +171,9 @@ class VKRenderPassState {
 
   Vector<VkWriteDescriptorSet> write_outs;
 
-
   void append_write_texture(VkWriteDescriptorSet &write);
 
-
-    /* Sampler Binding (RenderCommandEncoder). */
+  /* Sampler Binding (RenderCommandEncoder). */
   bool append_sampler(VKSamplerBinding &sampler_binding,
                       bool use_argument_buffer_for_samplers,
                       uint slot);
@@ -195,32 +186,23 @@ class VKRenderPassState {
   void bind_vertex_texture(VkImageView iinfo, uint32_t slot);
   void bind_fragment_texture(VkDescriptorImageInfo iinfo, uint32_t slot);
 
-
-
-
   void bind_fragment_sampler(SamplerStateBindingCached &sampler_binding,
                              bool use_argument_buffer_for_samplers,
                              uint slot);
 
   /* Buffer binding (RenderCommandEncoder). */
 
-  void bind_vertex_buffer(VkDescriptorBufferInfo buffer,
-                                              uint buffer_offset,
-                                              uint index);
+  void bind_vertex_buffer(VkDescriptorBufferInfo buffer, uint buffer_offset, uint index);
 
   void bind_fragment_buffer(VkBuffer buffer, uint buffer_offset, uint index);
   void bind_vertex_bytes(void *bytes, uint length, uint index);
   void bind_fragment_bytes(void *bytes, uint length, uint index);
-
-
-
 };
 
-
 class VKStateManager;
-typedef VKBuffer     VKVAOty_impl;
-typedef VKVAOty_impl*   VKVAOty;
-typedef VKVAOty*   VecVKVAOty;
+typedef VKBuffer VKVAOty_impl;
+typedef VKVAOty_impl *VKVAOty;
+typedef VKVAOty *VecVKVAOty;
 
 class VKContext : public Context {
  private:
@@ -229,75 +211,77 @@ class VKContext : public Context {
   VkPhysicalDevice physical_device_ = VK_NULL_HANDLE;
   VkDevice device_ = VK_NULL_HANDLE;
   uint32_t graphic_queue_familly_ = 0;
+  int current_frame_index_ = 0;
+  int current_img_index_ = 0;
+  VkImageLayout current_swapchain_img_layout_;
+  VkImage current_swapchain_img_ = VK_NULL_HANDLE;
+
   /** Allocator used for texture and buffers and other resources. */
- // VmaAllocator mem_allocator_ = VK_NULL_HANDLE;
- 
+  // VmaAllocator mem_allocator_ = VK_NULL_HANDLE;
 
   /** Mutex for the below structures. */
   std::mutex lists_mutex_;
   /** VertexArrays and framebuffers are not shared across context. */
-  Vector<VKBuffer*> orphaned_vertarrays_;
+  Vector<VKBuffer *> orphaned_vertarrays_;
   Vector<VkFramebuffer> orphaned_framebuffers_;
   /** #GLBackend owns this data. */
   VKSharedOrphanLists &shared_orphan_list_;
-  uint32_t current_frame_index_;
 
 
-  bool is_initialized_      = false;
+  bool is_initialized_ = false;
 
   VkSampler sampler_state_cache_[GPU_SAMPLER_MAX];
   VkSampler default_sampler_state_;
 
-   int nums_submit_ = 0;
-
+  int nums_submit_ = 0;
 
  public:
   VKVertBuf *default_attr_vbo_;
-   /*  Capabilities. */
-   static uint32_t    max_cubemap_size;
-   static uint32_t    max_ubo_size;
-   static  uint32_t   max_ubo_binds;
-   static  uint32_t   max_ssbo_size;
-   static  uint32_t   max_ssbo_binds;
-   static uint32_t    max_push_constants_size;
-   static uint32_t    max_inline_ubo_size;
-   static bool    multi_draw_indirect_support;
-   static uint32_t max_geometry_shader_invocations;
-   static bool vertex_attrib_binding_support;
-   static float derivative_signs[2];
+  /*  Capabilities. */
+  static uint32_t max_cubemap_size;
+  static uint32_t max_ubo_size;
+  static uint32_t max_ubo_binds;
+  static uint32_t max_ssbo_size;
+  static uint32_t max_ssbo_binds;
+  static uint32_t max_push_constants_size;
+  static uint32_t max_inline_ubo_size;
+  static bool multi_draw_indirect_support;
+  static uint32_t max_geometry_shader_invocations;
+  static bool vertex_attrib_binding_support;
+  static float derivative_signs[2];
   void destroyMemAllocator();
   VkSampler get_default_sampler_state();
   VkSampler get_sampler_from_state(VKSamplerState sampler_state);
   VkSampler generate_sampler_from_state(VKSamplerState sampler_state);
-  VkFormat  getImageFormat();
+  VkFormat getImageFormat();
   VkFormat getDepthFormat();
-  void getImageView(VkImageView& view, int i);
+  void getImageView(VkImageView &view, int i);
   int getImageViewNums();
-  void getRenderExtent(VkExtent2D& _render_extent);
- VkRenderPass get_renderpass();
+  void getRenderExtent(VkExtent2D &_render_extent);
+  VkRenderPass get_renderpass();
   VkPhysicalDevice get_physical_device();
   void *ghost_context_;
 
   VkPipelineCache get_pipeline_cache();
 
-  VKStagingBufferManager*  buffer_manager_;
-  PipelineStateCreateInfoVk       pipeline_state;
-  VkCommandBuffer                     current_cmd_;
-  Vector<VKFrameBuffer*>             frame_buffers_;
+  VKStagingBufferManager *buffer_manager_;
+  PipelineStateCreateInfoVk pipeline_state;
+  VkCommandBuffer current_cmd_;
+  Vector<VKFrameBuffer *> frame_buffers_;
   bool is_swapchain_ = false;
-  VKContext(void *ghost_window, void *ghost_context,VKSharedOrphanLists &shared_orphan_list);
+  VKContext(void *ghost_window, void *ghost_context, VKSharedOrphanLists &shared_orphan_list);
   ~VKContext();
   void init(void *ghost_window, void *ghost_context);
 
-  void clear_color(VkCommandBuffer cmd, const VkClearColorValue* clearValues);
-  
+  void clear_color(VkCommandBuffer cmd, const VkClearColorValue *clearValues);
+
   /* CommandBuffer managers.   */
   //
   void activate() override;
   void deactivate() override;
   void begin_frame() override;
   void end_frame() override;
-  void begin_submit_simple(VkCommandBuffer& cmd,bool ofscreen= false);
+  void begin_submit_simple(VkCommandBuffer &cmd, bool ofscreen = false);
   void end_submit_simple();
 
   void begin_submit(int N);
@@ -317,68 +301,89 @@ class VKContext : public Context {
 
   void begin_render_pass(VkCommandBuffer &cmd, int i = -1);
   void end_render_pass(VkCommandBuffer &cmd, int i = -1);
-  bool is_onetime_commit_= false;
+  bool is_onetime_commit_ = false;
   int begin_onetime_submit(VkCommandBuffer cmd);
   void end_onetime_submit(int i);
-  
-  int   begin_offscreen_submit(VkCommandBuffer cmd);
-  void end_offscreen_submit(VkCommandBuffer& cmd, VkSemaphore wait, VkSemaphore signal);
 
-  void get_frame_buffer(VKFrameBuffer*& fb_);
+  int begin_offscreen_submit(VkCommandBuffer cmd);
+  void end_offscreen_submit(VkCommandBuffer &cmd, VkSemaphore wait, VkSemaphore signal);
 
-  void get_command_buffer(VkCommandBuffer& cmd);
+  void get_frame_buffer(VKFrameBuffer *&fb_);
+
 
   VmaAllocator mem_allocator_get();
-  VkDevice device_get() {
+  VkDevice device_get()
+  {
     return device_;
   };
   VkQueue queue_get(uint32_t type_);
   void fbo_free(VkFramebuffer fbo_id);
   void vao_free(VKVAOty buf);
-  static   void buf_free(VKBuffer* buf);
+  static void buf_free(VKBuffer *buf);
 
   static VKContext *get()
   {
     VKContext *vk_ctx = static_cast<VKContext *>(unwrap(GPU_context_active_get()));
     BLI_assert(vk_ctx);
-    return vk_ctx;//static_cast<VKContext *>(Context::get());
+    return vk_ctx;  // static_cast<VKContext *>(Context::get());
   }
 
-  Set<VKVaoCache*> vao_caches_;
-  void  vao_cache_register(VKVaoCache* cache) {
+  /* -------------------------------------------------------------------- */
+  /** \name Get & Set
+   * \{ */
+
+  /*NOTE: Functions for getting members of #GHOST_ContextVK. */
+
+  uint32_t get_current_image_index();
+  uint32_t get_graphicQueueIndex();
+  VkImage get_current_image();
+  VkImageLayout get_current_image_layout();
+
+  /** \} */
+
+  /* -------------------------------------------------------------------- */
+  /** \name Submit Management
+  * \{ */
+
+  int cmd_prim_id_ = -1;
+  VkCommandPool vk_command_pool_=VK_NULL_HANDLE; 
+  Vector<VkCommandBuffer> vk_cmd_primaries_;
+  VkImageLayout                           vk_sw_layouts[2];
+  VkCommandBuffer request_command_buffer();
+
+  /** \} */
+
+  Set<VKVaoCache *> vao_caches_;
+  void vao_cache_register(VKVaoCache *cache)
+  {
     lists_mutex_.lock();
     vao_caches_.add(cache);
     lists_mutex_.unlock();
   }
-  void vao_cache_unregister(VKVaoCache* cache)
+  void vao_cache_unregister(VKVaoCache *cache)
   {
     lists_mutex_.lock();
     vao_caches_.remove(cache);
     lists_mutex_.unlock();
   }
-  void         create_swapchain_fb();
-  uint32_t get_current_frame_index();
-  uint32_t get_current_image_index();
-  uint32_t get_transferQueueIndex();
-  uint32_t get_graphicQueueIndex();
-  VkImage get_current_image();
-  VkImageLayout get_current_image_layout();
-  
+  void create_swapchain_fb();
+
 
   void set_current_image_layout(VkImageLayout layout);
 
-  bool begin_blit_submit(VkCommandBuffer& cmd);
+  bool begin_blit_submit(VkCommandBuffer &cmd);
 
-  bool end_blit_submit(VkCommandBuffer& cmd, std::vector<VkSemaphore> batch_signal);
+  bool end_blit_submit(VkCommandBuffer &cmd, std::vector<VkSemaphore> batch_signal);
 
-  bool is_support_format(VkFormat format,  VkFormatFeatureFlagBits flag,bool linear);
-
+  bool is_support_format(VkFormat format, VkFormatFeatureFlagBits flag, bool linear);
 
   VKStagingBufferManager *get_buffer_manager()
   {
     return buffer_manager_;
   }
-  VkCommandBuffer request_command_buffer(bool second= false);
+
+
+
   void framebuffer_bind(VKFrameBuffer *framebuffer);
   void framebuffer_restore();
 
@@ -392,9 +397,6 @@ class VKContext : public Context {
 
   bool ensure_render_pipeline_state(GPUPrimType prim_type);
 
-
-
-
   /** Dummy Resources */
   /* Maximum of 32 texture types. Though most combinations invalid. */
   VKTexture *dummy_textures_[GPU_TEXTURE_BUFFER] = {nullptr};
@@ -406,18 +408,18 @@ class VKContext : public Context {
   VmaAllocator mem_allocator_ = VK_NULL_HANDLE;
   VmaAllocatorCreateInfo mem_allocator_info = {};
 
-  private:
+ private:
   /* Parent Context. */
-   void orphans_clear();
+  void orphans_clear();
 
-   template<typename T>
-   static  void orphans_add(Vector<T>& orphan_list, std::mutex& list_mutex, T id)
-   {
-     BLI_assert(id);
-     list_mutex.lock();
-     orphan_list.append(id);
-     list_mutex.unlock();
-   }
+  template<typename T>
+  static void orphans_add(Vector<T> &orphan_list, std::mutex &list_mutex, T id)
+  {
+    BLI_assert(id);
+    list_mutex.lock();
+    orphan_list.append(id);
+    list_mutex.unlock();
+  }
 };
 
 }  // namespace blender::gpu

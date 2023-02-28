@@ -362,7 +362,7 @@ void BKE_workspace_instance_hook_free(const Main *bmain, WorkSpaceInstanceHook *
   /* workspaces should never be freed before wm (during which we call this function).
    * However, when running in background mode, loading a blend file may allocate windows (that need
    * to be freed) without creating workspaces. This happens in BlendfileLoadingBaseTest. */
-  //BLI_assert(!BLI_listbase_is_empty(&bmain->workspaces) || G.background);
+  // BLI_assert(!BLI_listbase_is_empty(&bmain->workspaces) || G.background);
   /*TODO :: Unasserted for convenience during development.*/
   if (BLI_listbase_is_empty(&bmain->workspaces)) {
     MEM_freeN(hook);

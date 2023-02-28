@@ -32,17 +32,21 @@ struct KltRegionTracker : public RegionTracker {
         max_iterations(16),
         min_determinant(1e-6),
         min_update_squared_distance(1e-6),
-        sigma(0.9) {}
+        sigma(0.9)
+  {
+  }
 
-  virtual ~KltRegionTracker() {}
+  virtual ~KltRegionTracker()
+  {
+  }
 
   // Tracker interface.
-  virtual bool Track(const FloatImage& image1,
-                     const FloatImage& image2,
+  virtual bool Track(const FloatImage &image1,
+                     const FloatImage &image2,
                      double x1,
                      double y1,
-                     double* x2,
-                     double* y2) const;
+                     double *x2,
+                     double *y2) const;
 
   // No point in creating getters or setters.
   int half_window_size;

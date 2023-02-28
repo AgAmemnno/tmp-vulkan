@@ -27,15 +27,12 @@
 #include "BLI_utildefines.h"
 
 #include "gpu_state_private.hh"
-#include "vk_shader.hh"
 #include "vk_layout.hh"
+#include "vk_shader.hh"
 namespace blender {
 namespace gpu {
 
-
-  class VKTexture;
-
-
+class VKTexture;
 
 /**
  * State manager keeping track of the draw state and applying it before drawing.
@@ -45,38 +42,32 @@ class VKStateManager : public StateManager {
  public:
   /** Another reference to the active frame-buffer. */
   VKFrameBuffer *active_fb = nullptr;
-  
+
  private:
- 
-  
   /** Current state of the GL implementation. Avoids resetting the whole state for every change. */
   GPUState current_;
   GPUStateMutable current_mutable_;
   /** Limits. */
   float line_width_range_[2];
 
-
   VkImageType targets_[64] = {};
   VkDescriptorImageInfo textures_[64] = {};
-  GLuint samplers_[64] = {0};
+  uint32_t samplers_[64] = {0};
   uint64_t dirty_texture_binds_ = 0;
 
-  GLuint images_[8] = {0};
-  GLenum formats_[8] = {0};
+  uint32_t images_[8] = {0};
+  int  formats_[8] = {0};
   uint8_t dirty_image_binds_ = 0;
   VKContext *ctx_;
 
-  
-
  public:
-
   VKStateManager(VKContext *_ctx);
   ~VKStateManager();
   void apply_state(void) override;
   void force_state(void) override;
 
   void issue_barrier(eGPUBarrier barrier_bits) override;
- 
+
   void texture_bind(Texture *tex, eGPUSamplerState sampler, int unit) override;
   void texture_unbind(Texture *tex) override;
   void texture_unbind_all(void) override;
@@ -87,8 +78,7 @@ class VKStateManager : public StateManager {
 
   void texture_unpack_row_length_set(uint len) override;
 
-
-  void texture_bind_temp(VKTexture* tex);
+  void texture_bind_temp(VKTexture *tex);
 
   void set_color_blend_from_fb(VKFrameBuffer *fb);
 
@@ -100,11 +90,9 @@ class VKStateManager : public StateManager {
   static void cmd_dynamic_state(VkCommandBuffer &cmd);
 
   static void set_raster_discard();
-  uint32_t unpack_row_length=0;
+  uint32_t unpack_row_length = 0;
 
  private:
-
-
   static void set_write_mask(eGPUWriteMask value);
   static void set_depth_test(eGPUDepthTest value);
   static void set_stencil_test(eGPUStencilTest test, eGPUStencilOp operation);
@@ -117,17 +105,14 @@ class VKStateManager : public StateManager {
   static void set_shadow_bias(bool enable);
   static void set_blend(eGPUBlend value);
 
-
   void set_state(const GPUState &state);
   void set_mutable_state(const GPUStateMutable &state){};
   void set_mutable_state(VkCommandBuffer commandBuffer, const GPUStateMutable &state);
 
-  
   void texture_bind_apply();
   uint64_t bound_texture_slots();
   void image_bind_apply();
   uint8_t bound_image_slots();
-
 
   MEM_CXX_CLASS_ALLOC_FUNCS("VKStateManager")
 };

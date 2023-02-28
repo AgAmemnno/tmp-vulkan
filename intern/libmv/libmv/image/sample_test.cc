@@ -25,7 +25,8 @@ using namespace libmv;
 
 namespace {
 
-TEST(Image, Nearest) {
+TEST(Image, Nearest)
+{
   Array3Du image(2, 2);
   image(0, 0) = 0;
   image(0, 1) = 1;
@@ -37,7 +38,8 @@ TEST(Image, Nearest) {
   EXPECT_EQ(3, SampleNearest(image, 1.4f, 1.4f));
 }
 
-TEST(Image, Linear) {
+TEST(Image, Linear)
+{
   Array3Df image(2, 2);
   image(0, 0) = 0;
   image(0, 1) = 1;
@@ -46,7 +48,8 @@ TEST(Image, Linear) {
   EXPECT_EQ(1.5, SampleLinear(image, 0.5, 0.5));
 }
 
-TEST(Image, DownsampleBy2) {
+TEST(Image, DownsampleBy2)
+{
   Array3Df image(2, 2);
   image(0, 0) = 0;
   image(0, 1) = 1;
@@ -60,7 +63,8 @@ TEST(Image, DownsampleBy2) {
   EXPECT_FLOAT_EQ(6. / 4., resampled_image(0, 0));
 }
 
-TEST(Image, DownsampleBy2MultiChannel) {
+TEST(Image, DownsampleBy2MultiChannel)
+{
   Array3Df image(2, 2, 3);
   image(0, 0, 0) = 0;
   image(0, 1, 0) = 1;

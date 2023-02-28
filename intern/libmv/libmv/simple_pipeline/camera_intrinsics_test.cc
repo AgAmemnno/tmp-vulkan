@@ -29,7 +29,8 @@
 
 namespace libmv {
 
-TEST(PolynomialCameraIntrinsics2, ApplyOnFocalCenter) {
+TEST(PolynomialCameraIntrinsics2, ApplyOnFocalCenter)
+{
   PolynomialCameraIntrinsics intrinsics;
   intrinsics.SetFocalLength(1300.0, 1300.0);
   intrinsics.SetPrincipalPoint(640.0, 540.0);
@@ -42,7 +43,8 @@ TEST(PolynomialCameraIntrinsics2, ApplyOnFocalCenter) {
   EXPECT_NEAR(540.0, distorted_y, 1e-8);
 }
 
-TEST(PolynomialCameraIntrinsics, InvertOnFocalCenter) {
+TEST(PolynomialCameraIntrinsics, InvertOnFocalCenter)
+{
   PolynomialCameraIntrinsics intrinsics;
   intrinsics.SetFocalLength(1300.0, 1300.0);
   intrinsics.SetPrincipalPoint(640.0, 540.0);
@@ -55,7 +57,8 @@ TEST(PolynomialCameraIntrinsics, InvertOnFocalCenter) {
   EXPECT_NEAR(0.0, normalized_y, 1e-8);
 }
 
-TEST(PolynomialCameraIntrinsics, ApplyIntrinsics) {
+TEST(PolynomialCameraIntrinsics, ApplyIntrinsics)
+{
   const int N = 5;
 
   double expected[N][N][2] = {
@@ -102,8 +105,7 @@ TEST(PolynomialCameraIntrinsics, ApplyIntrinsics) {
       double normalized_x = j * step - 0.5, normalized_y = i * step - 0.5;
 
       double distorted_x, distorted_y;
-      intrinsics.ApplyIntrinsics(
-          normalized_x, normalized_y, &distorted_x, &distorted_y);
+      intrinsics.ApplyIntrinsics(normalized_x, normalized_y, &distorted_x, &distorted_y);
 
       EXPECT_NEAR(expected[i][j][0], distorted_x, 1e-6);
       EXPECT_NEAR(expected[i][j][1], distorted_y, 1e-6);
@@ -111,7 +113,8 @@ TEST(PolynomialCameraIntrinsics, ApplyIntrinsics) {
   }
 }
 
-TEST(PolynomialCameraIntrinsics, InvertIntrinsics) {
+TEST(PolynomialCameraIntrinsics, InvertIntrinsics)
+{
   const int N = 5;
 
   double expected[N][N][2] = {
@@ -158,8 +161,7 @@ TEST(PolynomialCameraIntrinsics, InvertIntrinsics) {
       double distorted_x = j * step_x, distorted_y = i * step_y;
 
       double normalized_x, normalized_y;
-      intrinsics.InvertIntrinsics(
-          distorted_x, distorted_y, &normalized_x, &normalized_y);
+      intrinsics.InvertIntrinsics(distorted_x, distorted_y, &normalized_x, &normalized_y);
 
       EXPECT_NEAR(expected[i][j][0], normalized_x, 1e-6);
       EXPECT_NEAR(expected[i][j][1], normalized_y, 1e-6);
@@ -167,7 +169,8 @@ TEST(PolynomialCameraIntrinsics, InvertIntrinsics) {
   }
 }
 
-TEST(PolynomialCameraIntrinsics, ApplyIsInvertibleSimple) {
+TEST(PolynomialCameraIntrinsics, ApplyIsInvertibleSimple)
+{
   PolynomialCameraIntrinsics intrinsics;
   intrinsics.SetFocalLength(1300.0, 1300.0);
   intrinsics.SetPrincipalPoint(640.0, 540.0);
@@ -191,7 +194,8 @@ TEST(PolynomialCameraIntrinsics, ApplyIsInvertibleSimple) {
   }
 }
 
-TEST(PolynomialCameraIntrinsics, IdentityDistortBuffer) {
+TEST(PolynomialCameraIntrinsics, IdentityDistortBuffer)
+{
   const int w = 101, h = 101;
   FloatImage image(h, w);
   image.Fill(0);
@@ -209,12 +213,8 @@ TEST(PolynomialCameraIntrinsics, IdentityDistortBuffer) {
   intrinsics.SetFocalLength(10.0, 10.0);
   intrinsics.SetPrincipalPoint((double)w / 2.0, (double)h / 2.0);
   intrinsics.SetRadialDistortion(0.0, 0.0, 0.0);
-  intrinsics.DistortBuffer(image.Data(),
-                           image.Width(),
-                           image.Height(),
-                           0.0,
-                           image.Depth(),
-                           distorted_image.Data());
+  intrinsics.DistortBuffer(
+      image.Data(), image.Width(), image.Height(), 0.0, image.Depth(), distorted_image.Data());
 
   for (int x = 0; x < image.Width(); ++x) {
     for (int y = 0; y < image.Height(); ++y) {
@@ -223,7 +223,8 @@ TEST(PolynomialCameraIntrinsics, IdentityDistortBuffer) {
   }
 }
 
-TEST(PolynomialCameraIntrinsics, IdentityUndistortBuffer) {
+TEST(PolynomialCameraIntrinsics, IdentityUndistortBuffer)
+{
   const int w = 101, h = 101;
   FloatImage image(h, w);
   image.Fill(0);
@@ -241,12 +242,8 @@ TEST(PolynomialCameraIntrinsics, IdentityUndistortBuffer) {
   intrinsics.SetFocalLength(10.0, 10.0);
   intrinsics.SetPrincipalPoint((double)w / 2.0, (double)h / 2.0);
   intrinsics.SetRadialDistortion(0.0, 0.0, 0.0);
-  intrinsics.UndistortBuffer(image.Data(),
-                             image.Width(),
-                             image.Height(),
-                             0.0,
-                             image.Depth(),
-                             distorted_image.Data());
+  intrinsics.UndistortBuffer(
+      image.Data(), image.Width(), image.Height(), 0.0, image.Depth(), distorted_image.Data());
 
   for (int x = 0; x < image.Width(); ++x) {
     for (int y = 0; y < image.Height(); ++y) {

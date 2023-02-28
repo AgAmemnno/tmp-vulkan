@@ -32,7 +32,8 @@ namespace {
 
 using namespace libmv;
 
-TEST(Fundamental, FundamentalFromProjections) {
+TEST(Fundamental, FundamentalFromProjections)
+{
   Mat34 P1_gt, P2_gt;
   // clang-format off
   P1_gt << 1, 0, 0, 0,
@@ -54,7 +55,8 @@ TEST(Fundamental, FundamentalFromProjections) {
   EXPECT_MATRIX_PROP(F_gt, F, 1e-6);
 }
 
-TEST(Fundamental, PreconditionerFromPoints) {
+TEST(Fundamental, PreconditionerFromPoints)
+{
   int n = 4;
   Mat points(2, n);
   // clang-format off
@@ -77,7 +79,8 @@ TEST(Fundamental, PreconditionerFromPoints) {
   EXPECT_NEAR(2, variance(1), 1e-8);
 }
 
-TEST(Fundamental, EssentialFromFundamental) {
+TEST(Fundamental, EssentialFromFundamental)
+{
   TwoViewDataSet d = TwoRealisticCameras();
 
   Mat3 E_from_Rt;
@@ -89,7 +92,8 @@ TEST(Fundamental, EssentialFromFundamental) {
   EXPECT_MATRIX_PROP(E_from_Rt, E_from_F, 1e-6);
 }
 
-TEST(Fundamental, MotionFromEssential) {
+TEST(Fundamental, MotionFromEssential)
+{
   TwoViewDataSet d = TwoRealisticCameras();
 
   Mat3 E;
@@ -113,7 +117,8 @@ TEST(Fundamental, MotionFromEssential) {
   EXPECT_TRUE(one_solution_is_correct);
 }
 
-TEST(Fundamental, MotionFromEssentialChooseSolution) {
+TEST(Fundamental, MotionFromEssentialChooseSolution)
+{
   TwoViewDataSet d = TwoRealisticCameras();
 
   Mat3 E;
@@ -139,7 +144,8 @@ TEST(Fundamental, MotionFromEssentialChooseSolution) {
   EXPECT_LE(DistanceL2(ts[solution], t), 1e-8);
 }
 
-TEST(Fundamental, MotionFromEssentialAndCorrespondence) {
+TEST(Fundamental, MotionFromEssentialAndCorrespondence)
+{
   TwoViewDataSet d = TwoRealisticCameras();
 
   Mat3 E;
@@ -156,8 +162,7 @@ TEST(Fundamental, MotionFromEssentialAndCorrespondence) {
 
   Mat3 R_estimated;
   Vec3 t_estimated;
-  MotionFromEssentialAndCorrespondence(
-      E, d.K1, x1, d.K2, x2, &R_estimated, &t_estimated);
+  MotionFromEssentialAndCorrespondence(E, d.K1, x1, d.K2, x2, &R_estimated, &t_estimated);
 
   EXPECT_LE(FrobeniusDistance(R_estimated, R), 1e-8);
   EXPECT_LE(DistanceL2(t_estimated, t), 1e-8);

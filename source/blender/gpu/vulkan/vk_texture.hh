@@ -111,13 +111,13 @@ class VKTexture : public Texture {
   /* Vulkan object handle. */
   VkImage vk_image_ = VK_NULL_HANDLE;
 
-  Vector<VkImageLayout>  vk_image_layout_;
+  Vector<VkImageLayout> vk_image_layout_;
   /* GPU Memory allocated by this object. */
   VmaAllocation vk_allocation_ = VK_NULL_HANDLE;
   /* Vulkan format used to initialize the texture. */
   VkFormat vk_format_ = VK_FORMAT_MAX_ENUM;
   /* Image views for each mipmap and each layer. */
-  VkImageView  views_;
+  VkImageView views_;
   int current_view_id_ = -1;
   /* Swizzle state. */
   VkComponentMapping vk_swizzle_ = {VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -128,7 +128,7 @@ class VKTexture : public Texture {
  private:
   bool proxy_check(VkImageCreateInfo &info);
 
-  VkImageUsageFlagBits  to_vk_usage(eGPUTextureUsage usage)
+  VkImageUsageFlagBits to_vk_usage(eGPUTextureUsage usage)
   {
 
     VkImageUsageFlagBits vk_usage = (VkImageUsageFlagBits)0;
@@ -136,17 +136,18 @@ class VKTexture : public Texture {
     if (usage == GPU_TEXTURE_USAGE_GENERAL) {
       if (format_flag_ & GPU_FORMAT_DEPTH) {
 
-        vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_SAMPLED_BIT  | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
-        vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-
+        vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_SAMPLED_BIT |
+                                          VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+        vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                                          VK_IMAGE_USAGE_TRANSFER_DST_BIT);
       }
       else {
-        //vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_SAMPLED_BIT);
+        // vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_SAMPLED_BIT);
         // vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_STORAGE_BIT);
         vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_SAMPLED_BIT |
-                                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT );
-        vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-
+                                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+        vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                                          VK_IMAGE_USAGE_TRANSFER_DST_BIT);
       }
       return vk_usage;
     }
@@ -156,22 +157,22 @@ class VKTexture : public Texture {
       if (format_flag_ & GPU_FORMAT_DEPTH) {
 
         vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
-
       }
       else {
 
         vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
-
       }
-     
 
       if (usage & GPU_TEXTURE_USAGE_SHADER_READ) {
-        vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_SAMPLED_BIT); /*  use subpass =>  VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT */
-                                     /// VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR);
+        vk_usage = (VkImageUsageFlagBits)(vk_usage |
+                                          VK_IMAGE_USAGE_SAMPLED_BIT); /*  use subpass =>
+                                                                          VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT
+                                                                        */
+        /// VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR);
       }
 
       if (usage & GPU_TEXTURE_USAGE_SHADER_WRITE) {
-        //BLI_assert(false);
+        // BLI_assert(false);
         vk_usage = (VkImageUsageFlagBits)(vk_usage | VK_IMAGE_USAGE_STORAGE_BIT);
       }
     }
@@ -195,7 +196,6 @@ class VKTexture : public Texture {
                                       VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
     return vk_usage;
-
   }
 
  public:
@@ -224,7 +224,7 @@ class VKTexture : public Texture {
   VkImageLayout get_image_layout(int i)
   {
     if (i == -1) {
-      return vk_image_layout_[mipmaps_-1];
+      return vk_image_layout_[mipmaps_ - 1];
     }
     return vk_image_layout_[i];
   };
@@ -236,7 +236,8 @@ class VKTexture : public Texture {
   void copy_to(Texture *dst) override;
   void clear(eGPUDataFormat format, const void *data) override{};
   void swizzle_set(const char swizzle_mask[4]) override;
-  void mip_range_set(int min, int max) override{
+  void mip_range_set(int min, int max) override
+  {
     mip_min_ = min;
     mip_max_ = max;
   };
@@ -270,13 +271,15 @@ class VKTexture : public Texture {
 
   /* Vulkan specific functions. */
   VkImageView vk_image_view_get(int mip);
-  VkImageView vk_image_view_get(int mip, int layer,bool force= false );
-  VkDescriptorImageInfo *get_image_info(eGPUSamplerState id = (eGPUSamplerState)513,bool force = false){
+  VkImageView vk_image_view_get(int mip, int layer, bool force = false);
+  VkDescriptorImageInfo *get_image_info(eGPUSamplerState id = (eGPUSamplerState)513,
+                                        bool force = false)
+  {
 
     int layer = 0;
     /*BLI_assert((int)id <= 257);*/
     int mip = 0;
-    desc_info_.imageLayout = vk_image_layout_[mipmaps_-1];
+    desc_info_.imageLayout = vk_image_layout_[mipmaps_ - 1];
     desc_info_.imageView = vk_image_view_get(mip, layer, force);
 
     if (id == 513) {
@@ -319,45 +322,8 @@ class VKTexture : public Texture {
   MEM_CXX_CLASS_ALLOC_FUNCS("VKTexture")
 };
 
-inline VkImageType to_vk_image_type(eGPUTextureType type)
-{
-  switch (type & (GPU_TEXTURE_1D | GPU_TEXTURE_2D | GPU_TEXTURE_3D)) {
-    case GPU_TEXTURE_1D:
-      return VK_IMAGE_TYPE_1D;
-    case GPU_TEXTURE_2D:
-      return VK_IMAGE_TYPE_2D;
-    case GPU_TEXTURE_3D:
-      return VK_IMAGE_TYPE_3D;
-    default:
-      BLI_assert(!"Wrong enum!");
-      return VK_IMAGE_TYPE_MAX_ENUM;
-  }
-}
 
-inline VkImageViewType to_vk_image_view_type(eGPUTextureType type)
-{
-  switch (type) {
-    case GPU_TEXTURE_1D:
-      return VK_IMAGE_VIEW_TYPE_1D;
-    case GPU_TEXTURE_2D:
-      return VK_IMAGE_VIEW_TYPE_2D;
-    case GPU_TEXTURE_3D:
-      return VK_IMAGE_VIEW_TYPE_3D;
-    case GPU_TEXTURE_CUBE:
-      return VK_IMAGE_VIEW_TYPE_CUBE;
-    case GPU_TEXTURE_1D_ARRAY:
-      return VK_IMAGE_VIEW_TYPE_1D_ARRAY;
-    case GPU_TEXTURE_2D_ARRAY:
-      return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-    case GPU_TEXTURE_CUBE_ARRAY:
-      return VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
-    /*TODO::TexelBuffer Implementation*/
-    case GPU_TEXTURE_BUFFER:
-    default:
-      BLI_assert(!"Wrong enum!");
-      return VK_IMAGE_VIEW_TYPE_MAX_ENUM;
-  }
-}
+
 
 inline VkImageAspectFlags to_vk(eGPUTextureFormatFlag flag)
 {
@@ -389,12 +355,6 @@ inline VkComponentSwizzle swizzle_to_vk(const char swizzle)
       return VK_COMPONENT_SWIZZLE_ONE;
   }
 }
-
-
-
-
-
-
 
 #define VK_FORMAT_INVALID VK_FORMAT_MAX_ENUM
 inline VkFormat to_vk(eGPUTextureFormat format)
@@ -506,7 +466,6 @@ class VKAttachment {
   VKAttachment(VKFrameBuffer *fb);
   ~VKAttachment();
 
-
   void bind(bool force = false);
   /* naive implementation. Can subpath be used effectively? */
   void append(GPUAttachment &attach, VkImageLayout layout);
@@ -516,7 +475,8 @@ class VKAttachment {
   void clear();
 
   void append_from_swapchain(int swapchain_idx);
-
+  VkImageLayout get_initial_layout(int i);
+  VkImageLayout get_final_layout(int i);
   VkRenderPass renderpass_;
   Vector<VkFramebuffer> framebuffer_;
   VkExtent3D extent_;
@@ -537,7 +497,6 @@ class VKAttachment {
   {
 
     if (vdesc_.size() > 1) {
-   
     };
     return vdesc_[0].loadOp;
   };
@@ -545,7 +504,7 @@ class VKAttachment {
  private:
   bool used_ = false;
 
-  Vector< Vector<VkImageView> > vview_;
+  Vector<Vector<VkImageView>> vview_;
 
   Vector<VkAttachmentReference> vref_color_;
   Vector<VkAttachmentReference> vref_depth_stencil_;

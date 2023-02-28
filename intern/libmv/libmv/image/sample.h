@@ -26,24 +26,27 @@
 namespace libmv {
 
 /// Nearest neighbor interpolation.
-template <typename T>
-inline T SampleNearest(const Array3D<T>& image, float y, float x, int v = 0) {
+template<typename T> inline T SampleNearest(const Array3D<T> &image, float y, float x, int v = 0)
+{
   const int i = int(round(y));
   const int j = int(round(x));
   return image(i, j, v);
 }
 
-inline void LinearInitAxis(float x, int size, int* x1, int* x2, float* dx) {
+inline void LinearInitAxis(float x, int size, int *x1, int *x2, float *dx)
+{
   const int ix = static_cast<int>(x);
   if (ix < 0) {
     *x1 = 0;
     *x2 = 0;
     *dx = 1.0;
-  } else if (ix > size - 2) {
+  }
+  else if (ix > size - 2) {
     *x1 = size - 1;
     *x2 = size - 1;
     *dx = 1.0;
-  } else {
+  }
+  else {
     *x1 = ix;
     *x2 = ix + 1;
     *dx = *x2 - x;
@@ -51,8 +54,8 @@ inline void LinearInitAxis(float x, int size, int* x1, int* x2, float* dx) {
 }
 
 /// Linear interpolation.
-template <typename T>
-inline T SampleLinear(const Array3D<T>& image, float y, float x, int v = 0) {
+template<typename T> inline T SampleLinear(const Array3D<T> &image, float y, float x, int v = 0)
+{
   int x1, y1, x2, y2;
   float dx, dy;
 
@@ -64,14 +67,13 @@ inline T SampleLinear(const Array3D<T>& image, float y, float x, int v = 0) {
   const T im21 = image(y2, x1, v);
   const T im22 = image(y2, x2, v);
 
-  return T(dy * (dx * im11 + (1.0 - dx) * im12) +
-           (1 - dy) * (dx * im21 + (1.0 - dx) * im22));
+  return T(dy * (dx * im11 + (1.0 - dx) * im12) + (1 - dy) * (dx * im21 + (1.0 - dx) * im22));
 }
 
 /// Linear interpolation, of all channels. The sample is assumed to have the
 /// same size as the number of channels in image.
-template <typename T>
-inline void SampleLinear(const Array3D<T>& image, float y, float x, T* sample) {
+template<typename T> inline void SampleLinear(const Array3D<T> &image, float y, float x, T *sample)
+{
   int x1, y1, x2, y2;
   float dx, dy;
 
@@ -92,7 +94,8 @@ inline void SampleLinear(const Array3D<T>& image, float y, float x, T* sample) {
 // Downsample all channels by 2. If the image has odd width or height, the last
 // row or column is ignored.
 // FIXME(MatthiasF): this implementation shouldn't be in an interface file
-inline void DownsampleChannelsBy2(const Array3Df& in, Array3Df* out) {
+inline void DownsampleChannelsBy2(const Array3Df &in, Array3Df *out)
+{
   int height = in.Height() / 2;
   int width = in.Width() / 2;
   int depth = in.Depth();
@@ -116,18 +119,14 @@ inline void DownsampleChannelsBy2(const Array3Df& in, Array3Df* out) {
 
 // Sample a region centered at x,y in image with size extending by half_width
 // from x,y. Channels specifies the number of channels to sample from.
-inline void SamplePattern(const FloatImage& image,
-                          double x,
-                          double y,
-                          int half_width,
-                          int channels,
-                          FloatImage* sampled) {
+inline void SamplePattern(
+    const FloatImage &image, double x, double y, int half_width, int channels, FloatImage *sampled)
+{
   sampled->Resize(2 * half_width + 1, 2 * half_width + 1, channels);
   for (int r = -half_width; r <= half_width; ++r) {
     for (int c = -half_width; c <= half_width; ++c) {
       for (int i = 0; i < channels; ++i) {
-        (*sampled)(r + half_width, c + half_width, i) =
-            SampleLinear(image, y + r, x + c, i);
+        (*sampled)(r + half_width, c + half_width, i) = SampleLinear(image, y + r, x + c, i);
       }
     }
   }

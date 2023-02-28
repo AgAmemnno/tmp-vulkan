@@ -32,7 +32,8 @@ namespace {
 using namespace libmv;
 using namespace libmv::resection;
 
-TEST(Resection, ThreeViews) {
+TEST(Resection, ThreeViews)
+{
   int nviews = 5;
   int npoints = 6;
   NViewDataSet d = NRealisticCamerasFull(nviews, npoints);
@@ -40,7 +41,7 @@ TEST(Resection, ThreeViews) {
     Mat4X X(4, npoints);
     X.block(0, 0, 3, npoints) = d.X;
     X.row(3).setOnes();
-    const Mat2X& x = d.x[i];
+    const Mat2X &x = d.x[i];
     Mat34 P;
     Resection(x, X, &P);
     Mat34 P_expected = d.P(i);
@@ -49,8 +50,7 @@ TEST(Resection, ThreeViews) {
     // about the scale factor to make them match.
     P_expected *= 1 / P_expected.array().abs().sum();
     P *= 1 / P.array().abs().sum();
-    if (!((P(0, 0) > 0 && P_expected(0, 0) > 0) ||
-          (P(0, 0) < 0 && P_expected(0, 0) < 0))) {
+    if (!((P(0, 0) > 0 && P_expected(0, 0) > 0) || (P(0, 0) < 0 && P_expected(0, 0) < 0))) {
       P *= -1;
     }
 

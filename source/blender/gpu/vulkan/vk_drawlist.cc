@@ -12,12 +12,11 @@
 #include "gpu_drawlist_private.hh"
 #include "gpu_vertex_buffer_private.hh"
 
-#include "vk_state.hh"
 #include "vk_debug.hh"
 #include "vk_drawlist.hh"
-#include "vk_index_buffer.hh"
 #include "vk_framebuffer.hh"
-
+#include "vk_index_buffer.hh"
+#include "vk_state.hh"
 
 namespace blender::gpu {
 
@@ -25,9 +24,10 @@ namespace blender::gpu {
 #define VK_MDI_DISABLED (buffer_size_ == 0)
 #define VK_MDI_INDEXED (base_index_ != UINT_MAX)
 
-VKDrawList::~VKDrawList(){
+VKDrawList::~VKDrawList()
+{
   if (buffer_id_) {
-   delete  buffer_id_;
+    delete buffer_id_;
     buffer_id_ = nullptr;
   }
 };
@@ -64,28 +64,31 @@ void VKDrawList::init()
 
   if (buffer_id_ == nullptr) {
     /* Allocate on first use. */
-      VKResourceOptions options;
-      options.setHostVisible(VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT);
-      buffer_id_ = new VKBuffer(buffer_size_, VKStagingBufferManager::vk_staging_buffer_min_alignment, "VKDrawList",options);
-      context_ = VKContext::get();
+    VKResourceOptions options;
+    options.setHostVisible(VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT);
+    buffer_id_ = new VKBuffer(buffer_size_,
+                              VKStagingBufferManager::vk_staging_buffer_min_alignment,
+                              "VKDrawList",
+                              options);
+    context_ = VKContext::get();
   }
 
   /* If buffer is full, orphan buffer data and start fresh. */
-  size_t command_size = VK_MDI_INDEXED ? sizeof(VkDrawIndexedIndirectCommand) :sizeof(VkDrawIndirectCommand);
+  size_t command_size = VK_MDI_INDEXED ? sizeof(VkDrawIndexedIndirectCommand) :
+                                         sizeof(VkDrawIndirectCommand);
   if (data_offset_ + command_size > buffer_size_) {
     /* glBufferData(GL_DRAW_INDIRECT_BUFFER, buffer_size_, nullptr, GL_DYNAMIC_DRAW); */
     data_offset_ = 0;
   }
 
-  /* TODO :: Map the remaining range. 
+  /* TODO: Map the remaining range.
   #GLbitfield flag = GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT;
   #data_ = (GLbyte *)glMapBufferRange(GL_DRAW_INDIRECT_BUFFER, data_offset_, data_size_, flag);
   */
 
   data_size_ = buffer_size_ - data_offset_;
-  data_ = (GLbyte *)(buffer_id_->get_host_ptr()) + data_offset_; 
+  data_ = (int8_t *)(buffer_id_->get_host_ptr()) + data_offset_;
   command_offset_ = 0;
-
 }
 
 void VKDrawList::append(GPUBatch *gpu_batch, int i_first, int i_count)
@@ -106,8 +109,8 @@ void VKDrawList::append(GPUBatch *gpu_batch, int i_first, int i_count)
     this->submit();
     batch_ = batch;
     /* Cached for faster access. */
-    VKIndexBuf *el   = static_cast<VKIndexBuf *>(batch_->elem_());
-    base_index_       = el ? el->index_base_ : UINT_MAX;
+    VKIndexBuf *el = static_cast<VKIndexBuf *>(batch_->elem_());
+    base_index_ = el ? el->index_base_ : UINT_MAX;
     v_first_ = el ? el->index_start_ : 0;
     v_count_ = el ? el->index_len_ : batch->verts_(0)->vertex_len;
   }
@@ -118,7 +121,8 @@ void VKDrawList::append(GPUBatch *gpu_batch, int i_first, int i_count)
   }
 
   if (VK_MDI_INDEXED) {
-    VkDrawIndexedIndirectCommand *cmd = reinterpret_cast<VkDrawIndexedIndirectCommand *>(data_ + command_offset_);
+    VkDrawIndexedIndirectCommand *cmd = reinterpret_cast<VkDrawIndexedIndirectCommand *>(
+        data_ + command_offset_);
     cmd->vertexOffset = v_first_;
     cmd->indexCount = v_count_;
     cmd->instanceCount = i_count;
@@ -156,7 +160,8 @@ void VKDrawList::submit()
   BLI_assert(data_);
   BLI_assert(VKContext::get()->shader != nullptr);
 
-  size_t command_size = VK_MDI_INDEXED ? sizeof(VkDrawIndexedIndirectCommand) : sizeof(VkDrawIndirectCommand);
+  size_t command_size = VK_MDI_INDEXED ? sizeof(VkDrawIndexedIndirectCommand) :
+                                         sizeof(VkDrawIndirectCommand);
 
   auto context_ = VKContext::get();
   static int cnt = 0;
@@ -165,9 +170,9 @@ void VKDrawList::submit()
   if (cnt > 0) {
     rebuild = true;
   }
-  cnt++; 
+  cnt++;
   VkCommandBuffer cmd = fb_->render_begin(
-      VK_NULL_HANDLE, VK_COMMAND_BUFFER_LEVEL_PRIMARY, (VkClearValue *)nullptr, false,rebuild);
+      VK_NULL_HANDLE, VK_COMMAND_BUFFER_LEVEL_PRIMARY, (VkClearValue *)nullptr, false, rebuild);
   /* Only do multi-draw indirect if doing more than 2 drawcall. This avoids the overhead of
    * buffer mapping if scene is not very instance friendly. BUT we also need to take into
    * account the case where only a few instances are needed to finish filling a call buffer. */
@@ -182,12 +187,9 @@ void VKDrawList::submit()
     auto current_pipe_ = vkshader->get_pipeline();
     BLI_assert(current_pipe_ != VK_NULL_HANDLE);
 
+    vkshader->update_descriptor_set(cmd, vkshader->current_layout_);
 
-
-    vkshader->update_descriptor_set(cmd,vkshader->current_layout_);
- 
     auto vkinterface = (VKShaderInterface *)vkshader->interface;
-
 
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, current_pipe_);
 
@@ -202,8 +204,6 @@ void VKDrawList::submit()
                          vkinterface->push_cache_);
     }
 
-
-
     batch_->bind(0);
     debug::pushMarker(cmd, std::string("DrawList") + vkshader->name_get());
     if (VK_MDI_INDEXED) {
@@ -212,7 +212,6 @@ void VKDrawList::submit()
                                data_offset_,
                                command_len_,
                                sizeof(VkDrawIndexedIndirectCommand));
-   
     }
     else {
       vkCmdDrawIndirect(cmd,
@@ -226,7 +225,6 @@ void VKDrawList::submit()
     buffer_id_->unmap();
     data_ = nullptr;
     data_offset_ += command_offset_;
-
   }
   else {
     /* Fallback do simple drawcalls, and don't unmap the buffer. */

@@ -29,7 +29,8 @@
 
 namespace libmv {
 
-TEST(Intersect, EuclideanIntersect) {
+TEST(Intersect, EuclideanIntersect)
+{
   Mat3 K1 = Mat3::Identity();
   // K1 << 320, 0, 160,
   //        0, 320, 120,

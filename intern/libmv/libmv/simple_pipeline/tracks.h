@@ -64,13 +64,15 @@ struct Marker {
 */
 class Tracks {
  public:
-  Tracks() {}
+  Tracks()
+  {
+  }
 
   // Copy constructor for a tracks object.
-  Tracks(const Tracks& other);
+  Tracks(const Tracks &other);
 
   /// Construct a new tracks object using the given markers to start.
-  explicit Tracks(const vector<Marker>& markers);
+  explicit Tracks(const vector<Marker> &markers);
 
   /*!
       Inserts a marker into the set. If there is already a marker for the given
@@ -131,9 +133,7 @@ class Tracks {
   vector<Marker> markers_;
 };
 
-void CoordinatesForMarkersInImage(const vector<Marker>& markers,
-                                  int image,
-                                  Mat* coordinates);
+void CoordinatesForMarkersInImage(const vector<Marker> &markers, int image, Mat *coordinates);
 
 }  // namespace libmv
 

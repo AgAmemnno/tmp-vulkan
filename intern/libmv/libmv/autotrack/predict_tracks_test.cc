@@ -29,18 +29,19 @@
 
 namespace mv {
 
-static void AddMarker(int frame, float x, float y, Tracks* tracks) {
+static void AddMarker(int frame, float x, float y, Tracks *tracks)
+{
   Marker marker;
   marker.clip = marker.track = 0;
   marker.frame = frame;
   marker.center.x() = x;
   marker.center.y() = y;
-  marker.patch.coordinates << x - 1, y - 1, x + 1, y - 1, x + 1, y + 1, x - 1,
-      y + 1;
+  marker.patch.coordinates << x - 1, y - 1, x + 1, y - 1, x + 1, y + 1, x - 1, y + 1;
   tracks->AddMarker(marker);
 }
 
-TEST(PredictMarkerPosition, EasyLinearMotion) {
+TEST(PredictMarkerPosition, EasyLinearMotion)
+{
   Tracks tracks;
   AddMarker(0, 1.0, 0.0, &tracks);
   AddMarker(1, 2.0, 5.0, &tracks);
@@ -64,15 +65,15 @@ TEST(PredictMarkerPosition, EasyLinearMotion) {
   // Check the patch coordinates as well.
   double x = 9, y = 40.0;
   Quad2Df expected_patch;
-  expected_patch.coordinates << x - 1, y - 1, x + 1, y - 1, x + 1, y + 1, x - 1,
-      y + 1;
+  expected_patch.coordinates << x - 1, y - 1, x + 1, y - 1, x + 1, y + 1, x - 1, y + 1;
 
   error = (expected_patch.coordinates - predicted.patch.coordinates).norm();
   LG << "Patch error: " << error;
   EXPECT_LT(error, 0.1);
 }
 
-TEST(PredictMarkerPosition, EasyBackwardLinearMotion) {
+TEST(PredictMarkerPosition, EasyBackwardLinearMotion)
+{
   Tracks tracks;
   AddMarker(8, 1.0, 0.0, &tracks);
   AddMarker(7, 2.0, 5.0, &tracks);
@@ -97,15 +98,15 @@ TEST(PredictMarkerPosition, EasyBackwardLinearMotion) {
   // Check the patch coordinates as well.
   double x = 9.0, y = 40.0;
   Quad2Df expected_patch;
-  expected_patch.coordinates << x - 1, y - 1, x + 1, y - 1, x + 1, y + 1, x - 1,
-      y + 1;
+  expected_patch.coordinates << x - 1, y - 1, x + 1, y - 1, x + 1, y + 1, x - 1, y + 1;
 
   error = (expected_patch.coordinates - predicted.patch.coordinates).norm();
   LG << "Patch error: " << error;
   EXPECT_LT(error, 0.1);
 }
 
-TEST(PredictMarkerPosition, TwoFrameGap) {
+TEST(PredictMarkerPosition, TwoFrameGap)
+{
   Tracks tracks;
   AddMarker(0, 1.0, 0.0, &tracks);
   AddMarker(1, 2.0, 5.0, &tracks);
@@ -127,7 +128,8 @@ TEST(PredictMarkerPosition, TwoFrameGap) {
   EXPECT_LT(error, 0.1);
 }
 
-TEST(PredictMarkerPosition, FourFrameGap) {
+TEST(PredictMarkerPosition, FourFrameGap)
+{
   Tracks tracks;
   AddMarker(0, 1.0, 0.0, &tracks);
   AddMarker(1, 2.0, 5.0, &tracks);
@@ -146,7 +148,8 @@ TEST(PredictMarkerPosition, FourFrameGap) {
   EXPECT_LT(error, 2.0);  // Generous error due to larger prediction window.
 }
 
-TEST(PredictMarkerPosition, MultipleGaps) {
+TEST(PredictMarkerPosition, MultipleGaps)
+{
   Tracks tracks;
   AddMarker(0, 1.0, 0.0, &tracks);
   AddMarker(1, 2.0, 5.0, &tracks);
@@ -168,7 +171,8 @@ TEST(PredictMarkerPosition, MultipleGaps) {
   EXPECT_LT(error, 1.0);  // Generous error due to larger prediction window.
 }
 
-TEST(PredictMarkerPosition, MarkersInRandomOrder) {
+TEST(PredictMarkerPosition, MarkersInRandomOrder)
+{
   Tracks tracks;
 
   // This is the same as the easy, except that the tracks are randomly ordered.

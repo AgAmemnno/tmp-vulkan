@@ -33,18 +33,19 @@ namespace libmv {
 // TODO(keir): The calls to SampleLinear() do boundary checking that should
 // instead happen outside the loop. Since this is the innermost loop, the extra
 // bounds checking hurts performance.
-static void ComputeTrackingEquation(const Array3Df& image_and_gradient1,
-                                    const Array3Df& image_and_gradient2,
+static void ComputeTrackingEquation(const Array3Df &image_and_gradient1,
+                                    const Array3Df &image_and_gradient2,
                                     double x1,
                                     double y1,
                                     double x2,
                                     double y2,
                                     int half_width,
-                                    float* gxx,
-                                    float* gxy,
-                                    float* gyy,
-                                    float* ex,
-                                    float* ey) {
+                                    float *gxx,
+                                    float *gxy,
+                                    float *gyy,
+                                    float *ex,
+                                    float *ey)
+{
   *gxx = *gxy = *gyy = 0;
   *ex = *ey = 0;
   for (int r = -half_width; r <= half_width; ++r) {
@@ -66,10 +67,8 @@ static void ComputeTrackingEquation(const Array3Df& image_and_gradient1,
   }
 }
 
-static bool RegionIsInBounds(const FloatImage& image1,
-                             double x,
-                             double y,
-                             int half_window_size) {
+static bool RegionIsInBounds(const FloatImage &image1, double x, double y, int half_window_size)
+{
   // Check the minimum coordinates.
   int min_x = floor(x) - half_window_size - 1;
   int min_y = floor(y) - half_window_size - 1;
@@ -88,12 +87,13 @@ static bool RegionIsInBounds(const FloatImage& image1,
   return true;
 }
 
-bool KltRegionTracker::Track(const FloatImage& image1,
-                             const FloatImage& image2,
+bool KltRegionTracker::Track(const FloatImage &image1,
+                             const FloatImage &image2,
                              double x1,
                              double y1,
-                             double* x2,
-                             double* y2) const {
+                             double *x2,
+                             double *y2) const
+{
   if (!RegionIsInBounds(image1, x1, y1, half_window_size)) {
     LG << "Fell out of image1's window with x1=" << x1 << ", y1=" << y1
        << ", hw=" << half_window_size << ".";

@@ -23,10 +23,8 @@
 
 namespace libmv {
 
-static bool Build_Minimal2Point_PolynomialFactor(
-    const Mat& x1,
-    const Mat& x2,
-    double* P) {  // P must be a double[4]
+static bool Build_Minimal2Point_PolynomialFactor(const Mat &x1, const Mat &x2, double *P)
+{  // P must be a double[4]
   assert(2 == x1.rows());
   assert(2 == x1.cols());
   assert(x1.rows() == x2.rows());
@@ -54,10 +52,10 @@ static bool Build_Minimal2Point_PolynomialFactor(
   // Coefficients in ascending powers of alpha, i.e. P[N]*x^N.
   // Run panography_coeffs.py to get the below coefficients.
   P[0] = b1 * b2 * a12 * a12 - a1 * a2 * b12 * b12;
-  P[1] = -2 * a1 * a2 * b12 + 2 * a12 * b1 * b2 + b1 * a12 * a12 +
-         b2 * a12 * a12 - a1 * b12 * b12 - a2 * b12 * b12;
-  P[2] = b1 * b2 - a1 * a2 - 2 * a1 * b12 - 2 * a2 * b12 + 2 * a12 * b1 +
-         2 * a12 * b2 + a12 * a12 - b12 * b12;
+  P[1] = -2 * a1 * a2 * b12 + 2 * a12 * b1 * b2 + b1 * a12 * a12 + b2 * a12 * a12 -
+         a1 * b12 * b12 - a2 * b12 * b12;
+  P[2] = b1 * b2 - a1 * a2 - 2 * a1 * b12 - 2 * a2 * b12 + 2 * a12 * b1 + 2 * a12 * b2 +
+         a12 * a12 - b12 * b12;
   P[3] = b1 + b2 - 2 * b12 - a1 - a2 + 2 * a12;
 
   // If P[3] equal to 0 we get ill conditionned data
@@ -70,9 +68,8 @@ static bool Build_Minimal2Point_PolynomialFactor(
 //
 //   [1] M. Brown and R. Hartley and D. Nister. Minimal Solutions for Panoramic
 //       Stitching. CVPR07.
-void F_FromCorrespondance_2points(const Mat& x1,
-                                  const Mat& x2,
-                                  vector<double>* fs) {
+void F_FromCorrespondance_2points(const Mat &x1, const Mat &x2, vector<double> *fs)
+{
   // Build Polynomial factor to get squared focal value.
   double P[4];
   Build_Minimal2Point_PolynomialFactor(x1, x2, &P[0]);
@@ -96,10 +93,8 @@ void F_FromCorrespondance_2points(const Mat& x1,
 //   K. Arun,T. Huand and D. Blostein. Least-squares fitting of 2 3-D point
 //   sets.  IEEE Transactions on Pattern Analysis and Machine Intelligence,
 //   9:698-700, 1987.
-void GetR_FixedCameraCenter(const Mat& x1,
-                            const Mat& x2,
-                            const double focal,
-                            Mat3* R) {
+void GetR_FixedCameraCenter(const Mat &x1, const Mat &x2, const double focal, Mat3 *R)
+{
   assert(3 == x1.rows());
   assert(2 <= x1.cols());
   assert(x1.rows() == x2.rows());
@@ -120,9 +115,7 @@ void GetR_FixedCameraCenter(const Mat& x1,
   // Solve for rotation. Equations (24) and (25) in [1].
   Eigen::JacobiSVD<Mat> svd(C, Eigen::ComputeThinU | Eigen::ComputeThinV);
   Mat3 scale = Mat3::Identity();
-  scale(2, 2) =
-      ((svd.matrixU() * svd.matrixV().transpose()).determinant() > 0.0) ? 1.0
-                                                                        : -1.0;
+  scale(2, 2) = ((svd.matrixU() * svd.matrixV().transpose()).determinant() > 0.0) ? 1.0 : -1.0;
 
   (*R) = svd.matrixU() * scale * svd.matrixV().transpose();
 }

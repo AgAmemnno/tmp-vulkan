@@ -25,7 +25,8 @@ using namespace libmv;
 
 namespace {
 
-TEST(Numeric, DynamicSizedNullspace) {
+TEST(Numeric, DynamicSizedNullspace)
+{
   Mat A(3, 4);
   // clang-format off
   A << 0.76026643, 0.01799744, 0.55192142, 0.8699745,
@@ -39,7 +40,8 @@ TEST(Numeric, DynamicSizedNullspace) {
   EXPECT_NEAR(1.0, x.norm(), 1e-15);
 }
 
-TEST(Numeric, FixedSizeMatrixNullspace) {
+TEST(Numeric, FixedSizeMatrixNullspace)
+{
   Mat34 A;
   // clang-format off
   A << 0.76026643, 0.01799744, 0.55192142, 0.8699745,
@@ -53,7 +55,8 @@ TEST(Numeric, FixedSizeMatrixNullspace) {
   EXPECT_NEAR(1.0, x.norm(), 1e-15);
 }
 
-TEST(Numeric, NullspaceMatchesLapackSVD) {
+TEST(Numeric, NullspaceMatchesLapackSVD)
+{
   Mat43 A;
   // clang-format off
   A << 0.76026643, 0.01799744, 0.55192142,
@@ -72,7 +75,8 @@ TEST(Numeric, NullspaceMatchesLapackSVD) {
   EXPECT_NEAR(0.7371931, x(2), 1e-8);
 }
 
-TEST(Numeric, Nullspace2) {
+TEST(Numeric, Nullspace2)
+{
   Mat43 A;
   // clang-format off
   A << 0.76026643, 0.01799744, 0.55192142,
@@ -98,7 +102,8 @@ TEST(Numeric, Nullspace2) {
   EXPECT_NEAR(0.07168809, x2(2), 1e-8);
 }
 
-TEST(Numeric, TinyMatrixSquareTranspose) {
+TEST(Numeric, TinyMatrixSquareTranspose)
+{
   Mat2 A;
   A << 1.0, 2.0, 3.0, 4.0;
   libmv::TransposeInPlace(&A);
@@ -108,7 +113,8 @@ TEST(Numeric, TinyMatrixSquareTranspose) {
   EXPECT_EQ(4.0, A(1, 1));
 }
 
-TEST(Numeric, NormalizeL1) {
+TEST(Numeric, NormalizeL1)
+{
   Vec2 x;
   x << 1, 2;
   double l1 = NormalizeL1(&x);
@@ -117,7 +123,8 @@ TEST(Numeric, NormalizeL1) {
   EXPECT_DOUBLE_EQ(2. / 3., x(1));
 }
 
-TEST(Numeric, NormalizeL2) {
+TEST(Numeric, NormalizeL2)
+{
   Vec2 x;
   x << 1, 2;
   double l2 = NormalizeL2(&x);
@@ -126,7 +133,8 @@ TEST(Numeric, NormalizeL2) {
   EXPECT_DOUBLE_EQ(2. / sqrt(5.), x(1));
 }
 
-TEST(Numeric, Diag) {
+TEST(Numeric, Diag)
+{
   Vec x(2);
   x << 1, 2;
   Mat D = Diag(x);
@@ -136,7 +144,8 @@ TEST(Numeric, Diag) {
   EXPECT_EQ(2, D(1, 1));
 }
 
-TEST(Numeric, Determinant) {
+TEST(Numeric, Determinant)
+{
   Mat A(2, 2);
   A << 1, 2, -1, 3;
   double detA = A.determinant();
@@ -158,7 +167,8 @@ TEST(Numeric, Determinant) {
   EXPECT_NEAR(21, detC, 1e-8);
 }
 
-TEST(Numeric, Inverse) {
+TEST(Numeric, Inverse)
+{
   Mat A(2, 2), A1;
   // clang-format off
   A <<  1, 2,
@@ -190,7 +200,8 @@ TEST(Numeric, Inverse) {
   EXPECT_NEAR(1, I2(2, 2), 1e-8);
 }
 
-TEST(Numeric, MeanAndVarianceAlongRows) {
+TEST(Numeric, MeanAndVarianceAlongRows)
+{
   int n = 4;
   Mat points(2, n);
   // clang-format off
@@ -207,7 +218,8 @@ TEST(Numeric, MeanAndVarianceAlongRows) {
   EXPECT_NEAR(1.25, variance(1), 1e-8);
 }
 
-TEST(Numeric, HorizontalStack) {
+TEST(Numeric, HorizontalStack)
+{
   Mat x(2, 1), y(2, 1), z;
   x << 1, 2;
   y << 3, 4;
@@ -222,7 +234,8 @@ TEST(Numeric, HorizontalStack) {
   EXPECT_EQ(4, z(1, 1));
 }
 
-TEST(Numeric, HStack) {
+TEST(Numeric, HStack)
+{
   Mat x(2, 1), y(2, 1), z(2, 2);
   x << 1, 2;
   y << 3, 4;
@@ -243,7 +256,8 @@ TEST(Numeric, HStack) {
 
 // TODO(keir): Need some way of verifying that the compile time types of the
 // resulting stacked matrices properly propagate the fixed dimensions.
-TEST(Numeric, VStack) {
+TEST(Numeric, VStack)
+{
   Mat x(2, 2), y(2, 2), z(4, 2);
   // clang-format off
   x << 1, 2,
@@ -266,7 +280,8 @@ TEST(Numeric, VStack) {
   EXPECT_MATRIX_EQ(z, VStack(xC, yC));
 }
 
-TEST(Numeric, VerticalStack) {
+TEST(Numeric, VerticalStack)
+{
   Mat x(1, 2), y(1, 2), z;
   x << 1, 2;
   y << 3, 4;
@@ -280,7 +295,8 @@ TEST(Numeric, VerticalStack) {
   EXPECT_EQ(4, z(1, 1));
 }
 
-TEST(Numeric, CrossProduct) {
+TEST(Numeric, CrossProduct)
+{
   Vec3 x, y, z;
   x << 1, 0, 0;
   y << 0, 1, 0;
@@ -293,7 +309,8 @@ TEST(Numeric, CrossProduct) {
   EXPECT_NEAR(0, DistanceLInfinity(zx, y), 1e-8);
 }
 
-TEST(Numeric, CrossProductMatrix) {
+TEST(Numeric, CrossProductMatrix)
+{
   Vec3 x, y;
   x << 1, 2, 3;
   y << 2, 3, 4;
@@ -307,7 +324,8 @@ TEST(Numeric, CrossProductMatrix) {
   EXPECT_NEAR(0, DistanceLInfinity(yx, Xty), 1e-8);
 }
 
-TEST(Numeric, MatrixColumn) {
+TEST(Numeric, MatrixColumn)
+{
   Mat A2(2, 3);
   Vec2 v2;
   // clang-format off
@@ -346,20 +364,23 @@ TEST(Numeric, MatrixColumn) {
 }
 
 // This used to give a compile error with FLENS.
-TEST(Numeric, TinyMatrixView) {
+TEST(Numeric, TinyMatrixView)
+{
   Mat34 P;
   Mat K = P.block(0, 0, 3, 3);
 }
 
 // This gives a compile error.
-TEST(Numeric, Mat3MatProduct) {
+TEST(Numeric, Mat3MatProduct)
+{
   Mat3 A;
   Mat3 B;
   Mat C = A * B;
 }
 
 // This gives a compile error.
-TEST(Numeric, Vec3Negative) {
+TEST(Numeric, Vec3Negative)
+{
   Vec3 y;
   y << 1, 2, 3;
   Vec3 x = -y;
@@ -369,7 +390,8 @@ TEST(Numeric, Vec3Negative) {
 }
 
 // This gives a compile error.
-TEST(Numeric, Vec3VecInteroperability) {
+TEST(Numeric, Vec3VecInteroperability)
+{
   Vec y(3);
   y << 1, 2, 3;
   Vec3 x = y + y;
@@ -379,7 +401,8 @@ TEST(Numeric, Vec3VecInteroperability) {
 }
 
 // This segfaults inside lapack.
-TEST(Numeric, DeterminantLU7) {
+TEST(Numeric, DeterminantLU7)
+{
   Mat A(5, 5);
   // clang-format off
   A <<  1, 0, 0, 0, 0,
@@ -392,7 +415,8 @@ TEST(Numeric, DeterminantLU7) {
 }
 
 // This segfaults inside lapack.
-TEST(Numeric, DeterminantLU) {
+TEST(Numeric, DeterminantLU)
+{
   Mat A(2, 2);
   // clang-format off
   A <<  1, 2,
@@ -403,7 +427,8 @@ TEST(Numeric, DeterminantLU) {
 
 // This does unexpected things.
 // Keir: Not with eigen2!
-TEST(Numeric, InplaceProduct) {
+TEST(Numeric, InplaceProduct)
+{
   Mat2 K, S;
   // clang-format off
   K << 1, 0,
@@ -415,7 +440,8 @@ TEST(Numeric, InplaceProduct) {
   EXPECT_MATRIX_NEAR(Mat2::Identity(), K, 1e-8);
 }
 
-TEST(Numeric, ExtractColumns) {
+TEST(Numeric, ExtractColumns)
+{
   Mat2X A(2, 5);
   // clang-format off
   A << 1, 2, 3, 4, 5,
@@ -430,7 +456,8 @@ TEST(Numeric, ExtractColumns) {
   EXPECT_NEAR(8, extracted(1, 1), 1e-15);
 }
 
-TEST(Numeric, RotationRodrigues) {
+TEST(Numeric, RotationRodrigues)
+{
   Vec3 x, y, z;
   x << 1, 0, 0;
   y << 0, 1, 0;
@@ -449,7 +476,8 @@ TEST(Numeric, RotationRodrigues) {
   EXPECT_MATRIX_NEAR(Rz, rodrigues_z, 1e-15);
 }
 
-TEST(Numeric, LookAt) {
+TEST(Numeric, LookAt)
+{
   // Simple orthogonality check.
   Vec3 e;
   e << 1, 2, 3;
@@ -461,7 +489,8 @@ TEST(Numeric, LookAt) {
   EXPECT_MATRIX_NEAR(I, RTR, 1e-15);
 }
 
-TEST(Numeric, Reshape) {
+TEST(Numeric, Reshape)
+{
   Vec4 x;
   x << 1, 2, 3, 4;
   Mat2 M, M_expected;

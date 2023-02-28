@@ -29,7 +29,8 @@
 
 namespace libmv {
 
-TEST(ModalSolver, SyntheticCubeSceneMotion) {
+TEST(ModalSolver, SyntheticCubeSceneMotion)
+{
   double kTolerance = 1e-8;
 
   PolynomialCameraIntrinsics intrinsics;
@@ -64,12 +65,8 @@ TEST(ModalSolver, SyntheticCubeSceneMotion) {
 
   EuclideanReconstruction reconstruction;
   ModalSolver(tracks, &reconstruction);
-  EuclideanBundleCommonIntrinsics(tracks,
-                                  BUNDLE_NO_INTRINSICS,
-                                  BUNDLE_NO_TRANSLATION,
-                                  &reconstruction,
-                                  &intrinsics,
-                                  NULL);
+  EuclideanBundleCommonIntrinsics(
+      tracks, BUNDLE_NO_INTRINSICS, BUNDLE_NO_TRANSLATION, &reconstruction, &intrinsics, NULL);
 
   Mat3 expected_rotation;
   // clang-format off
@@ -78,8 +75,8 @@ TEST(ModalSolver, SyntheticCubeSceneMotion) {
                       -0.08307742172243, 0.12029448893171,  0.98925597189636;
   // clang-format on
 
-  Mat3& first_camera_R = reconstruction.CameraForImage(1)->R;
-  Mat3& second_camera_R = reconstruction.CameraForImage(2)->R;
+  Mat3 &first_camera_R = reconstruction.CameraForImage(1)->R;
+  Mat3 &second_camera_R = reconstruction.CameraForImage(2)->R;
 
   EXPECT_TRUE(Mat3::Identity().isApprox(first_camera_R, kTolerance));
   EXPECT_TRUE(expected_rotation.isApprox(second_camera_R, kTolerance));

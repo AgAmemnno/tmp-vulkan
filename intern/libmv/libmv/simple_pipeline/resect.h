@@ -51,8 +51,8 @@ namespace libmv {
 
     \sa EuclideanIntersect, EuclideanReconstructTwoFrames
 */
-bool EuclideanResect(const vector<Marker>& markers,
-                     EuclideanReconstruction* reconstruction,
+bool EuclideanResect(const vector<Marker> &markers,
+                     EuclideanReconstruction *reconstruction,
                      bool final_pass);
 
 /*!
@@ -79,8 +79,7 @@ bool EuclideanResect(const vector<Marker>& markers,
 
     \sa ProjectiveIntersect, ProjectiveReconstructTwoFrames
 */
-bool ProjectiveResect(const vector<Marker>& markers,
-                      ProjectiveReconstruction* reconstruction);
+bool ProjectiveResect(const vector<Marker> &markers, ProjectiveReconstruction *reconstruction);
 
 }  // namespace libmv
 

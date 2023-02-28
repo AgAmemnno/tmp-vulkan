@@ -56,15 +56,16 @@ void BKE_main_free(Main *mainvar)
   while (a--) {
     ListBase *lb = lbarray[a];
     ID *id, *id_next;
-  
+
     for (id = lb->first; id != NULL; id = id_next) {
       id_next = id->next;
 #if 1
-      if( strcmp(id->name,"WMWinMan") == 0) {
+      if (strcmp(id->name, "WMWinMan") == 0) {
         winid = id;
-        //BKE_id_free_ex(mainvar, id, free_flag, false);
-      }else if(GS(id->name) == ID_SCR){
-        //scrid = id;
+        // BKE_id_free_ex(mainvar, id, free_flag, false);
+      }
+      else if (GS(id->name) == ID_SCR) {
+        // scrid = id;
         BKE_id_free_ex(mainvar, id, free_flag, false);
       }
       else {
@@ -192,7 +193,6 @@ void BKE_main_free(Main *mainvar)
   if (winid) {
     BKE_id_free_ex(mainvar, winid, free_flag, false);
   }
-
 
   if (mainvar->relations) {
     BKE_main_relations_free(mainvar);

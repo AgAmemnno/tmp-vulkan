@@ -2895,19 +2895,17 @@ static void vma_aligned_free(void *VMA_NULLABLE ptr)
 #      define VMA_SORT(beg, end, cmp) std::sort(beg, end, cmp)
 #    endif
 
-
 #    ifndef VMA_DEBUG_LOG
-#ifdef NDEBUG
-#      define VMA_DEBUG_LOG(format, ...)
-#else
-#      define VMA_DEBUG_LOG(format, ...) \
-        do { \
-          printf(format, __VA_ARGS__); \
-          printf("\n"); \
-        } while (false)
-#endif
-#endif
-
+#      ifdef NDEBUG
+#        define VMA_DEBUG_LOG(format, ...)
+#      else
+#        define VMA_DEBUG_LOG(format, ...) \
+          do { \
+            printf(format, __VA_ARGS__); \
+            printf("\n"); \
+          } while (false)
+#      endif
+#    endif
 
 // Define this macro to 1 to enable functions: vmaBuildStatsString, vmaFreeStatsString.
 #    if VMA_STATS_STRING_ENABLED

@@ -65,12 +65,14 @@ class PackedIntrinsics {
   // TODO(sergey): Consider adding vectorized (Vec2) accessors for the principal
   // point.
 
-#define DEFINE_PARAMETER(parameter_name)                                       \
-  void Set##parameter_name(double value) {                                     \
-    SetParameter(OFFSET_##parameter_name, value);                              \
-  }                                                                            \
-  double Get##parameter_name() const {                                         \
-    return GetParameter(OFFSET_##parameter_name);                              \
+#define DEFINE_PARAMETER(parameter_name) \
+  void Set##parameter_name(double value) \
+  { \
+    SetParameter(OFFSET_##parameter_name, value); \
+  } \
+  double Get##parameter_name() const \
+  { \
+    return GetParameter(OFFSET_##parameter_name); \
   }
 
   DEFINE_PARAMETER(K1)
@@ -83,8 +85,14 @@ class PackedIntrinsics {
 
 #undef DEFINE_PARAMETER
 
-  double* GetParametersBlock() { return parameters_.data(); }
-  const double* GetParametersBlock() const { return parameters_.data(); }
+  double *GetParametersBlock()
+  {
+    return parameters_.data();
+  }
+  const double *GetParametersBlock() const
+  {
+    return parameters_.data();
+  }
 
   bool IsParameterDefined(int offset);
 

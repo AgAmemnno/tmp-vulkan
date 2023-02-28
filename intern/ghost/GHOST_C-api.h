@@ -1220,25 +1220,43 @@ void GHOST_GetVulkanBackbuffer(GHOST_WindowHandle windowhandle,
 extern const char *GHOST_VulkanErrorAsString(int64_t result);
 extern void GHOST_VulkanDebugUtilsRegister(void *r_instance);
 extern void GHOST_VulkanDebugUtilsUnregister();
+#ifdef VULKAN_H_
 
+void GHOST_VulkanAcquireFrame(GHOST_ContextHandle context,
+                              int *r_frameID,
+                              int *r_imgID,
+                              void *r_image,
+                              void* r_layout
+  );
+void GHOST_VulkanPresentFrame(GHOST_ContextHandle context);
 
-
-#define  GHOST_VkCheck(r) \
-{ \
-  if (G.debug & G_DEBUG_GPU) { \
-  if (r != VK_SUCCESS) { \
-    fprintf(stderr, \
-            "Vulkan Error : %s:%d : %s failled with %s\n", \
-            __FILE__, \
-            __LINE__, \
-            __STR(__expression), \
-            GHOST_VulkanErrorAsString(r)); \
-    return GHOST_kFailure; \
-  } \
-  }\
-}
-
-
+extern void GHOST_ImageTransition(
+    VkCommandBuffer cmd,
+    VkImage image,
+    VkFormat format,
+    VkImageLayout dstLayout,  // How the image will be laid out in memory.
+    VkAccessFlags dstAccesses,
+    VkImageAspectFlags aspects = VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM,
+    VkAccessFlags srcAccess = VK_ACCESS_FLAG_BITS_MAX_ENUM,
+    VkImageLayout srcLayout = VK_IMAGE_LAYOUT_MAX_ENUM,
+    int basemip = 0,
+    int miplevel = -1);  // The ways that the app will be able to access the image.
+extern void GHOST_VulkanCreateSwapchainRenderPass();
+#endif
+#  define GHOST_VkCheck(r) \
+    { \
+      if (G.debug & G_DEBUG_GPU) { \
+        if (r != VK_SUCCESS) { \
+          fprintf(stderr, \
+                  "Vulkan Error : %s:%d : %s failled with %s\n", \
+                  __FILE__, \
+                  __LINE__, \
+                  __STR(__expression), \
+                  GHOST_VulkanErrorAsString(r)); \
+          return GHOST_kFailure; \
+        } \
+      } \
+    }
 
 #endif
 

@@ -27,7 +27,8 @@
 namespace {
 using namespace libmv;
 
-TEST(Projection, P_From_KRt) {
+TEST(Projection, P_From_KRt)
+{
   Mat3 K, Kp;
   // clang-format off
   K << 10,  1, 30,
@@ -57,14 +58,16 @@ TEST(Projection, P_From_KRt) {
   // the case. Also add a test for that here.
 }
 
-Vec4 GetRandomPoint() {
+Vec4 GetRandomPoint()
+{
   Vec4 X;
   X.setRandom();
   X(3) = 1;
   return X;
 }
 
-TEST(Projection, isInFrontOfCamera) {
+TEST(Projection, isInFrontOfCamera)
+{
   Mat34 P;
   // clang-format off
   P << 1, 0, 0, 0,
@@ -86,7 +89,8 @@ TEST(Projection, isInFrontOfCamera) {
   EXPECT_FALSE(res_back);
 }
 
-TEST(AutoCalibration, ProjectionShiftPrincipalPoint) {
+TEST(AutoCalibration, ProjectionShiftPrincipalPoint)
+{
   Mat34 P1, P2;
   // clang-format off
   P1 << 1, 0, 0, 0,
@@ -104,7 +108,8 @@ TEST(AutoCalibration, ProjectionShiftPrincipalPoint) {
   EXPECT_MATRIX_EQ(P2, P2_computed);
 }
 
-TEST(AutoCalibration, ProjectionChangeAspectRatio) {
+TEST(AutoCalibration, ProjectionChangeAspectRatio)
+{
   Mat34 P1, P2;
   // clang-format off
   P1 << 1, 0, 3, 0,

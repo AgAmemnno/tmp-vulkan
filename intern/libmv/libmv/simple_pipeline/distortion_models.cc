@@ -51,9 +51,12 @@ struct InvertPolynomialIntrinsicsCostFunction {
         p1_(p1),
         p2_(p2),
         x_(image_x),
-        y_(image_y) {}
+        y_(image_y)
+  {
+  }
 
-  Vec2 operator()(const Vec2& u) const {
+  Vec2 operator()(const Vec2 &u) const
+  {
     double xx, yy;
 
     ApplyPolynomialDistortionModel(focal_length_x_,
@@ -103,9 +106,12 @@ struct InvertDivisionIntrinsicsCostFunction {
         k1_(k1),
         k2_(k2),
         x_(image_x),
-        y_(image_y) {}
+        y_(image_y)
+  {
+  }
 
-  Vec2 operator()(const Vec2& u) const {
+  Vec2 operator()(const Vec2 &u) const
+  {
     double xx, yy;
 
     ApplyDivisionDistortionModel(focal_length_x_,
@@ -159,9 +165,12 @@ struct InvertBrownIntrinsicsCostFunction {
         p1_(p1),
         p2_(p2),
         x_(image_x),
-        y_(image_y) {}
+        y_(image_y)
+  {
+  }
 
-  Vec2 operator()(const Vec2& u) const {
+  Vec2 operator()(const Vec2 &u) const
+  {
     double xx, yy;
 
     ApplyBrownDistortionModel(focal_length_x_,
@@ -205,8 +214,9 @@ void InvertPolynomialDistortionModel(const double focal_length_x,
                                      const double p2,
                                      const double image_x,
                                      const double image_y,
-                                     double* normalized_x,
-                                     double* normalized_y) {
+                                     double *normalized_x,
+                                     double *normalized_y)
+{
   // Compute the initial guess. For a camera with no distortion, this will also
   // be the final answer; the LM iteration will terminate immediately.
   Vec2 normalized;
@@ -245,8 +255,9 @@ void InvertDivisionDistortionModel(const double focal_length_x,
                                    const double k2,
                                    const double image_x,
                                    const double image_y,
-                                   double* normalized_x,
-                                   double* normalized_y) {
+                                   double *normalized_x,
+                                   double *normalized_y)
+{
   // Compute the initial guess. For a camera with no distortion, this will also
   // be the final answer; the LM iteration will terminate immediately.
   Vec2 normalized;
@@ -287,8 +298,9 @@ void InvertBrownDistortionModel(const double focal_length_x,
                                 const double p2,
                                 const double image_x,
                                 const double image_y,
-                                double* normalized_x,
-                                double* normalized_y) {
+                                double *normalized_x,
+                                double *normalized_y)
+{
   // Compute the initial guess. For a camera with no distortion, this will also
   // be the final answer; the LM iteration will terminate immediately.
   Vec2 normalized;
@@ -344,9 +356,12 @@ struct ApplyNukeIntrinsicsCostFunction {
         k1_(k1),
         k2_(k2),
         expected_normalized_x_(expected_normalized_x),
-        expected_normalized_y_(expected_normalized_y) {}
+        expected_normalized_y_(expected_normalized_y)
+  {
+  }
 
-  Vec2 operator()(const Vec2& image_coordinate) const {
+  Vec2 operator()(const Vec2 &image_coordinate) const
+  {
     double actual_normalized_x, actual_normalized_y;
 
     InvertNukeDistortionModel(focal_length_x_,
@@ -387,8 +402,9 @@ void ApplyNukeDistortionModel(const double focal_length_x,
                               const double k2,
                               const double normalized_x,
                               const double normalized_y,
-                              double* image_x,
-                              double* image_y) {
+                              double *image_x,
+                              double *image_y)
+{
   // Compute the initial guess. For a camera with no distortion, this will also
   // be the final answer; the LM iteration will terminate immediately.
   Vec2 image;

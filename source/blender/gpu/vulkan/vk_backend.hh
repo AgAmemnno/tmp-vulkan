@@ -13,21 +13,21 @@
 
 namespace blender::gpu {
 
- class VKContext;
+class VKContext;
 
 class VKBackend : public GPUBackend {
   friend class VKContext;
 
  private:
-   VKSharedOrphanLists shared_orphan_list_;
-   VkCommandBuffer               backend_prim_cmd_;
-   VKContext*                            context_ = nullptr;
-   VKContext*                           ofs_context_ = nullptr;
- public:
+  VKSharedOrphanLists shared_orphan_list_;
+  VkCommandBuffer backend_prim_cmd_;
+  VKContext *context_ = nullptr;
+  VKContext *ofs_context_ = nullptr;
 
-   VKBackend();
+ public:
+  VKBackend();
   ~VKBackend();
-  VKSharedOrphanLists& shared_orphan_list_get()
+  VKSharedOrphanLists &shared_orphan_list_get()
   {
     return shared_orphan_list_;
   };
@@ -49,32 +49,32 @@ class VKBackend : public GPUBackend {
   UniformBuf *uniformbuf_alloc(int size, const char *name) override;
   StorageBuf *storagebuf_alloc(int size, GPUUsageType usage, const char *name) override;
   VertBuf *vertbuf_alloc() override;
-  Fence* fence_alloc()override {
-	  return (Fence*)0;
+  Fence *fence_alloc() override
+  {
+    return (Fence *)0;
   };
-  PixelBuffer* pixelbuf_alloc(uint size)override {
-	  return (PixelBuffer*)0;
+  PixelBuffer *pixelbuf_alloc(uint size) override
+  {
+    return (PixelBuffer *)0;
   };
   /* Render Frame Coordination --
    * Used for performing per-frame actions globally */
   void render_begin() override;
   void render_end() override;
   void render_step() override;
-  VKContext* get_context_main() {
+  VKContext *get_context_main()
+  {
     BLI_assert(context_);
     return context_;
   }
 
-
-
  private:
-
   static void platform_init(VKContext *ctx);
   static void capabilities_init(VKContext *ctx);
 };
 
 namespace vulkan {
-VkPhysicalDeviceProperties& getProperties();
+VkPhysicalDeviceProperties &getProperties();
 };
 
 }  // namespace blender::gpu

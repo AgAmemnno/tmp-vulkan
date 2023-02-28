@@ -9,7 +9,8 @@
 void libmv_homography2DFromCorrespondencesEuc(/* const */ double (*x1)[2],
                                               /* const */ double (*x2)[2],
                                               int num_points,
-                                              double H[3][3]) {
+                                              double H[3][3])
+{
   libmv::Mat x1_mat, x2_mat;
   libmv::Mat3 H_mat;
 
@@ -25,8 +26,7 @@ void libmv_homography2DFromCorrespondencesEuc(/* const */ double (*x1)[2],
   LG << "x2: " << x2_mat;
 
   libmv::EstimateHomographyOptions options;
-  libmv::EstimateHomography2DFromCorrespondences(
-      x1_mat, x2_mat, options, &H_mat);
+  libmv::EstimateHomography2DFromCorrespondences(x1_mat, x2_mat, options, &H_mat);
 
   LG << "H: " << H_mat;
 

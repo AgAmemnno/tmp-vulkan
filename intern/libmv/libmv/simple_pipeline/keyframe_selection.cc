@@ -33,7 +33,8 @@
 namespace libmv {
 namespace {
 
-Mat3 IntrinsicsNormalizationMatrix(const CameraIntrinsics& intrinsics) {
+Mat3 IntrinsicsNormalizationMatrix(const CameraIntrinsics &intrinsics)
+{
   Mat3 T = Mat3::Identity(), S = Mat3::Identity();
 
   T(0, 2) = -intrinsics.principal_point_x();
@@ -56,7 +57,8 @@ Mat3 IntrinsicsNormalizationMatrix(const CameraIntrinsics& intrinsics) {
 //     (k = 7 for a fundamental matrix or 8 for a homography)
 // r is the dimension of the data
 //     (r = 4 for 2D correspondences between two frames)
-double GRIC(const Vec& e, int d, int k, int r) {
+double GRIC(const Vec &e, int d, int k, int r)
+{
   int n = e.rows();
   double lambda1 = log(static_cast<double>(r));
   double lambda2 = log(static_cast<double>(r * n));
@@ -89,8 +91,8 @@ double GRIC(const Vec& e, int d, int k, int r) {
 //
 // TODO(keir): Consider moving this into the numeric code, since this is not
 // related to keyframe selection.
-Mat PseudoInverseWithClampedEigenvalues(const Mat& matrix,
-                                        int num_eigenvalues_to_clamp) {
+Mat PseudoInverseWithClampedEigenvalues(const Mat &matrix, int num_eigenvalues_to_clamp)
+{
   Eigen::EigenSolver<Mat> eigen_solver(matrix);
   Mat D = eigen_solver.pseudoEigenvalueMatrix();
   Mat V = eigen_solver.pseudoEigenvectors();
@@ -100,7 +102,8 @@ Mat PseudoInverseWithClampedEigenvalues(const Mat& matrix,
   for (int i = 0; i < D.cols(); ++i) {
     if (D(i, i) > epsilon) {
       D(i, i) = 1.0 / D(i, i);
-    } else {
+    }
+    else {
       D(i, i) = 0.0;
     }
   }
@@ -112,24 +115,24 @@ Mat PseudoInverseWithClampedEigenvalues(const Mat& matrix,
   return V * D * V.inverse();
 }
 
-void FilterZeroWeightMarkersFromTracks(const Tracks& tracks,
-                                       Tracks* filtered_tracks) {
+void FilterZeroWeightMarkersFromTracks(const Tracks &tracks, Tracks *filtered_tracks)
+{
   vector<Marker> all_markers = tracks.AllMarkers();
 
   for (int i = 0; i < all_markers.size(); ++i) {
-    Marker& marker = all_markers[i];
+    Marker &marker = all_markers[i];
     if (marker.weight != 0.0) {
-      filtered_tracks->Insert(
-          marker.image, marker.track, marker.x, marker.y, marker.weight);
+      filtered_tracks->Insert(marker.image, marker.track, marker.x, marker.y, marker.weight);
     }
   }
 }
 
 }  // namespace
 
-void SelectKeyframesBasedOnGRICAndVariance(const Tracks& _tracks,
-                                           const CameraIntrinsics& intrinsics,
-                                           vector<int>& keyframes) {
+void SelectKeyframesBasedOnGRICAndVariance(const Tracks &_tracks,
+                                           const CameraIntrinsics &intrinsics,
+                                           vector<int> &keyframes)
+{
   // Mirza Tahir Ahmed, Matthew N. Dailey
   // Robust key frame extraction for 3D reconstruction from video streams
   //
@@ -165,25 +168,23 @@ void SelectKeyframesBasedOnGRICAndVariance(const Tracks& _tracks,
     number_keyframes++;
     next_keyframe = -1;
 
-    for (int candidate_image = current_keyframe + 1;
-         candidate_image <= max_image;
+    for (int candidate_image = current_keyframe + 1; candidate_image <= max_image;
          candidate_image++) {
       // Conjunction of all markers from both keyframes
-      vector<Marker> all_markers = filtered_tracks.MarkersInBothImages(
-          current_keyframe, candidate_image);
+      vector<Marker> all_markers = filtered_tracks.MarkersInBothImages(current_keyframe,
+                                                                       candidate_image);
 
       // Match keypoints between frames current_keyframe and candidate_image
-      vector<Marker> tracked_markers =
-          filtered_tracks.MarkersForTracksInBothImages(current_keyframe,
-                                                       candidate_image);
+      vector<Marker> tracked_markers = filtered_tracks.MarkersForTracksInBothImages(
+          current_keyframe, candidate_image);
 
       // Correspondences in normalized space
       Mat x1, x2;
       CoordinatesForMarkersInImage(tracked_markers, current_keyframe, &x1);
       CoordinatesForMarkersInImage(tracked_markers, candidate_image, &x2);
 
-      LG << "Found " << x1.cols() << " correspondences between "
-         << current_keyframe << " and " << candidate_image;
+      LG << "Found " << x1.cols() << " correspondences between " << current_keyframe << " and "
+         << candidate_image;
 
       // Not enough points to construct fundamental matrix
       if (x1.cols() < 8 || x2.cols() < 8)
@@ -194,8 +195,8 @@ void SelectKeyframesBasedOnGRICAndVariance(const Tracks& _tracks,
       int Tf = all_markers.size();
       double Rc = static_cast<double>(Tc) / Tf;
 
-      LG << "Correspondence between " << current_keyframe << " and "
-         << candidate_image << ": " << Rc;
+      LG << "Correspondence between " << current_keyframe << " and " << candidate_image << ": "
+         << Rc;
 
       if (Rc < Tmin || Rc > Tmax)
         continue;
@@ -204,15 +205,13 @@ void SelectKeyframesBasedOnGRICAndVariance(const Tracks& _tracks,
 
       // Estimate homography using default options.
       EstimateHomographyOptions estimate_homography_options;
-      EstimateHomography2DFromCorrespondences(
-          x1, x2, estimate_homography_options, &H);
+      EstimateHomography2DFromCorrespondences(x1, x2, estimate_homography_options, &H);
 
       // Convert homography to original pixel space.
       H = N_inverse * H * N;
 
       EstimateFundamentalOptions estimate_fundamental_options;
-      EstimateFundamentalFromCorrespondences(
-          x1, x2, estimate_fundamental_options, &F);
+      EstimateFundamentalFromCorrespondences(x1, x2, estimate_fundamental_options, &F);
 
       // Convert fundamental to original pixel space.
       F = N_inverse * F * N;
@@ -228,11 +227,9 @@ void SelectKeyframesBasedOnGRICAndVariance(const Tracks& _tracks,
       for (int i = 0; i < x1.cols(); i++) {
         Vec2 current_x1, current_x2;
 
-        intrinsics.NormalizedToImageSpace(
-            x1(0, i), x1(1, i), &current_x1(0), &current_x1(1));
+        intrinsics.NormalizedToImageSpace(x1(0, i), x1(1, i), &current_x1(0), &current_x1(1));
 
-        intrinsics.NormalizedToImageSpace(
-            x2(0, i), x2(1, i), &current_x2(0), &current_x2(1));
+        intrinsics.NormalizedToImageSpace(x2(0, i), x2(1, i), &current_x2(0), &current_x2(1));
 
         H_e(i) = SymmetricGeometricDistance(H, current_x1, current_x2);
         F_e(i) = SymmetricEpipolarDistance(F, current_x1, current_x2);
@@ -245,8 +242,8 @@ void SelectKeyframesBasedOnGRICAndVariance(const Tracks& _tracks,
       double GRIC_H = GRIC(H_e, 2, 8, 4);
       double GRIC_F = GRIC(F_e, 3, 7, 4);
 
-      LG << "GRIC values for frames " << current_keyframe << " and "
-         << candidate_image << ", H-GRIC: " << GRIC_H << ", F-GRIC: " << GRIC_F;
+      LG << "GRIC values for frames " << current_keyframe << " and " << candidate_image
+         << ", H-GRIC: " << GRIC_H << ", F-GRIC: " << GRIC_F;
 
       if (GRIC_H <= GRIC_F)
         continue;
@@ -283,19 +280,17 @@ void SelectKeyframesBasedOnGRICAndVariance(const Tracks& _tracks,
       Vec3 t;
       Mat3 K = Mat3::Identity();
 
-      if (!MotionFromEssentialAndCorrespondence(
-              E, K, x1.col(0), K, x2.col(0), &R, &t)) {
+      if (!MotionFromEssentialAndCorrespondence(E, K, x1.col(0), K, x2.col(0), &R, &t)) {
         LG << "Failed to compute R and t from E and K";
         continue;
       }
 
-      LG << "Camera transform between frames " << current_keyframe << " and "
-         << candidate_image << ":\nR:\n"
+      LG << "Camera transform between frames " << current_keyframe << " and " << candidate_image
+         << ":\nR:\n"
          << R << "\nt:" << t.transpose();
 
       // First camera is identity, second one is relative to it
-      reconstruction.InsertCamera(
-          current_keyframe, Mat3::Identity(), Vec3::Zero());
+      reconstruction.InsertCamera(current_keyframe, Mat3::Identity(), Vec3::Zero());
       reconstruction.InsertCamera(candidate_image, R, t);
 
       // Reconstruct 3D points
@@ -326,14 +321,14 @@ void SelectKeyframesBasedOnGRICAndVariance(const Tracks& _tracks,
           if (EuclideanIntersect(reconstructed_markers, &reconstruction)) {
             LG << "Ran Intersect() for track " << track;
             intersects_success++;
-          } else {
+          }
+          else {
             LG << "Filed to intersect track " << track;
           }
         }
       }
 
-      double success_intersects_factor =
-          double(intersects_success) / intersects_total;
+      double success_intersects_factor = double(intersects_success) / intersects_total;
 
       if (success_intersects_factor < success_intersects_factor_best) {
         LG << "Skip keyframe candidate because of "
@@ -356,7 +351,7 @@ void SelectKeyframesBasedOnGRICAndVariance(const Tracks& _tracks,
                                       &empty_intrinsics,
                                       &evaluation);
 
-      Mat& jacobian = evaluation.jacobian;
+      Mat &jacobian = evaluation.jacobian;
 
       Mat JT_J = jacobian.transpose() * jacobian;
       // There are 7 degrees of freedom, so clamp them out.
@@ -364,8 +359,7 @@ void SelectKeyframesBasedOnGRICAndVariance(const Tracks& _tracks,
 
       Mat temp_derived = JT_J * JT_J_inv * JT_J;
       bool is_inversed = (temp_derived - JT_J).cwiseAbs2().sum() <
-                         1e-4 * std::min(temp_derived.cwiseAbs2().sum(),
-                                         JT_J.cwiseAbs2().sum());
+                         1e-4 * std::min(temp_derived.cwiseAbs2().sum(), JT_J.cwiseAbs2().sum());
 
       LG << "Check on inversed: " << (is_inversed ? "true" : "false")
          << ", det(JT_J): " << JT_J.determinant();
@@ -376,16 +370,15 @@ void SelectKeyframesBasedOnGRICAndVariance(const Tracks& _tracks,
       }
 
       Mat Sigma_P;
-      Sigma_P = JT_J_inv.bottomRightCorner(evaluation.num_points * 3,
-                                           evaluation.num_points * 3);
+      Sigma_P = JT_J_inv.bottomRightCorner(evaluation.num_points * 3, evaluation.num_points * 3);
 
       int I = evaluation.num_points;
       int A = 12;
 
       double Sc = static_cast<double>(I + A) / Square(3 * I) * Sigma_P.trace();
 
-      LG << "Expected estimation error between " << current_keyframe << " and "
-         << candidate_image << ": " << Sc;
+      LG << "Expected estimation error between " << current_keyframe << " and " << candidate_image
+         << ": " << Sc;
 
       // Pairing with a lower Sc indicates a better choice
       if (Sc > Sc_best_candidate)
@@ -412,7 +405,8 @@ void SelectKeyframesBasedOnGRICAndVariance(const Tracks& _tracks,
         break;
 
       LG << "Starting searching for keyframes starting from " << next_keyframe;
-    } else {
+    }
+    else {
       // New pair's expected reconstruction error is lower
       // than existing pair's one.
       //

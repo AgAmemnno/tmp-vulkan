@@ -27,15 +27,16 @@
 #include "vk_context.hh"
 #include "vk_memory.hh"
 
+#include "vk_debug.hh"
+#include "vk_common.hh"
+
+#include "vk_framebuffer.hh"
 #include "vk_state.hh"
 #include "vk_texture.hh"
-#include "vk_debug.hh"
-#include "vk_framebuffer.hh"
 
-#include "intern/GHOST_ContextVK.h"
+
 
 namespace blender::gpu {
-
 
 struct ImgState {
   VkImage img;
@@ -45,8 +46,7 @@ struct ImgState {
   VkImageAspectFlags iacs;
 };
 
-
-static bool check_canBlit(VkFormat srcFormat,VkFormat dstFormat)
+static bool check_canBlit(VkFormat srcFormat, VkFormat dstFormat)
 {
 
   VKContext *context = VKContext::get();
@@ -72,7 +72,9 @@ static bool check_canBlit(VkFormat srcFormat,VkFormat dstFormat)
   return true;
 }
 
-static  void image_barrier_copy(VkCommandBuffer copyCmd, VKTexture *tex, ImgState &state, bool is_src,int mip) {
+static void image_barrier_copy(
+    VkCommandBuffer copyCmd, VKTexture *tex, ImgState &state, bool is_src, int mip)
+{
   state.img = tex->get_image();
   state.layout = tex->get_image_layout(mip);
 
@@ -99,7 +101,6 @@ static  void image_barrier_copy(VkCommandBuffer copyCmd, VKTexture *tex, ImgStat
         state.iacs = VK_IMAGE_ASPECT_COLOR_BIT;
       }
     }
-    
   };
   insert_image_memory_barrier(
       copyCmd,
@@ -111,10 +112,10 @@ static  void image_barrier_copy(VkCommandBuffer copyCmd, VKTexture *tex, ImgStat
       state.stg,
       VK_PIPELINE_STAGE_TRANSFER_BIT,
       VkImageSubresourceRange{state.iacs, (uint32_t)mip, 1, 0, 1});
-
 };
 
-static void image_barrier2_copy(VkCommandBuffer copyCmd, ImgState &state, bool is_src,int mip) {
+static void image_barrier2_copy(VkCommandBuffer copyCmd, ImgState &state, bool is_src, int mip)
+{
   if (state.layout == VK_IMAGE_LAYOUT_UNDEFINED) {
 
     if (state.iacs == VK_IMAGE_ASPECT_COLOR_BIT) {
@@ -128,7 +129,6 @@ static void image_barrier2_copy(VkCommandBuffer copyCmd, ImgState &state, bool i
       state.stg = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
       state.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     }
-
   }
 
   insert_image_memory_barrier(
@@ -143,9 +143,6 @@ static void image_barrier2_copy(VkCommandBuffer copyCmd, ImgState &state, bool i
       VkImageSubresourceRange{state.iacs, (uint32_t)mip, 1, 0, 1});
 };
 
-
-
-
 static void sampler2attachment(VKTexture *tex,
                                int mip,
                                VkImageLayout dst_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
@@ -155,7 +152,7 @@ static void sampler2attachment(VKTexture *tex,
     return;
   }
 
-  VkAccessFlags src_acs_flag; 
+  VkAccessFlags src_acs_flag;
   const VkImageLayout Shader_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   if (src_layout & VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
     src_acs_flag = VK_ACCESS_SHADER_READ_BIT;
@@ -165,7 +162,7 @@ static void sampler2attachment(VKTexture *tex,
   }
 
   BLI_assert((dst_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) ||
-                (dst_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL));
+             (dst_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL));
 
   VkAccessFlags acs_flag = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
                            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
@@ -182,7 +179,7 @@ static void sampler2attachment(VKTexture *tex,
 
   context->begin_submit_simple(cmd);
 
-  blender::vulkan::GHOST_ImageTransition(cmd,
+  GHOST_ImageTransition(cmd,
                                          src_image,
                                          tex->info.format,
                                          dst_layout,
@@ -193,13 +190,9 @@ static void sampler2attachment(VKTexture *tex,
 
   context->end_submit_simple();
   tex->set_image_layout(dst_layout, mip);
-
-
 };
 
-
-
-    /// <summary>
+/// <summary>
 /// @SaschaWillems , Vulkan Samples-1
 /// https://github.com/Mandar-Shinde/Vulkan-Samples-1/blob/master/samples/api/texture_mipmap_generation/texture_mipmap_generation_tutorial.md
 /// </summary>
@@ -369,7 +362,6 @@ void VKTexture::generate_mipmaps(const void *data)
 
   vk_image_layout_.resize(mipmaps_);
 
-
   if (this->mipmaps_ > 1) {
     insert_image_memory_barrier(cmd,
                                 vk_image_,
@@ -393,11 +385,9 @@ void VKTexture::generate_mipmaps(const void *data)
                                 VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
                                 {VK_IMAGE_ASPECT_COLOR_BIT, 0, (uint32_t)this->mipmaps_, 0, 1});
 
-
     for (auto &layout : vk_image_layout_) {
-       layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+      layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     }
-
   }
 
   staging->end();
@@ -470,10 +460,8 @@ void VKTexture::generate_mipmaps(const void *data)
                                 VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
                                 {VK_IMAGE_ASPECT_COLOR_BIT, 0, (uint32_t)this->mipmaps_, 0, 1});
 
-
-
     for (auto &layout : vk_image_layout_) {
-     layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+      layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     }
     staging->end();
   }
@@ -484,7 +472,7 @@ void VKTexture::generate_mipmaps(const void *data)
 void VKTexture::TextureSubImage(int mip, int offset[3], int extent[3], const void *data)
 {
 
-  uint32_t row_pitch = ((VKStateManager*)VKContext::get()->state_manager)->unpack_row_length;
+  uint32_t row_pitch = ((VKStateManager *)VKContext::get()->state_manager)->unpack_row_length;
 
   int dim = dimensions_count();
 
@@ -500,8 +488,8 @@ void VKTexture::TextureSubImage(int mip, int offset[3], int extent[3], const voi
     extent[2] = 1;
     offset[2] = 0;
   }
-  VkDeviceSize size = 0; 
-  if (row_pitch != 0 ) {
+  VkDeviceSize size = 0;
+  if (row_pitch != 0) {
     size = get_size_fromformat(info.format, row_pitch, extent[1], extent[2]);
   }
   else {
@@ -529,11 +517,10 @@ void VKTexture::TextureSubImage(int mip, int offset[3], int extent[3], const voi
       dst_access = VK_ACCESS_SHADER_READ_BIT;
       dst_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
     }
-    else if ( ( info.usage & VK_IMAGE_USAGE_STORAGE_BIT ) )
-    {
-      dst_layout  = VK_IMAGE_LAYOUT_GENERAL;
+    else if ((info.usage & VK_IMAGE_USAGE_STORAGE_BIT)) {
+      dst_layout = VK_IMAGE_LAYOUT_GENERAL;
       dst_access = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-      dst_stage   = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+      dst_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
     }
     else if ((info.usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)) {
       dst_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -579,7 +566,6 @@ void VKTexture::TextureSubImage(int mip, int offset[3], int extent[3], const voi
   buffer_copy_region.imageOffset.z = offset[2];
   buffer_copy_region.bufferRowLength = row_pitch;
 
-
   vkCmdCopyBufferToImage(cmd,
                          buffer->get_vk_buffer(),
                          vk_image_,
@@ -608,7 +594,7 @@ VKTexture::VKTexture(const char *name, VKContext *context) : Texture(name)
   context_ = context;
 
   mip_max_ = 1;
-  mip_min_  = 0;
+  mip_min_ = 0;
   current_view_id_ = -1;
   views_ = VK_NULL_HANDLE;
 }
@@ -617,12 +603,10 @@ VKTexture::~VKTexture(void)
 {
   VkDevice device = context_->device_get();
 
- if (views_ != VK_NULL_HANDLE) {
-      vkDestroyImageView(device, views_, nullptr);
-      views_ = VK_NULL_HANDLE;
- }
-  
- 
+  if (views_ != VK_NULL_HANDLE) {
+    vkDestroyImageView(device, views_, nullptr);
+    views_ = VK_NULL_HANDLE;
+  }
 
   if (vk_image_ != VK_NULL_HANDLE) {
     VmaAllocator mem_allocator = context_->mem_allocator_get();
@@ -661,7 +645,6 @@ bool VKTexture::init_internal(void)
     }
     info.extent.depth = static_cast<uint32_t>(d_);
 
-
     info.arrayLayers = this->layer_count();
     info.samples = VK_SAMPLE_COUNT_1_BIT;
     info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -695,7 +678,6 @@ bool VKTexture::init_internal(void)
     }
     */
 
-   
     info.flags = 0;
 
     if (type_ == GPU_TEXTURE_CUBE) {
@@ -719,14 +701,12 @@ bool VKTexture::init_internal(void)
   VmaAllocationInfo allocinfo = {};
   std::string pName = (name_ + std::to_string(VK_IMAGE_ALLOCATED_TIMES++)).c_str();
 
-
   vmaCreateImage(mem_allocator, &info, &alloc_info, &vk_image_, &vk_allocation_, &allocinfo);
   needs_update_descriptor_ = true;
   vmaSetAllocationName(mem_allocator, vk_allocation_, pName.c_str());
-                                                     
+
   auto state_manager = reinterpret_cast<VKStateManager *>(context_->state_manager);
   state_manager->texture_bind_temp(this);
-
 
   desc_info_.imageView = VK_NULL_HANDLE;
   desc_info_.imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -734,11 +714,10 @@ bool VKTexture::init_internal(void)
   vk_image_layout_.resize(mipmaps_);
 
   for (auto &layout : vk_image_layout_) {
-    layout  = VK_IMAGE_LAYOUT_UNDEFINED;
+    layout = VK_IMAGE_LAYOUT_UNDEFINED;
   }
 
- 
-  debug::object_vk_label(VKContext::get()->device_get(), vk_image_, name_); 
+  debug::object_vk_label(VKContext::get()->device_get(), vk_image_, name_);
   return true;
 }
 
@@ -917,30 +896,27 @@ void VKTexture::swizzle_set(const char swizzle_mask[4])
   /* The swizzling changed, we need to reconstruct all views. */
   VkDevice device = context_->device_get();
 
-    if (views_ != VK_NULL_HANDLE) {
-      /* WARNING: This is potentially unsafe since the views might already be in used.
-       * In practice, swizzle_set is always used just after initialization or before usage. */
-      vkDestroyImageView(device, views_, nullptr);
-      views_ = VK_NULL_HANDLE;
-    }
-
+  if (views_ != VK_NULL_HANDLE) {
+    /* WARNING: This is potentially unsafe since the views might already be in used.
+     * In practice, swizzle_set is always used just after initialization or before usage. */
+    vkDestroyImageView(device, views_, nullptr);
+    views_ = VK_NULL_HANDLE;
+  }
 }
 
-void VKTexture::copy_to(Texture *dst_){
+void VKTexture::copy_to(Texture *dst_)
+{
 
-
-    int mip = 0;
-    VKTexture *dst = static_cast<VKTexture *>(dst_);
-    VKTexture *src = this;
+  int mip = 0;
+  VKTexture *dst = static_cast<VKTexture *>(dst_);
+  VKTexture *src = this;
   VKContext *context = VKContext::get();
   BLI_assert(context);
-
 
   auto srcFormat = src->info.format;
   auto dstFormat = dst->info.format;
   BLI_assert(srcFormat == dstFormat);
   bool supportsBlit = check_canBlit(srcFormat, dstFormat);
-
 
   VkImage srcImage = src->get_image();
   VkImage dstImage = dst->get_image();
@@ -949,12 +925,10 @@ void VKTexture::copy_to(Texture *dst_){
 
   context->begin_submit_simple(copyCmd);
 
-  ImgState src_state,dst_state;
+  ImgState src_state, dst_state;
 
-
-
-  image_barrier_copy(copyCmd,src, src_state, true,mip);
-  image_barrier_copy(copyCmd,dst, dst_state, false,mip);
+  image_barrier_copy(copyCmd, src, src_state, true, mip);
+  image_barrier_copy(copyCmd, dst, dst_state, false, mip);
 
   if (supportsBlit) {
     // Define the region to blit (we will blit the whole swapchain image)
@@ -1001,16 +975,11 @@ void VKTexture::copy_to(Texture *dst_){
                    &imageCopyRegion);
   }
 
-
   image_barrier2_copy(copyCmd, src_state, true, mip);
   image_barrier2_copy(copyCmd, dst_state, false, mip);
 
   context->end_submit_simple();
-
-
 }
-
-
 
 VkImageView VKTexture::create_image_view(int mip, int layer, int mipcount = 1, int levelcount = 1)
 {
@@ -1044,7 +1013,6 @@ VkImageView VKTexture::create_image_view(int mip, int layer, int mipcount = 1, i
 
   vkCreateImageView(device, &info, nullptr, &view);
 
-
   desc_info_.imageView = view;
 
   return view;
@@ -1055,11 +1023,11 @@ VkImageView VKTexture::vk_image_view_get(int mip)
   return this->vk_image_view_get(mip, 0);
 }
 
-VkImageView VKTexture::vk_image_view_get(int mip, int layer,bool force )
+VkImageView VKTexture::vk_image_view_get(int mip, int layer, bool force)
 {
   int view_id = mipmaps_ * (layer_count() + 1) + layer + 1;
   VkDevice device = context_->device_get();
-  VkImageView& view = views_;
+  VkImageView &view = views_;
   if (force) {
     if (view != VK_NULL_HANDLE) {
       vkDestroyImageView(device, view, nullptr);
@@ -1075,7 +1043,7 @@ VkImageView VKTexture::vk_image_view_get(int mip, int layer,bool force )
 
   needs_update_descriptor_ = true;
   if (view == VK_NULL_HANDLE) {
-    views_ = view = this->create_image_view(0,layer, mipmaps_,1);
+    views_ = view = this->create_image_view(0, layer, mipmaps_, 1);
   }
   current_view_id_ = view_id;
   return view;
@@ -1130,8 +1098,7 @@ VKAttachment::~VKAttachment()
 {
   clear();
 };
-
-void VKAttachment::bind(bool force )
+void VKAttachment::bind(bool force)
 {
 
   bool tran = force;
@@ -1157,8 +1124,6 @@ void VKAttachment::bind(bool force )
   if (tran) {
     fb_->update_attachments();
   }
-
-
 };
 void VKAttachment::clear()
 {
@@ -1258,29 +1223,31 @@ void VKAttachment::create_framebuffer()
                                                      nullptr :
                                                      vref_depth_stencil_.data();
 
-
     // Use subpass dependencies for layout transitions
     std::array<VkSubpassDependency, 2> dependencies;
     int depCnt = 1;
     dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
     dependencies[0].dstSubpass = 0;
-    dependencies[0].srcStageMask      = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-    dependencies[0].dstStageMask      = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependencies[0].srcAccessMask     = VK_ACCESS_MEMORY_READ_BIT;
-    dependencies[0].dstAccessMask     = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    dependencies[0].dependencyFlags   = VK_DEPENDENCY_BY_REGION_BIT;
+    dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+    dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+    dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+                                    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
     if (vref_depth_stencil_.size() > 0) {
 
       depCnt++;
       dependencies[1].srcSubpass = VK_SUBPASS_EXTERNAL;
       dependencies[1].dstSubpass = 0;
-      dependencies[1].srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-      dependencies[1].dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+      dependencies[1].srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+                                     VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+      dependencies[1].dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+                                     VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
       dependencies[1].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-      dependencies[1].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+      dependencies[1].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
+                                      VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
       dependencies[1].dependencyFlags = 0;
-
     }
     /*
     dependencies[1].srcSubpass = 0;
@@ -1303,36 +1270,46 @@ void VKAttachment::create_framebuffer()
     renderPassInfo.dependencyCount = depCnt;
     renderPassInfo.pDependencies = dependencies.data();
     VK_CHECK2(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderpass_));
-    
-    debug::object_vk_label(device, renderpass_ , std::string(fb_->name_get()) +"_Renderpass"); 
+
+    debug::object_vk_label(device, renderpass_, std::string(fb_->name_get()) + "_Renderpass");
     BLI_assert(framebuffer_.size() == 0);
 
     framebuffer_.resize(vview_.size());
   };
 
-
   BLI_assert(framebuffer_.size() == vview_.size());
 
-
   int i = 0;
-  for (auto & view_ : vview_) {
+  for (auto &view_ : vview_) {
 
     VkFramebufferCreateInfo fb_create_info = {};
     fb_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     fb_create_info.renderPass = renderpass_;
-    fb_create_info.attachmentCount = static_cast<uint32_t> ( view_.size() );
+    fb_create_info.attachmentCount = static_cast<uint32_t>(view_.size());
     fb_create_info.pAttachments = view_.data();
     fb_create_info.width = extent_.width;
     fb_create_info.height = extent_.height;
     fb_create_info.layers = 1;
-   
+
     VK_CHECK2(vkCreateFramebuffer(device, &fb_create_info, nullptr, &framebuffer_[i]));
-    debug::object_vk_label(device,framebuffer_[i],  std::string(fb_->name_get()) +"_Framebuffer");
+    debug::object_vk_label(device, framebuffer_[i], std::string(fb_->name_get()) + "_Framebuffer");
     i++;
   };
 
   return;
 }
+
+
+VkImageLayout VKAttachment::get_initial_layout(int i)
+{
+  BLI_assert(vdesc_.size() > i);
+  return vdesc_[i].initialLayout;
+};
+
+VkImageLayout VKAttachment::get_final_layout(int i){
+  BLI_assert(vdesc_.size() > i);
+  return vdesc_[i].finalLayout;
+};
 
 void VKAttachment::append_from_swapchain(int swapchain_idx)
 {
@@ -1344,7 +1321,6 @@ void VKAttachment::append_from_swapchain(int swapchain_idx)
   auto device_ = context_->device_get();
 
   auto size = context_->getImageViewNums();
-  
 
   framebuffer_.resize(size);
   vview_.resize(size);
@@ -1365,13 +1341,12 @@ void VKAttachment::append_from_swapchain(int swapchain_idx)
   VkAttachmentDescription colorAttachment = {};
   colorAttachment.format = context_->getImageFormat();
   colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-  colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;  // VK_ATTACHMENT_LOAD_OP_CLEAR;  // 
+  colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;  // VK_ATTACHMENT_LOAD_OP_CLEAR;  //
   colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
   colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
   colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-  colorAttachment.initialLayout =
-      VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;  // VK_IMAGE_LAYOUT_UNDEFINED;
-  colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+  colorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;  // VK_IMAGE_LAYOUT_UNDEFINED;
+  colorAttachment.finalLayout   = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
   vdesc_.append(colorAttachment);
 
   VkAttachmentReference colorAttachmentRef = {};
@@ -1423,7 +1398,7 @@ void VKAttachment::append_from_swapchain(int swapchain_idx)
   renderPassInfo.dependencyCount = 2;
   renderPassInfo.pDependencies = subpassDependencies;
   VK_CHECK2(vkCreateRenderPass(device_, &renderPassInfo, NULL, &renderpass_));
-  debug::object_vk_label(device_, renderpass_ , std::string(fb_->name_get()) +"_Renderpass"); 
+  debug::object_vk_label(device_, renderpass_, std::string(fb_->name_get()) + "_Renderpass");
   num_++;
 };
 

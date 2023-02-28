@@ -33,11 +33,10 @@ void DoBasicAlignmentChecks(const int alignment)
 
 }  // namespace
 
-
 #define STACK_TRACE
 #ifdef STACK_TRACE
-#include "windows.h"
 #  include "dbghelp.h"
+#  include "windows.h"
 #  pragma comment(lib, "DbgHelp.lib ")
 #  define MAX_INFO 200000
 #  define MAX_INFO_MSG 256

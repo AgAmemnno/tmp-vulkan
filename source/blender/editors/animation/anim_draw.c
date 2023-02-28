@@ -66,8 +66,8 @@ void ANIM_draw_cfra(const bContext *C, View2D *v2d, short flag)
   immUniformThemeColor(TH_CFRAME);
 
   immBegin(GPU_PRIM_LINES, 2);
-  immVertex3f(pos, x, v2d->cur.ymin - 500.0f,0.); /* XXX arbitrary... want it go to bottom */
-  immVertex3f(pos, x, v2d->cur.ymax,0.);
+  immVertex3f(pos, x, v2d->cur.ymin - 500.0f, 0.); /* XXX arbitrary... want it go to bottom */
+  immVertex3f(pos, x, v2d->cur.ymax, 0.);
   immEnd();
   immUnbindProgram();
 }
@@ -110,7 +110,6 @@ void ANIM_draw_previewrange(const bContext *C, View2D *v2d, int end_frame_width)
 /* *************************************************** */
 /* SCENE FRAME RANGE */
 
-
 void ANIM_draw_framerange(Scene *scene, View2D *v2d)
 {
   /* draw darkened area outside of active timeline frame range */
@@ -137,11 +136,11 @@ void ANIM_draw_framerange(Scene *scene, View2D *v2d)
 
   immBegin(GPU_PRIM_LINES, 4);
 
-  immVertex3f(pos, (float)scene->r.sfra, v2d->cur.ymin,0.);
-  immVertex3f(pos, (float)scene->r.sfra, v2d->cur.ymax,0.);
+  immVertex3f(pos, (float)scene->r.sfra, v2d->cur.ymin, 0.);
+  immVertex3f(pos, (float)scene->r.sfra, v2d->cur.ymax, 0.);
 
-  immVertex3f(pos, (float)scene->r.efra, v2d->cur.ymin,0.);
-  immVertex3f(pos, (float)scene->r.efra, v2d->cur.ymax,0.);
+  immVertex3f(pos, (float)scene->r.efra, v2d->cur.ymin, 0.);
+  immVertex3f(pos, (float)scene->r.efra, v2d->cur.ymax, 0.);
 
   immEnd();
   immUnbindProgram();

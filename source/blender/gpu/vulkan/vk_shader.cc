@@ -75,10 +75,10 @@ already CPP.
 /// early development. Use the sources below.
 /// https://github.com/nvpro-samples/nvpro_core/blob/master/nvvk/shadermodulemanager_vk.hpp
 /// </summary>
-#include "vk_shaders.hh"
-#include "vk_debug.hh"
 #include "vk_backend.hh"
+#include "vk_debug.hh"
 #include "vk_framebuffer.hh"
+#include "vk_shaders.hh"
 #include "vk_texture.hh"
 #include "vk_uniform_buffer.hh"
 #include <string>
@@ -100,13 +100,11 @@ VkShaderModule loadShader(const char *fileName,
   if (is.is_open()) {
     size_t size = is.tellg();
     is.seekg(0, std::ios::beg);
-    char *shaderCode =   (char*)MEM_mallocN(size, __func__);
+    char *shaderCode = (char *)MEM_mallocN(size, __func__);
     is.read(shaderCode, size);
     is.close();
 
     assert(size > 0);
-
-
 
     moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     moduleCreateInfo.codeSize = size;
@@ -114,7 +112,6 @@ VkShaderModule loadShader(const char *fileName,
     moduleCreateInfo.pNext = 0;
     moduleCreateInfo.flags = 0;
     VK_CHECK(vkCreateShaderModule(device, &moduleCreateInfo, NULL, &shaderModule));
-
 
     moduleCreateInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 
@@ -166,10 +163,10 @@ VKShader::VKShader(const char *name) : Shader(name)
   context_ = VKContext::get();
   pipe = VK_NULL_HANDLE;
   write_iub_.clear();
-  for (int i= 0; i < VK_LAYOUT_SET_MAX; i++) {
+  for (int i = 0; i < VK_LAYOUT_SET_MAX; i++) {
     write_descs_[i].clear();
   }
-  };
+};
 
 /** \} */
 
@@ -214,7 +211,7 @@ static char *glsl_patch_default_get()
   STR_CONCAT(patch, slen, "#extension GL_EXT_debug_printf : enable \n ");
   /* Enable extensions for features that are not part of our base GLSL version
    * don't use an extension for something already available! */
-  if (true) { //VKContext::texture_gather_support) {
+  if (true) {  // VKContext::texture_gather_support) {
     STR_CONCAT(patch, slen, "#extension GL_ARB_texture_gather: enable\n");
     /* Some drivers don't agree on epoxy_has_gl_extension("GL_ARB_texture_gather") and the actual
      * support in the shader so double check the preprocessor define (see T56544). */
@@ -236,14 +233,14 @@ static char *glsl_patch_default_get()
     STR_CONCAT(patch, slen, "#define GPU_ARB_texture_cube_map_array\n");
   }
   if (true) {  // epoxy_has_gl_extension("GL_ARB_conservative_depth")) {
-    //STR_CONCAT(patch, slen, "#extension GL_ARB_conservative_depth : enable\n");
+    // STR_CONCAT(patch, slen, "#extension GL_ARB_conservative_depth : enable\n");
   }
   if (true) {  // GPU_shader_image_load_store_support()) {
     STR_CONCAT(patch, slen, "#extension GL_ARB_shader_image_load_store: enable\n");
     STR_CONCAT(patch, slen, "#extension GL_ARB_shading_language_420pack: enable\n");
   }
   if (true) {  // VKContext::layered_rendering_support) {
-    //STR_CONCAT(patch, slen, "#extension GL_AMD_vertex_shader_layer: enable\n");
+    // STR_CONCAT(patch, slen, "#extension GL_AMD_vertex_shader_layer: enable\n");
     STR_CONCAT(patch, slen, "#define gpu_Layer gl_Layer\n");
   }
   if (true) {  // VKContext::native_barycentric_support) {
@@ -270,7 +267,6 @@ static char *glsl_patch_default_get()
 
   BLI_assert(slen < sizeof(patch));
   return patch;
-
 }
 
 static char *glsl_patch_compute_get()
@@ -298,12 +294,10 @@ static char *glsl_patch_compute_get()
 static char *glsl_patch_get(VKShaderStageType gl_stage)
 {
 
-    if (gl_stage == VKShaderStageType::ComputeShader) {
-      return glsl_patch_compute_get();
-    }
-    return glsl_patch_default_get();
-
-
+  if (gl_stage == VKShaderStageType::ComputeShader) {
+    return glsl_patch_compute_get();
+  }
+  return glsl_patch_default_get();
 }
 
 GHOST_TSuccess VKShader::compile_source(Span<const char *> sources, VKShaderStageType stage)
@@ -337,9 +331,9 @@ GHOST_TSuccess VKShader::compile_source(Span<const char *> sources, VKShaderStag
 
   __shadercCompilerUsers++;
   if (!__shadercCompiler) {
-    __shadercCompiler  = shaderc_compiler_initialize();
+    __shadercCompiler = shaderc_compiler_initialize();
   }
-  m_shadercOptions    = shaderc_compile_options_initialize();
+  m_shadercOptions = shaderc_compile_options_initialize();
 
   struct SetupInterface {
     // This class is to aid using a shaderc library version that is not
@@ -499,14 +493,14 @@ GHOST_TSuccess VKShader::compile_source(Span<const char *> sources, VKShaderStag
   if (G.debug_value & -7777) {
     printf("Shader Context \n\n\n %s ", source.c_str());
   }
-  #if 0
+#if 0
   else if (name_get() == std::string("gpu_shader_3D_uniform_color")) {  //GPU_SHADER_3D_UNIFORM_COLOR")){   //gpu_shader_2D_image_multi_rect_color")) { //OCIO_Display")) {  // gpu_shader_3D_image_color")) {
                                     // //"gpu_shader_2D_widget_base") {  // overlay_extra")) {  //
                                     // "workbench_taa")) {    //workbench_effect_outline")) {    //
        // workbench_opaque_mesh_tex_none_no_clip")) { //    workbench_composite_studio ")) { 
      printf("Shader Context \n\n\n %s ", source.c_str());
   };
-  #endif
+#endif
 
   if (!result) {
     return GHOST_kFailure;
@@ -545,7 +539,7 @@ GHOST_TSuccess VKShader::compile_source(Span<const char *> sources, VKShaderStag
   shaders_[(uint32_t)stage].shaderModuleInfo.codeSize = shaderc_result_get_length(result);
   shaders_[(uint32_t)stage].shaderModuleInfo.pCode = (const uint32_t *)shaderc_result_get_bytes(
       result);
-  VkDevice device  = VKContext::get()->device_get();
+  VkDevice device = VKContext::get()->device_get();
   auto vkresult = ::vkCreateShaderModule(device,
                                          &shaders_[(uint32_t)stage].shaderModuleInfo,
                                          nullptr,
@@ -559,7 +553,10 @@ GHOST_TSuccess VKShader::compile_source(Span<const char *> sources, VKShaderStag
     return GHOST_kFailure;
   }
 
-  blender::gpu::debug::object_vk_label(device,shaders_[(uint32_t)stage].module , std::string(name_get()) + "_Stg" +std::to_string((uint32_t)stage) );
+  blender::gpu::debug::object_vk_label(device,
+                                       shaders_[(uint32_t)stage].module,
+                                       std::string(name_get()) + "_Stg" +
+                                           std::to_string((uint32_t)stage));
   return GHOST_kSuccess;
 }
 
@@ -576,13 +573,12 @@ VkShaderModule VKShader::create_shader_module(MutableSpan<const char *> sources,
 void VKShader::vertex_shader_from_glsl(MutableSpan<const char *> sources)
 {
 #ifdef WITH_VULKAN_SHADER_COMPILATION
-  if (this->name_get() == std::string("overlay_extra") ){
+  if (this->name_get() == std::string("overlay_extra")) {
     std::string Name = "D:\\blender\\script\\shaders\\spv\\overlay_extra.vert.spv";
-    //std::string Name = "D:\\blender\\script\\shaders\\spv\\worckbench_taa.vert.spv";
+    // std::string Name = "D:\\blender\\script\\shaders\\spv\\worckbench_taa.vert.spv";
     auto device = VKContext::get()->device_get();
     auto &shader = shaders_[uint32_t(VKShaderStageType::VertexShader)];
     loadShader(Name.c_str(), device, shader.shaderModuleInfo, shader.module);
-  
   }
   else {
     this->create_shader_module(sources, VKShaderStageType::VertexShader);
@@ -602,7 +598,7 @@ void VKShader::fragment_shader_from_glsl(MutableSpan<const char *> sources)
 #ifdef WITH_VULKAN_SHADER_COMPILATION
   if (this->name_get() == std::string("overlay_extra")) {
     std::string Name = "D:\\blender\\script\\shaders\\spv\\overlay_extra.frag.spv";
-    //std::string Name = "D:\\blender\\script\\shaders\\spv\\worckbench_taa.frag.spv";
+    // std::string Name = "D:\\blender\\script\\shaders\\spv\\worckbench_taa.frag.spv";
     auto device = VKContext::get()->device_get();
     auto &shader = shaders_[uint32_t(VKShaderStageType::FragmentShader)];
     loadShader(Name.c_str(), device, shader.shaderModuleInfo, shader.module);
@@ -610,7 +606,7 @@ void VKShader::fragment_shader_from_glsl(MutableSpan<const char *> sources)
   else {
     this->create_shader_module(sources, VKShaderStageType::FragmentShader);
   }
-  
+
 #endif
 }
 
@@ -646,15 +642,15 @@ bool VKShader::finalize(const shader::ShaderCreateInfo *info)
   }
   VKShaderInterface &iface = *((VKShaderInterface *)interface);
   if (!iface.valid) {
-    blender::gpu::ShaderModule vsm, fsm,gsm;
+    blender::gpu::ShaderModule vsm, fsm, gsm;
     getShaderModule(vsm, 0);
     getShaderModule(fsm, 2);
     if (info->geometry_source_.size() > 0) {
       getShaderModule(gsm, 1);
     }
     iface.parse(vsm, fsm, info, this);
-    //auto fb = static_cast<VKFrameBuffer *>(VKContext::get()->active_fb);
-    //CreatePipeline(fb);
+    // auto fb = static_cast<VKFrameBuffer *>(VKContext::get()->active_fb);
+    // CreatePipeline(fb);
 
     iface.valid = true;
   }
@@ -1167,7 +1163,7 @@ std::string VKShader::resources_declare(const shader::ShaderCreateInfo &info) co
 
   ss << "\n/* Batch Resources. */\n";
   for (const shader::ShaderCreateInfo::Resource &res : info.batch_resources_) {
-    print_resource(ss, res,slot++);
+    print_resource(ss, res, slot++);
   }
   for (const shader::ShaderCreateInfo::Resource &res : info.batch_resources_) {
     print_resource_alias(ss, res);
@@ -1281,11 +1277,9 @@ std::string VKShader::vertex_interface_declare(const shader::ShaderCreateInfo &i
   /* https://stackoverflow.com/questions/35638512/instanced-glsl-shaders-in-vulkan */
   ss << "#define gl_InstanceID  (gl_InstanceIndex - gl_BaseInstanceARB) \n";
 
-
-
   /*Scratch for uploading color in uchar4.*/
 
-   {
+  {
     ss << "\n/* Inputs. */\n";
     for (const ShaderCreateInfo::VertIn &attr : info.vertex_inputs_) {
       /// if (VKContext::explicit_location_support &&
@@ -1321,9 +1315,9 @@ std::string VKShader::vertex_interface_declare(const shader::ShaderCreateInfo &i
   if (bool(info.builtins_ & BuiltinBits::BARYCENTRIC_COORD)) {
     // if (!VKContext::native_barycentric_support) {
     if (false) {
-      /* Disabled or unsupported. */
+      BLI_assert_unreachable();
     }
-    else if (epoxy_has_gl_extension("GL_AMD_shader_explicit_vertex_parameter")) {
+    else if (true) { ///epoxy_has_gl_extension("GL_AMD_shader_explicit_vertex_parameter")) {
       /* Need this for stable barycentric. */
       ss << "layout(location =" + std::to_string(loc_out) + ") flat out vec4 gpu_pos_flat;\n";
       loc_out++;
@@ -1338,17 +1332,18 @@ std::string VKShader::vertex_interface_declare(const shader::ShaderCreateInfo &i
 
   ss << "\n";
 
-
   std::string pre_main = "";
   post_main += "gl_PointSize = 10.0f; \n";
 
-  #if DEBUG_PRINTF_APPEND
-    if ("gpu_shader_2D_widget_base" == info.name_) {
+#if DEBUG_PRINTF_APPEND
+  if ("gpu_shader_2D_widget_base" == info.name_) {
     post_main +=
-        "debugPrintfEXT(\"Here gl_Position  %v4f  WID %i  tria type   %f   triasize12,shaderdir %v3f   VID  %i  "
-        "\",gl_Position,int(widgetID), parameters[widgetID * MAX_PARAM + 11].x,parameters[widgetID * MAX_PARAM + 10].xyz,int(gl_VertexIndex));\n\n";
+        "debugPrintfEXT(\"Here gl_Position  %v4f  WID %i  tria type   %f   triasize12,shaderdir "
+        "%v3f   VID  %i  "
+        "\",gl_Position,int(widgetID), parameters[widgetID * MAX_PARAM + "
+        "11].x,parameters[widgetID * MAX_PARAM + 10].xyz,int(gl_VertexIndex));\n\n";
   }
-  
+
   if (info.name_ == std::string("gpu_shader_3D_image_color")) {
     post_main +=
         " debugPrintfEXT(\"Here   gl_Position %v4f   texCoord_interp  %v2f   \" "
@@ -1356,8 +1351,8 @@ std::string VKShader::vertex_interface_declare(const shader::ShaderCreateInfo &i
         "\n";
   }
 
-  if (post_main.empty() == false){
-  
+  if (post_main.empty() == false) {
+
     if ("workbench_opaque_mesh_tex_none_no_clip" == info.name_) {
       post_main = "";
     }
@@ -1387,21 +1382,18 @@ std::string VKShader::vertex_interface_declare(const shader::ShaderCreateInfo &i
         debugPrintfEXT(\"Here  sampling  %i   glyph.R  %f  %f  %f   size_x %i \", glyph_offset,c,c1,c2,size_x);\n\n";
       pre_main = "";
     }
-
-
-
   }
   else {
 
-    if( "gpu_shader_2D_widget_base" == info.name_)
-    {
+    if ("gpu_shader_2D_widget_base" == info.name_) {
       post_main +=
-          "debugPrintfEXT(\"Here gl_Position  %v4f  color  %v4f  edgecolor  %v4f \",gl_Position,parameters[widgetID * MAX_PARAM + 4],parameters[widgetID * MAX_PARAM + 6]);\n\n";
+          "debugPrintfEXT(\"Here gl_Position  %v4f  color  %v4f  edgecolor  %v4f "
+          "\",gl_Position,parameters[widgetID * MAX_PARAM + 4],parameters[widgetID * MAX_PARAM + "
+          "6]);\n\n";
     }
-    else if (info.name_ == std::string("workbench_opaque_mesh_tex_none_no_clip"))
-    {
+    else if (info.name_ == std::string("workbench_opaque_mesh_tex_none_no_clip")) {
       post_main +=
-      "normal_interp = normalize(   \
+          "normal_interp = normalize(   \
           mat3(_drw_view_[0].viewmat[0].xyz,  \
                _drw_view_[0].viewmat[1].xyz,   \
                _drw_view_[0].viewmat[2].xyz) *  \
@@ -1409,28 +1401,30 @@ std::string VKShader::vertex_interface_declare(const shader::ShaderCreateInfo &i
                           _drw_matrices[1].model_inverse[1].xyz,  \
                           _drw_matrices[1].model_inverse[2].xyz)) * \
            vec3(nor.x,-nor.y,nor.z)   )); \n";
- 
+
       /*vulkan coordinate https://matthewwellings.com/blog/the-new-vulkan-coordinate-system/ */
 
-      //post_main += "gl_Position.y *=-1; \n";
-      post_main += " int _233 = gl_InstanceIndex + gl_BaseInstance; "
+      // post_main += "gl_Position.y *=-1; \n";
+      post_main +=
+          " int _233 = gl_InstanceIndex + gl_BaseInstance; "
           " int _234 = (gl_InstanceID + gl_BaseInstance); "
-          " debugPrintfEXT(\"Here pos  %v3f  normal %v3f   internorm  %v3f   objectID  %i   \" ,pos,nor,normal_interp ,object_id); "
+          " debugPrintfEXT(\"Here pos  %v3f  normal %v3f   internorm  %v3f   objectID  %i   \" "
+          ",pos,nor,normal_interp ,object_id); "
           "\n";
-     // post_main += "object_id = 200;\n";
+      // post_main += "object_id = 200;\n";
     }
 
     if (info.name_ == std::string("workbench_composite_studio")) {
 
-
       post_main +=
-          " debugPrintfEXT(\"Here   composite gl_Position %v4f   uvcoordsvar  %v2f   \" ,gl_Position,uvcoordsvar); "
+          " debugPrintfEXT(\"Here   composite gl_Position %v4f   uvcoordsvar  %v2f   \" "
+          ",gl_Position,uvcoordsvar); "
           "\n";
     }
 
     if (info.name_ == std::string("workbench_taa")) {
 
-       post_main +=
+      post_main +=
           "debugPrintfEXT(\" Sample Weight  %f %f %f %f %f %f %f %f %f  \",\
                    samplesWeights[0],\
                    samplesWeights[1],\
@@ -1443,17 +1437,12 @@ std::string VKShader::vertex_interface_declare(const shader::ShaderCreateInfo &i
                    samplesWeights[8]);";
     }
 
-
     if (info.name_ == std::string("workbench_extra")) {
- 
     }
-
-
-
   }
-  #endif
+#endif
   post_main += "gl_Position.z = (gl_Position.z + gl_Position.w) / 2.0;\n";
- // post_main += "gl_Position.y *= -1;\n";
+  // post_main += "gl_Position.y *= -1;\n";
   ss << main_function_wrapper(pre_main, post_main);
   return ss.str();
 }
@@ -1576,15 +1565,13 @@ std::string VKShader::fragment_interface_declare(const shader::ShaderCreateInfo 
       // pre_main = "fragColor =  color_flat.rgba;return;";
     }
     else if ("gpu_shader_2D_widget_base" == info.name_) {
-
     }
     ss << main_function_wrapper(pre_main, post_main);
-
   }
   else {
     std::string post_main = "";
     if (info.name_ == std::string("workbench_composite_studio")) {
-      #if 0
+#  if 0
       post_main += "vec4 enc =texture(normalBuffer, uvcoordsvar.st); \
         vec2 fenc = enc.xy * 4.0 - 2.0; \
         float f = dot(fenc, fenc); \
@@ -1593,30 +1580,32 @@ std::string VKShader::fragment_interface_declare(const shader::ShaderCreateInfo 
         n.xy = fenc * g; \
         n.z = 1 - f / 2; \
       fragColor = vec4(n.rgb, 1);\n ";
-    #endif
+#  endif
     }
 
     if (info.name_ == std::string("workbench_opaque_mesh_tex_none_no_clip")) {
-       //post_main += "vec3 N = normalize( -normal_interp); float p = sqrt(N.z * 8.0 + 8.0); \n"
+      // post_main += "vec3 N = normalize( -normal_interp); float p = sqrt(N.z * 8.0 + 8.0); \n"
       //"out_normal = clamp(N.xy / p + 0.5, 0.0, 1.0);\n";
-
     }
 
     if (info.name_ == std::string("workbench_effect_outline")) {
-     // post_main += "fragColor = world_data.object_outline_color; \n";
+      // post_main += "fragColor = world_data.object_outline_color; \n";
     }
 
     if (info.name_ == std::string("workbench_taa")) {
-      post_main += "vec2 texel_size = 1.0 / vec2(textureSize(colorBuffer, 0)); vec2 uv = gl_FragCoord.xy * texel_size; "
-      "if (gl_FragCoord.x == int(texel_size.x / 2) && gl_FragCoord.y == int(texel_size.y / 2)) {"
-       " vec4 cb = texture(colorBuffer, uv);"
-      "debugPrintfEXT(\"Here FragCoord %v2f  texelsize  %v2f  color v4f \" ,gl_FragCoord.xy,texel_size,cb); };\n";
+      post_main +=
+          "vec2 texel_size = 1.0 / vec2(textureSize(colorBuffer, 0)); vec2 uv = gl_FragCoord.xy * "
+          "texel_size; "
+          "if (gl_FragCoord.x == int(texel_size.x / 2) && gl_FragCoord.y == int(texel_size.y / "
+          "2)) {"
+          " vec4 cb = texture(colorBuffer, uv);"
+          "debugPrintfEXT(\"Here FragCoord %v2f  texelsize  %v2f  color v4f \" "
+          ",gl_FragCoord.xy,texel_size,cb); };\n";
     }
 
-      ss << main_function_wrapper(pre_main, post_main);
-
+    ss << main_function_wrapper(pre_main, post_main);
   }
-  #endif
+#endif
   ss << main_function_wrapper(pre_main, post_main);
   return ss.str();
 }
@@ -1626,14 +1615,13 @@ std::string VKShader::geometry_layout_declare(const shader::ShaderCreateInfo &in
 
   std::stringstream ss;
 
-    int max_verts = info.geometry_layout_.max_vertices;
+  int max_verts = info.geometry_layout_.max_vertices;
   int invocations = info.geometry_layout_.invocations;
   if (VKContext::max_geometry_shader_invocations <= 0 && invocations != -1) {
     max_verts *= invocations;
     invocations = -1;
   }
 
-  
   ss << "\n/* Geometry Layout. */\n";
   ss << "layout(" << to_string(info.geometry_layout_.primitive_in);
   if (invocations != -1) {
@@ -1669,8 +1657,9 @@ std::string VKShader::geometry_interface_declare(const shader::ShaderCreateInfo 
     bool has_matching_output_iface = find_interface_by_name(info.geometry_out_interfaces_,
                                                             iface->instance_name) != nullptr;
     const char *suffix = (has_matching_output_iface) ? "_in[]" : "[]";
-   
-    print_interface(ss, " layout(location = " + std::to_string(location) + ") in ", *iface, suffix);
+
+    print_interface(
+        ss, " layout(location = " + std::to_string(location) + ") in ", *iface, suffix);
     location++;
   }
   ss << "\n";
@@ -1679,7 +1668,8 @@ std::string VKShader::geometry_interface_declare(const shader::ShaderCreateInfo 
     bool has_matching_input_iface = find_interface_by_name(info.vertex_out_interfaces_,
                                                            iface->instance_name) != nullptr;
     const char *suffix = (has_matching_input_iface) ? "_out" : "";
-    print_interface(ss, " layout(location = " + std::to_string(location) + ") out", *iface, suffix);
+    print_interface(
+        ss, " layout(location = " + std::to_string(location) + ") out", *iface, suffix);
     location++;
   }
   ss << "\n";
@@ -1740,7 +1730,6 @@ void VKShader::bind()
   if (!iface.valid)
     return;
 
-
   ctx->pipeline_state.active_shader = this;
   attr_mask_unbound_ = iface.enabled_attr_mask_;
   bind_cache.clear();
@@ -1757,25 +1746,23 @@ void VKShader::unbind()
 
 void VKShader::append_write_descriptor(VKTexture *tex, eGPUSamplerState samp_state, uint binding)
 {
-    auto info = tex->get_image_info(samp_state,true);
- 
-    if (!tex->get_needs_update())
-      return;
+  auto info = tex->get_image_info(samp_state, true);
 
+  if (!tex->get_needs_update())
+    return;
 
-    auto vkinterface = (VKShaderInterface *)(interface);
-    auto Set = vkinterface->get_desc_set(0);
+  auto vkinterface = (VKShaderInterface *)(interface);
+  auto Set = vkinterface->get_desc_set(0);
 
-    VkWriteDescriptorSet wd = {};
-    wd.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    wd.dstSet = Set;
-    wd.dstBinding = binding;
-    wd.pImageInfo = info;
-    wd.dstArrayElement = 0;
-    wd.descriptorCount = 1;
-    wd.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    write_descs_[0].append(wd);
-
+  VkWriteDescriptorSet wd = {};
+  wd.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+  wd.dstSet = Set;
+  wd.dstBinding = binding;
+  wd.pImageInfo = info;
+  wd.dstArrayElement = 0;
+  wd.descriptorCount = 1;
+  wd.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  write_descs_[0].append(wd);
 };
 void VKShader::append_write_descriptor(
     VkDescriptorSet set, void *data, VkDeviceSize size, uint binding, bool iubo)
@@ -1824,12 +1811,12 @@ bool VKShader::update_descriptor_set(VkCommandBuffer cmd, VkPipelineLayout layou
     int I = 0;
     VkDescriptorSet Set;
     for (auto &desc : write_descs_[i]) {
-      #if 0
+#if 0
       printf("  Set %llx    binding %d    type  %d    \n\n",
              (uintptr_t)desc.dstSet,
              desc.dstBinding,
              (int)desc.descriptorType);
-      #endif
+#endif
       if (I == 0) {
         Set = desc.dstSet;
       }
@@ -1870,7 +1857,6 @@ void VKShader::uniform_float(int location, int comp_len, int array_size, const f
       BLI_assert(0);
       break;
   }
-
 
   ShaderInput &input = vkinterface->inputs_[location];
 
@@ -1926,12 +1912,11 @@ VKShader::~VKShader()
 {
   VK_ALLOCATION_CALLBACKS;
 
-
-  if(interface){
+  if (interface) {
     delete interface;
     interface = nullptr;
   }
-  
+
   bool valid = true;
   VkDevice device = context_->device_get();
 
@@ -1979,7 +1964,7 @@ VkPipeline VKShader::CreatePipeline(VKFrameBuffer *fb)
   }
 
   if (renderpass == VK_NULL_HANDLE) {
-    //GPU_framebuffer_bind((GPUFrameBuffer *)fb);
+    // GPU_framebuffer_bind((GPUFrameBuffer *)fb);
     // renderpass = fb->get_render_pass();
     if (renderpass == VK_NULL_HANDLE) {
       pipe = VK_NULL_HANDLE;
@@ -1988,10 +1973,8 @@ VkPipeline VKShader::CreatePipeline(VKFrameBuffer *fb)
   }
 
   VKContext *ctx = VKContext::get();
-  
+
   auto vkinterface = (VKShaderInterface *)interface;
-
-
 
   BLI_assert(this);
   VKShaderInterface *vk_interface = this->get_interface();
@@ -2042,7 +2025,7 @@ VkPipeline VKShader::CreatePipeline(VKFrameBuffer *fb)
   ci.pVertexInputState = &vkPVISci;
   ci.subpass = 0;
   ci.pTessellationState = nullptr;
-  #if 0
+#if 0
   for (auto attr : vkinterface->desc_inputs_[0].attributes) {
     printf("binding %d  location %d offset %d format %d  \n",
            attr.binding,
@@ -2050,11 +2033,12 @@ VkPipeline VKShader::CreatePipeline(VKFrameBuffer *fb)
            attr.offset,
            attr.format);
   };
-  #endif
+#endif
   VK_CHECK2(vkCreateGraphicsPipelines(
       device, ctx->get_pipeline_cache(), 1, &ci, vk_allocation_callbacks, &pipe));
-   
-  debug::object_vk_label(device, pipe , std::string(ctx->pipeline_state.active_shader->name_get()) + "_Pipe");
+
+  debug::object_vk_label(
+      device, pipe, std::string(ctx->pipeline_state.active_shader->name_get()) + "_Pipe");
 
   return pipe;
 };

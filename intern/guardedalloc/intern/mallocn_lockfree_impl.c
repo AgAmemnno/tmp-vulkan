@@ -26,9 +26,6 @@
 #include "atomic_ops.h"
 #include "mallocn_intern.h"
 
-
-
-
 typedef struct MemHead {
   /* Length of allocated memory block. */
   size_t len;
@@ -100,7 +97,6 @@ void MEM_lockfree_freeN(void *vmemh)
 
   MemHead *memh = MEMHEAD_FROM_PTR(vmemh);
   size_t len = MEMHEAD_LEN(memh);
-
 
   memory_usage_block_free(len);
 
@@ -261,7 +257,6 @@ void *MEM_lockfree_mallocN(size_t len, const char *str)
   len = SIZET_ALIGN_4(len);
 
   memh = (MemHead *)malloc(len + sizeof(MemHead));
-
 
   if (LIKELY(memh)) {
     if (UNLIKELY(malloc_debug_memset && len)) {

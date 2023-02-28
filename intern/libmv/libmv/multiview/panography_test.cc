@@ -18,8 +18,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include "libmv/multiview/panography.h"
 #include "libmv/logging/logging.h"
+#include "libmv/multiview/panography.h"
 #include "libmv/multiview/panography_kernel.h"
 #include "libmv/multiview/projection.h"
 #include "libmv/numeric/numeric.h"
@@ -28,7 +28,8 @@
 namespace libmv {
 namespace {
 
-TEST(Panography, PrintSomeSharedFocalEstimationValues) {
+TEST(Panography, PrintSomeSharedFocalEstimationValues)
+{
   Mat x1(2, 2), x2(2, 2);
   x1 << 158, 78, 124, 113;
   x2 << 300, 214, 125, 114;
@@ -49,7 +50,8 @@ TEST(Panography, PrintSomeSharedFocalEstimationValues) {
   EXPECT_NEAR(3.47194, fs[0], 1e-3);
 }
 
-TEST(Panography, GetR_FixedCameraCenterWithIdentity) {
+TEST(Panography, GetR_FixedCameraCenterWithIdentity)
+{
   Mat x1(3, 3);
   // clang-format off
   x1  <<  0.5,  0.6,  0.7,
@@ -64,7 +66,8 @@ TEST(Panography, GetR_FixedCameraCenterWithIdentity) {
   LOG(INFO) << "R \n" << R;
 }
 
-TEST(Panography, Homography_GetR_Test_PitchY30) {
+TEST(Panography, Homography_GetR_Test_PitchY30)
+{
   int n = 3;
 
   Mat x1(3, n);
@@ -102,7 +105,8 @@ TEST(Panography, Homography_GetR_Test_PitchY30) {
   EXPECT_NEAR(30, pitch_y, 1e-4);
 }
 
-TEST(MinimalPanoramic, Real_Case_Kernel) {
+TEST(MinimalPanoramic, Real_Case_Kernel)
+{
   const int n = 2;
   Mat x1(2, n);  // From image 0.jpg
   // clang-format off

@@ -18,8 +18,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include "libmv/multiview/homography.h"
 #include "libmv/logging/logging.h"
+#include "libmv/multiview/homography.h"
 #include "libmv/multiview/projection.h"
 #include "testing/testing.h"
 
@@ -34,7 +34,8 @@ namespace {
 // TODO(sergey): Consider using this in all tests since possible homography
 // matrix is not fixed to a single value and different-looking matrices
 // might actually crrespond to the same exact transform.
-void CheckHomography2DTransform(const Mat3& H, const Mat& x1, const Mat& x2) {
+void CheckHomography2DTransform(const Mat3 &H, const Mat &x1, const Mat &x2)
+{
   for (int i = 0; i < x2.cols(); ++i) {
     Vec3 x2_expected = x2.col(i);
     Vec3 x2_observed = H * x1.col(i);
@@ -45,7 +46,8 @@ void CheckHomography2DTransform(const Mat3& H, const Mat& x1, const Mat& x2) {
 
 }  // namespace
 
-TEST(Homography2DTest, Rotation45AndTranslationXY) {
+TEST(Homography2DTest, Rotation45AndTranslationXY)
+{
   Mat x1(3, 4);
   // clang-format off
   x1 <<  0, 1, 0, 5,
@@ -75,7 +77,8 @@ TEST(Homography2DTest, Rotation45AndTranslationXY) {
   EXPECT_MATRIX_NEAR(homography_mat, m, 1e-8);
 }
 
-TEST(Homography2DTest, AffineGeneral4) {
+TEST(Homography2DTest, AffineGeneral4)
+{
   // TODO(julien) find why it doesn't work with 4 points!!!
   Mat x1(3, 4);
   // clang-format off
@@ -113,7 +116,8 @@ TEST(Homography2DTest, AffineGeneral4) {
   CheckHomography2DTransform(homography_mat, x1, x2);
 }
 
-TEST(Homography2DTest, AffineGeneral5) {
+TEST(Homography2DTest, AffineGeneral5)
+{
   Mat x1(3, 5);
   // clang-format off
   x1 <<  0, 1, 0, 2, 5,
@@ -150,7 +154,8 @@ TEST(Homography2DTest, AffineGeneral5) {
   EXPECT_MATRIX_NEAR(homography_mat, m, 1e-8);
 }
 
-TEST(Homography2DTest, HomographyGeneral) {
+TEST(Homography2DTest, HomographyGeneral)
+{
   Mat x1(3, 4);
   // clang-format off
   x1 <<  0, 1, 0, 5,
@@ -176,7 +181,8 @@ TEST(Homography2DTest, HomographyGeneral) {
   EXPECT_MATRIX_NEAR(homography_mat, m, 1e-8);
 }
 
-TEST(Homography3DTest, RotationAndTranslationXYZ) {
+TEST(Homography3DTest, RotationAndTranslationXYZ)
+{
   Mat x1(4, 5);
   // clang-format off
   x1 <<  0, 0, 1, 5, 2,
@@ -232,7 +238,8 @@ TEST(Homography3DTest, RotationAndTranslationXYZ) {
   EXPECT_MATRIX_NEAR(homography_mat, M, 1e-8);
 }
 
-TEST(Homography3DTest, AffineGeneral) {
+TEST(Homography3DTest, AffineGeneral)
+{
   Mat x1(4, 5);
   // clang-format off
   x1 <<  0, 0, 1, 5, 2,
@@ -260,7 +267,8 @@ TEST(Homography3DTest, AffineGeneral) {
   EXPECT_MATRIX_NEAR(homography_mat, m, 1e-8);
 }
 
-TEST(Homography3DTest, HomographyGeneral) {
+TEST(Homography3DTest, HomographyGeneral)
+{
   Mat x1(4, 5);
   // clang-format off
   x1 << 0, 0, 1, 5, 2,

@@ -11,9 +11,9 @@
 #  include <vulkan/vulkan.h>
 #endif
 
-#include "GPU_vertex_format.h"
-#include "GPU_framebuffer_private.hh"
 #include "BLI_vector.hh"
+#include "GPU_framebuffer_private.hh"
+#include "GPU_vertex_format.h"
 
 #define GPU_VK_DEBUG
 
@@ -34,8 +34,6 @@
       throw std::runtime_error(__FILE__ "(" LINE_STRING "): VkResult( " #expr " ) < 0"); \
     } \
   } while (false)
-
-
 
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 
@@ -74,7 +72,6 @@ namespace blender::gpu {
 class VKShader;
 class VKTexture;
 
-
 typedef enum VKPipelineStateDirtyFlag {
   VK_PIPELINE_STATE_NULL_FLAG = 0,
   /* Whether we need to call setViewport. */
@@ -102,8 +99,8 @@ struct VKUniformBufferBinding {
   ///  VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
   /// </summary>
   bool bound;
-  
-  VkDescriptorBufferInfo  ubo;
+
+  VkDescriptorBufferInfo ubo;
   VkWriteDescriptorSet write;
   VKUniformBufferBinding()
   {
@@ -113,19 +110,17 @@ struct VKUniformBufferBinding {
     write.descriptorCount = 1;
     write.pBufferInfo = &ubo;
     write.pTexelBufferView = NULL;
-    write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER; 
+    write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     write.dstArrayElement = 0;
     write.dstBinding = 0;
     ubo.buffer = VK_NULL_HANDLE;
     ubo.offset = 0;
     ubo.range = VK_WHOLE_SIZE;
   }
-
 };
 struct VKSamplerState {
-  bool  initialized;
+  bool initialized;
   eGPUSamplerState state;
-
 
   bool operator==(const VKSamplerState &other) const
   {
@@ -156,14 +151,14 @@ const VKSamplerState DEFAULT_SAMPLER_STATE = VKSamplerState(GPU_SAMPLER_DEFAULT 
 
 struct VKTextureBinding {
 
-    bool used;
-    uint slot_index;
+  bool used;
+  uint slot_index;
   VkDescriptorImageInfo info;
-  VkWriteDescriptorSet  write;
+  VkWriteDescriptorSet write;
   VKTexture *texture_resource;
   /* Structs containing information on current binding state for textures and samplers. */
 
- VKTextureBinding()
+  VKTextureBinding()
   {
     write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     write.pNext = NULL;
@@ -177,7 +172,7 @@ struct VKTextureBinding {
     write.dstBinding = 0;
     info.imageView = VK_NULL_HANDLE;
     info.sampler = VK_NULL_HANDLE;
-    info.imageLayout =  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   };
   VkWriteDescriptorSet &getWriteDesc(VkImageView view)
   {
@@ -228,7 +223,6 @@ struct PipelineStateCreateInfoVk {
 
   VKPipelineStateDirtyFlag dirty_flags;
 
-
   std::vector<VkPipelineShaderStageCreateInfo> shaderstages;
 
   VkPipelineDynamicStateCreateInfo dynamic = {VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
@@ -256,14 +250,12 @@ struct PipelineStateCreateInfoVk {
   VkPipelineRasterizationLineStateCreateInfoEXT rasterline = {
       VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_LINE_STATE_CREATE_INFO_EXT, NULL};
 
-
   eGPUStencilTest _stenciltest;
-  bool                 scissor_enabled;
+  bool scissor_enabled;
   VkViewport viewport_cache;
   VkRect2D scissor_cache;
 
   float point_size = 1.0f;
-
 
   PipelineStateCreateInfoVk()
   {
@@ -277,21 +269,14 @@ struct PipelineStateCreateInfoVk {
     null_shader = nullptr;
     /* Active Shader State. */
     active_shader = nullptr;
-    viewport_cache = {0,0,0,0};
-    scissor_cache = {{0, 0}, {0,0}};
+    viewport_cache = {0, 0, 0, 0};
+    scissor_cache = {{0, 0}, {0, 0}};
   }
 };
 
-
-
-
-
-
 struct VKGraphicsPipelineStateDescriptor {
 
-  VkGraphicsPipelineCreateInfo                                    pipelineCI;
-
-
+  VkGraphicsPipelineCreateInfo pipelineCI;
 };
 
 }  // namespace blender::gpu

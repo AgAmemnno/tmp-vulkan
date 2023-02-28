@@ -210,8 +210,8 @@ static void draw_parallel_lines(const ParallelLinesSet *lines,
   if (direction == 'v') {
     for (uint i = 0; i < steps; i++) {
       const float xpos = first + i * lines->distance;
-      immVertex3f(pos, xpos, rect->ymin,0.);
-      immVertex3f(pos, xpos, rect->ymax,0.);
+      immVertex3f(pos, xpos, rect->ymin, 0.);
+      immVertex3f(pos, xpos, rect->ymax, 0.);
       /*
       immVertex2f(pos, xpos, rect->ymin);
       immVertex2f(pos, xpos, rect->ymax);
@@ -221,8 +221,8 @@ static void draw_parallel_lines(const ParallelLinesSet *lines,
   else {
     for (uint i = 0; i < steps; i++) {
       const float ypos = first + i * lines->distance;
-      immVertex3f(pos, rect->xmin, ypos,0.);
-      immVertex3f(pos, rect->xmax, ypos,0.);
+      immVertex3f(pos, rect->xmin, ypos, 0.);
+      immVertex3f(pos, rect->xmax, ypos, 0.);
       /*
       immVertex2f(pos, rect->xmin, ypos);
       immVertex2f(pos, rect->xmax, ypos);

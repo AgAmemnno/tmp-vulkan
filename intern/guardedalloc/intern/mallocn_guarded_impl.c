@@ -26,9 +26,6 @@
 
 #include "dbghelp.h"
 
-
-
-
 /* Only for debugging:
  * store original buffer's name when doing MEM_dupallocN
  * helpful to profile issues with non-freed "dup_alloc" buffers,
@@ -441,7 +438,7 @@ void *MEM_guarded_mallocN(size_t len, const char *str)
   len = SIZET_ALIGN_4(len);
 
   memh = (MemHead *)malloc(len + sizeof(MemHead) + sizeof(MemTail));
-  
+
   if (LIKELY(memh)) {
     make_memhead_header(memh, len, str);
     if (UNLIKELY(malloc_debug_memset && len)) {

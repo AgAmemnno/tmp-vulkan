@@ -20,30 +20,26 @@ typedef struct libmv_AutoTrackOptions {
   libmv_Region search_region;
 } libmv_AutoTrackOptions;
 
-libmv_AutoTrack* libmv_autoTrackNew(libmv_FrameAccessor* frame_accessor);
+libmv_AutoTrack *libmv_autoTrackNew(libmv_FrameAccessor *frame_accessor);
 
-void libmv_autoTrackDestroy(libmv_AutoTrack* libmv_autotrack);
+void libmv_autoTrackDestroy(libmv_AutoTrack *libmv_autotrack);
 
-void libmv_autoTrackSetOptions(libmv_AutoTrack* libmv_autotrack,
-                               const libmv_AutoTrackOptions* options);
+void libmv_autoTrackSetOptions(libmv_AutoTrack *libmv_autotrack,
+                               const libmv_AutoTrackOptions *options);
 
-int libmv_autoTrackMarker(libmv_AutoTrack* libmv_autotrack,
-                          const libmv_TrackRegionOptions* libmv_options,
-                          libmv_Marker* libmv_tracker_marker,
-                          libmv_TrackRegionResult* libmv_result);
+int libmv_autoTrackMarker(libmv_AutoTrack *libmv_autotrack,
+                          const libmv_TrackRegionOptions *libmv_options,
+                          libmv_Marker *libmv_tracker_marker,
+                          libmv_TrackRegionResult *libmv_result);
 
-void libmv_autoTrackAddMarker(libmv_AutoTrack* libmv_autotrack,
-                              const libmv_Marker* libmv_marker);
+void libmv_autoTrackAddMarker(libmv_AutoTrack *libmv_autotrack, const libmv_Marker *libmv_marker);
 
-void libmv_autoTrackSetMarkers(libmv_AutoTrack* libmv_autotrack,
-                               const libmv_Marker* libmv_marker,
+void libmv_autoTrackSetMarkers(libmv_AutoTrack *libmv_autotrack,
+                               const libmv_Marker *libmv_marker,
                                size_t num_markers);
 
-int libmv_autoTrackGetMarker(libmv_AutoTrack* libmv_autotrack,
-                             int clip,
-                             int frame,
-                             int track,
-                             libmv_Marker* libmv_marker);
+int libmv_autoTrackGetMarker(
+    libmv_AutoTrack *libmv_autotrack, int clip, int frame, int track, libmv_Marker *libmv_marker);
 
 #ifdef __cplusplus
 }

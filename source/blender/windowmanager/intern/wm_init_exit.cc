@@ -296,10 +296,8 @@ void WM_init(bContext *C, int argc, const char **argv)
   read_homefile_params.filepath_startup_override = nullptr;
   read_homefile_params.app_template_override = WM_init_state_app_template_get();
 
-  
   wm_homefile_read_ex(C, &read_homefile_params, nullptr, &params_file_read_post);
 
-  
   /* NOTE: leave `G_MAIN->filepath` set to an empty string since this
    * matches behavior after loading a new file. */
   BLI_assert(G_MAIN->filepath[0] == '\0');
@@ -553,14 +551,15 @@ void WM_exit_ex0(bContext *C, const bool do_python)
     BKE_image_free_unused_gpu_textures();
   }
 
-  /* With the current structure, VMAAllocator will leak, so execute BLF_exit() and GPU_exit() first.*/
+  /* With the current structure, VMAAllocator will leak, so execute BLF_exit() and GPU_exit()
+   * first.*/
   BLF_exit();
   GPU_exit();
   BKE_studiolight_free();
   UI_exit();
   BKE_blender_free(); /* blender.c, does entire library and spacetypes */
                       //  BKE_material_copybuf_free();
- 
+
   /* Free the GPU subdivision data after the database to ensure that subdivision structs used by
    * the modifiers were garbage collected. */
   if (opengl_is_init) {
@@ -582,7 +581,7 @@ void WM_exit_ex0(bContext *C, const bool do_python)
   /* Same for UI-list types. */
   WM_uilisttype_free();
 
-  //BLF_exit();
+  // BLF_exit();
 
   BLT_lang_free();
 
@@ -614,7 +613,7 @@ void WM_exit_ex0(bContext *C, const bool do_python)
     DRW_opengl_context_enable_ex(false);
     UI_exit();
     GPU_pass_cache_free();
-    //GPU_exit();
+    // GPU_exit();
     DRW_opengl_context_disable_ex(false);
     DRW_opengl_context_destroy();
   }
@@ -657,7 +656,7 @@ void WM_exit_ex0(bContext *C, const bool do_python)
 void WM_exit_ex(bContext *C, const bool do_python)
 {
   wmWindowManager *wm = C ? CTX_wm_manager(C) : nullptr;
-  //WorkSpace *workspace = BKE_workspace_active_get(wm->workspace_hook);
+  // WorkSpace *workspace = BKE_workspace_active_get(wm->workspace_hook);
   /* first wrap up running stuff, we assume only the active WM is running */
   /* modal handlers are on window level freed, others too? */
   /* NOTE: same code copied in `wm_files.cc`. */
@@ -775,8 +774,8 @@ void WM_exit_ex(bContext *C, const bool do_python)
     BKE_image_free_unused_gpu_textures();
   }
 
- // BKE_blender_free(); /* blender.c, does entire library and spacetypes */
-                      //  BKE_material_copybuf_free();
+  // BKE_blender_free(); /* blender.c, does entire library and spacetypes */
+  //  BKE_material_copybuf_free();
 
   /* Free the GPU subdivision data after the database to ensure that subdivision structs used by
    * the modifiers were garbage collected. */
@@ -790,7 +789,6 @@ void WM_exit_ex(bContext *C, const bool do_python)
   ANIM_fmodifiers_copybuf_free();
   ED_gpencil_anim_copybuf_free();
   ED_gpencil_strokes_copybuf_free();
-
 
   /* Same for UI-list types. */
   WM_uilisttype_free();
@@ -807,15 +805,14 @@ void WM_exit_ex(bContext *C, const bool do_python)
   IMB_exit();
 
   UI_exit();
- 
+
   BKE_blender_globals_clear();
   BKE_blender_free();
-    /* free gizmo-maps after freeing blender,
+  /* free gizmo-maps after freeing blender,
    * so no deleted data get accessed during cleaning up of areas. */
   wm_gizmomaptypes_free();
   wm_gizmogrouptype_free();
   wm_gizmotype_free();
-
 
   BKE_spacetypes_free(); /* after free main, it uses space callbacks */
   DEG_free_node_types();
@@ -844,7 +841,7 @@ void WM_exit_ex(bContext *C, const bool do_python)
     DRW_opengl_context_enable_ex(false);
     UI_exit();
     GPU_pass_cache_free();
-   // GPU_exit();
+    // GPU_exit();
     DRW_opengl_context_disable_ex(false);
     DRW_opengl_context_destroy();
   }
@@ -882,7 +879,6 @@ void WM_exit_ex(bContext *C, const bool do_python)
   /* Logging cannot be called after exiting (#CLOG_INFO, #CLOG_WARN etc will crash).
    * So postpone exiting until other sub-systems that may use logging have shut down. */
   CLG_exit();
- 
 }
 
 void WM_exit(bContext *C)

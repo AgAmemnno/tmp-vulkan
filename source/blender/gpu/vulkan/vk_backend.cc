@@ -5,49 +5,47 @@
  * \ingroup gpu
  */
 
+#include "GHOST_C-api.h"
+#include "gpu_capabilities_private.hh"
+#include "gpu_platform_private.hh"
+
 #include "vk_backend.hh"
 #include "vk_batch.hh"
+#include "vk_context.hh"
 #include "vk_drawlist.hh"
 #include "vk_framebuffer.hh"
-#include "vk_uniform_buffer.hh"
 #include "vk_index_buffer.hh"
-#include "vk_vertex_buffer.hh"
 #include "vk_query.hh"
 #include "vk_shader.hh"
 #include "vk_texture.hh"
-#include "vk_context.hh"
-#include "gpu_platform_private.hh"
-#include "gpu_capabilities_private.hh"
-#include "intern/GHOST_ContextVK.h"
+#include "vk_uniform_buffer.hh"
+#include "vk_vertex_buffer.hh"
 
 namespace blender::gpu {
 
-
-  namespace vulkan {
+namespace vulkan {
 
 static VkPhysicalDeviceProperties properties;
-VkPhysicalDeviceProperties& getProperties() {
-  ///BLI_assert(GPG.initialized);
+VkPhysicalDeviceProperties &getProperties()
+{
+  /// BLI_assert(GPG.initialized);
   return properties;
 };
 
+};  // namespace vulkan
+VKBackend::VKBackend()
+{
+  ofs_context_ = context_ = nullptr;
 };
-  VKBackend::VKBackend() {
-    ofs_context_ = context_ = nullptr;
-  };
 
 VKBackend::~VKBackend()
 {
   GPG.clear();
- 
 }
- 
-
-
 
 void VKBackend::delete_resources()
 {
- // VKContext::destroyMemAllocator();
+  // VKContext::destroyMemAllocator();
 }
 
 void VKBackend::samplers_update()
@@ -62,7 +60,7 @@ void VKBackend::compute_dispatch_indirect(StorageBuf * /*indirect_buf*/)
 {
 }
 
-Context* VKBackend::context_alloc(void* ghost_window, void* ghost_context)
+Context *VKBackend::context_alloc(void *ghost_window, void *ghost_context)
 {
   if (ghost_window) {
     BLI_assert(context_ == nullptr);
@@ -103,21 +101,21 @@ QueryPool *VKBackend::querypool_alloc()
   return new VKQueryPool();
 }
 
-Shader *VKBackend::shader_alloc(const char * name)
+Shader *VKBackend::shader_alloc(const char *name)
 {
   return new VKShader(name);
 }
 
-Texture *VKBackend::texture_alloc(const char * name)
+Texture *VKBackend::texture_alloc(const char *name)
 {
   VKContext *vk_ctx = static_cast<VKContext *>(unwrap(GPU_context_active_get()));
   BLI_assert(vk_ctx);
-  return new VKTexture(name,vk_ctx);
+  return new VKTexture(name, vk_ctx);
 }
 
-UniformBuf *VKBackend::uniformbuf_alloc(int  size, const char * name)
+UniformBuf *VKBackend::uniformbuf_alloc(int size, const char *name)
 {
-  return new VKUniformBuf(size,name);
+  return new VKUniformBuf(size, name);
 }
 
 StorageBuf *VKBackend::storagebuf_alloc(int /*size*/,
@@ -132,7 +130,6 @@ VertBuf *VKBackend::vertbuf_alloc()
   return new VKVertBuf();
 }
 
-
 void VKBackend::render_begin()
 {
 
@@ -146,50 +143,47 @@ void VKBackend::render_begin()
   else {
     BLI_assert_msg(false, "Context lost.");
   }
-
 };
 
 void VKBackend::render_end()
 {
 
   VKContext *vk_ctx = static_cast<VKContext *>(unwrap(GPU_context_active_get()));
-  
+
   if (vk_ctx) {
     /*BLI_assert(vk_ctx);*/
     if (vk_ctx->is_swapchain_) {
-        vk_ctx->end_frame();
-      }
+      vk_ctx->end_frame();
+    }
   }
-
 }
 
 void VKBackend::render_step()
 {
 }
 
-
-
-
-  
-
 void VKBackend::platform_init(VKContext *ctx)
 {
-   
-  if (GPG.initialized) return;
-   //BLI_assert(!GPG.initialized);
 
-  GHOST_ContextVK *ctxVk = (GHOST_ContextVK *)ctx->ghost_context_;
-   VkInstance instance;
+  if (GPG.initialized)
+    return;
+  // BLI_assert(!GPG.initialized);
+
+
+  VkInstance instance;
   VkPhysicalDevice physical_device;
-   VkDevice device;
+  VkDevice device;
   uint32_t r_graphic_queue_familly;
-   ctxVk->getVulkanHandles(&instance, &physical_device, &device, &r_graphic_queue_familly);
 
+  GHOST_GetVulkanHandles(GHOST_ContextHandle(ctx->ghost_context_),
+                         &instance,
+                         &physical_device,
+                         &device,
+                         &r_graphic_queue_familly);
 
   auto &properties = vulkan::properties;
   vkGetPhysicalDeviceProperties(physical_device, &properties);
-  
-   
+
   VkPhysicalDeviceShaderSMBuiltinsFeaturesNV Vkpdss = {};
   Vkpdss.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SM_BUILTINS_FEATURES_NV;
   Vkpdss.pNext = NULL;
@@ -212,13 +206,12 @@ void VKBackend::platform_init(VKContext *ctx)
   const char *version = apiversion;
   GPU_VK_DEBUG_PRINTF("Vulkan API - DETECTED GPU: %s  API %s \n", vendor, version);
 
-
   eGPUDeviceType edevice = GPU_DEVICE_UNKNOWN;
   eGPUOSType eos = GPU_OS_ANY;
   eGPUDriverType edriver = GPU_DRIVER_ANY;
   eGPUSupportLevel esupport_level = GPU_SUPPORT_LEVEL_SUPPORTED;
 
-    if (!vendor) {
+  if (!vendor) {
     printf("Warning: No OpenGL vendor detected.\n");
     edevice = GPU_DEVICE_UNKNOWN;
     edriver = GPU_DRIVER_ANY;
@@ -233,16 +226,17 @@ void VKBackend::platform_init(VKContext *ctx)
   }
   else if (strstr(vendor, "Intel") ||
            /* src/mesa/drivers/dri/intel/intel_context.c */
-            strstr(renderer, "Mesa DRI Intel") || strstr(renderer, "Mesa DRI Mobile Intel")) {
-                                      edevice = GPU_DEVICE_INTEL;
-                                      edriver = GPU_DRIVER_OFFICIAL;
-                                      if (strstr(renderer, "UHD Graphics") ||
-                                          /* Not UHD but affected by the same bugs. */
-                                          strstr(renderer, "HD Graphics 530") || strstr(renderer, "Kaby Lake GT2") ||
-                                          strstr(renderer, "Whiskey Lake")) {
-                                        edevice |= GPU_DEVICE_INTEL_UHD;
-                                      }
-  }else if (strstr(renderer, "Mesa DRI R") ||
+           strstr(renderer, "Mesa DRI Intel") || strstr(renderer, "Mesa DRI Mobile Intel")) {
+    edevice = GPU_DEVICE_INTEL;
+    edriver = GPU_DRIVER_OFFICIAL;
+    if (strstr(renderer, "UHD Graphics") ||
+        /* Not UHD but affected by the same bugs. */
+        strstr(renderer, "HD Graphics 530") || strstr(renderer, "Kaby Lake GT2") ||
+        strstr(renderer, "Whiskey Lake")) {
+      edevice |= GPU_DEVICE_INTEL_UHD;
+    }
+  }
+  else if (strstr(renderer, "Mesa DRI R") ||
            (strstr(renderer, "Radeon") && strstr(vendor, "X.Org")) ||
            (strstr(renderer, "AMD") && strstr(vendor, "X.Org")) ||
            (strstr(renderer, "Gallium ") && strstr(renderer, " on ATI ")) ||
@@ -282,9 +276,8 @@ void VKBackend::platform_init(VKContext *ctx)
     printf("Renderer: %s\n", renderer);
   }
 
-
 /* macOS is the only supported platform, but check to ensure we are not building with Metal
-   * enablement on another platform. */
+ * enablement on another platform. */
 #ifdef _WIN32
   eos = GPU_OS_WIN;
 #else
@@ -294,33 +287,24 @@ void VKBackend::platform_init(VKContext *ctx)
 
   GPG.init(edevice, eos, edriver, esupport_level, GPU_BACKEND_METAL, vendor, renderer, version);
 
-
-
-  
   VkPhysicalDeviceProperties2 properties2 = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
   VkPhysicalDeviceBlendOperationAdvancedPropertiesEXT VkpdBOAprop{
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BLEND_OPERATION_ADVANCED_PROPERTIES_EXT};
   properties2.pNext = &VkpdBOAprop;
-    vkGetPhysicalDeviceProperties2(
-      physical_device, &properties2);
+  vkGetPhysicalDeviceProperties2(physical_device, &properties2);
 
-    BLI_assert(VkpdBOAprop.advancedBlendAllOperations);
-
-   
-
-
+  BLI_assert(VkpdBOAprop.advancedBlendAllOperations);
 }
-template<typename T>
-static void get_properties2(VkPhysicalDevice physical_device,T& strct) {
+template<typename T> static void get_properties2(VkPhysicalDevice physical_device, T &strct)
+{
 
-  VkPhysicalDeviceInlineUniformBlockPropertiesEXT prop_inline_ubo = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_PROPERTIES_EXT };
-  VkPhysicalDeviceProperties2 properties2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
+  VkPhysicalDeviceInlineUniformBlockPropertiesEXT prop_inline_ubo = {
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_PROPERTIES_EXT};
+  VkPhysicalDeviceProperties2 properties2 = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
   properties2.pNext = &strct;
 
   vkGetPhysicalDeviceProperties2(physical_device, &properties2);
-
 };
-
 
 float VKContext::derivative_signs[2] = {1.0f, 1.0f};
 uint32_t VKContext::max_geometry_shader_invocations = 0;
@@ -329,42 +313,48 @@ void VKBackend::capabilities_init(VKContext *ctx)
 {
   /* If we assume multi-physical devices for multi-contexts, capabilities cannot be static. */
 
-  if (GPG.initialized) return;
-   GHOST_ContextVK *ctxVk = (GHOST_ContextVK *)( ctx->ghost_context_);
-   VkInstance instance;
-   VkPhysicalDevice physical_device;
-   VkDevice device;
-   uint32_t r_graphic_queue_familly;
-   ctxVk->getVulkanHandles(&instance, &physical_device, &device, &r_graphic_queue_familly);
+  if (GPG.initialized)
+    return;
 
-   VkPhysicalDeviceFeatures device_features = {};
-   vkGetPhysicalDeviceFeatures(physical_device, &device_features);
-   VKContext::multi_draw_indirect_support = false;
-   if (device_features.multiDrawIndirect) {
-     VKContext::multi_draw_indirect_support = true;
-   }
+  VkInstance instance;
+  VkPhysicalDevice physical_device;
+  VkDevice device;
+  uint32_t r_graphic_queue_familly;
 
+  GHOST_GetVulkanHandles(GHOST_ContextHandle(ctx->ghost_context_),
+                         &instance,
+                         &physical_device,
+                         &device,
+                         &r_graphic_queue_familly);
 
-   VkPhysicalDeviceProperties &properties = vulkan::properties;
+  VkPhysicalDeviceFeatures device_features = {};
+  vkGetPhysicalDeviceFeatures(physical_device, &device_features);
+  VKContext::multi_draw_indirect_support = false;
+  if (device_features.multiDrawIndirect) {
+    VKContext::multi_draw_indirect_support = true;
+  }
+
+  VkPhysicalDeviceProperties &properties = vulkan::properties;
   vkGetPhysicalDeviceProperties(physical_device, &properties);
-   VkPhysicalDeviceLimits limits = properties.limits;
-   VkPhysicalDeviceInlineUniformBlockPropertiesEXT prop_inline_ubo = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_PROPERTIES_EXT };
-   get_properties2( physical_device, prop_inline_ubo);
-   
-   /* https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_EXT_vertex_attribute_divisor.html */
-   VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT prop_va_divisor = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_PROPERTIES_EXT };
-   get_properties2(physical_device, prop_va_divisor);
-   if (prop_va_divisor.maxVertexAttribDivisor > 0) {
-     VKContext::vertex_attrib_binding_support = true;
-   }
+  VkPhysicalDeviceLimits limits = properties.limits;
+  VkPhysicalDeviceInlineUniformBlockPropertiesEXT prop_inline_ubo = {
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_PROPERTIES_EXT};
+  get_properties2(physical_device, prop_inline_ubo);
 
+  /* https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_EXT_vertex_attribute_divisor.html
+   */
+  VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT prop_va_divisor = {
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_PROPERTIES_EXT};
+  get_properties2(physical_device, prop_va_divisor);
+  if (prop_va_divisor.maxVertexAttribDivisor > 0) {
+    VKContext::vertex_attrib_binding_support = true;
+  }
 
-   VKContext::max_inline_ubo_size           = prop_inline_ubo.maxInlineUniformBlockSize;
-   VKContext::max_push_constants_size  = limits.maxPushConstantsSize;
-   
-  GCaps.max_texture_size = max(
-      limits.maxImageDimension3D,
-      max(limits.maxImageDimension1D, limits.maxImageDimension2D));
+  VKContext::max_inline_ubo_size = prop_inline_ubo.maxInlineUniformBlockSize;
+  VKContext::max_push_constants_size = limits.maxPushConstantsSize;
+
+  GCaps.max_texture_size = __max(limits.maxImageDimension3D,
+                               __max(limits.maxImageDimension1D, limits.maxImageDimension2D));
   GCaps.max_texture_3d_size = limits.maxImageDimension3D;
   GCaps.max_texture_layers = limits.maxImageArrayLayers;
   GCaps.max_textures = limits.maxDescriptorSetSampledImages;
@@ -386,13 +376,12 @@ void VKBackend::capabilities_init(VKContext *ctx)
   GCaps.max_compute_shader_storage_blocks = limits.maxPerStageDescriptorStorageBuffers;
 
   /*GL_MAX_UNIFORM_BLOCK_SIZE*/
-  VKContext::max_ubo_size    = limits.maxUniformBufferRange;
+  VKContext::max_ubo_size = limits.maxUniformBufferRange;
   /*GL_MAX_FRAGMENT_UNIFORM_BLOCKS*/
   VKContext::max_ubo_binds = limits.maxPerStageDescriptorUniformBuffers;
   VKContext::max_geometry_shader_invocations = limits.maxGeometryShaderInvocations;
 
-
-  # if 0
+#if 0
   const char *version = (const char *)glGetString(GL_VERSION);
     /* dFdx/dFdy calculation factors, those are dependent on driver. */
   if (GPU_type_matches(GPU_DEVICE_ATI, GPU_OS_ANY, GPU_DRIVER_ANY) &&
@@ -411,9 +400,9 @@ void VKBackend::capabilities_init(VKContext *ctx)
       VKContext::derivative_signs[1] = 1.0;
     }
   }
-  #endif
-  /* TODO */
-  #if 0 
+#endif
+/* TODO */
+#if 0
 
   glGetIntegerv(GL_NUM_EXTENSIONS, &GCaps.extensions_len);
   GCaps.extension_get = gl_extension_get;
@@ -496,8 +485,7 @@ void VKBackend::capabilities_init(VKContext *ctx)
     GLContext::debug_layer_support = false;
     GLContext::debug_layer_workaround = false;
   }
-  #endif
+#endif
 }
-
 
 }  // namespace blender::gpu

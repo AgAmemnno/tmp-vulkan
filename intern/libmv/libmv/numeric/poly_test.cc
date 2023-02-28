@@ -18,8 +18,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include "libmv/numeric/poly.h"
 #include "libmv/numeric/numeric.h"
+#include "libmv/numeric/poly.h"
 #include "testing/testing.h"
 
 using namespace libmv;
@@ -34,14 +34,15 @@ namespace {
 //
 //   x^3 - (c+b+a) * x^2 + (a*b+(b+a)*c) * x - a*b*c = 0.
 //           = p               = q              = r
-void CoeffsForCubicZeros(
-    double a, double b, double c, double* p, double* q, double* r) {
+void CoeffsForCubicZeros(double a, double b, double c, double *p, double *q, double *r)
+{
   *p = -(c + b + a);
   *q = (a * b + (b + a) * c);
   *r = -a * b * c;
 }
 
-TEST(Poly, SolveCubicPolynomial) {
+TEST(Poly, SolveCubicPolynomial)
+{
   double a, b, c, aa, bb, cc;
   double p, q, r;
 

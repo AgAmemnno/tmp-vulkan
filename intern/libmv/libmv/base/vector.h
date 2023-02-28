@@ -35,7 +35,7 @@ namespace libmv {
 // needed for most eigen vectorization. Don't use this container for classes
 // that cannot be copied via memcpy.
 
-template <class ElementType>
+template<class ElementType>
 using vector = std::vector<ElementType, Eigen::aligned_allocator<ElementType>>;
 
 }  // namespace libmv

@@ -27,14 +27,16 @@ using libmv::Tuple;
 
 namespace {
 
-TEST(Tuple, InitConstantValue) {
+TEST(Tuple, InitConstantValue)
+{
   Tuple<int, 3> t(5);
   EXPECT_EQ(t(0), 5);
   EXPECT_EQ(t(0), 5);
   EXPECT_EQ(t(0), 5);
 }
 
-TEST(Tuple, InitFromPointer) {
+TEST(Tuple, InitFromPointer)
+{
   float vals[3] = {1.0f, 2.0f, 3.0f};
 
   Tuple<float, 3> t(vals);
@@ -47,7 +49,8 @@ TEST(Tuple, InitFromPointer) {
   EXPECT_EQ(b(2), int(vals[2]));
 }
 
-TEST(Tuple, Swap) {
+TEST(Tuple, Swap)
+{
   unsigned char vala[3] = {1, 2, 3};
   unsigned char valb[3] = {4, 5, 6};
 
@@ -64,7 +67,8 @@ TEST(Tuple, Swap) {
   EXPECT_EQ(b(2), int(vala[2]));
 }
 
-TEST(Tuple, IsEqualOperator) {
+TEST(Tuple, IsEqualOperator)
+{
   Tuple<int, 3> a;
   a(0) = 1;
   a(1) = 2;

@@ -35,7 +35,8 @@
 namespace libmv {
 namespace {
 
-Mat2X PointMatrixFromMarkers(const vector<Marker>& markers) {
+Mat2X PointMatrixFromMarkers(const vector<Marker> &markers)
+{
   Mat2X points(2, markers.size());
   for (int i = 0; i < markers.size(); ++i) {
     points(0, i) = markers[i].x;
@@ -56,16 +57,17 @@ struct EuclideanResectCostFunction {
   typedef Vec FMatrixType;
   typedef Vec6 XMatrixType;
 
-  EuclideanResectCostFunction(const vector<Marker>& markers,
-                              const EuclideanReconstruction& reconstruction,
-                              const Mat3& initial_R)
-      : markers(markers),
-        reconstruction(reconstruction),
-        initial_R(initial_R) {}
+  EuclideanResectCostFunction(const vector<Marker> &markers,
+                              const EuclideanReconstruction &reconstruction,
+                              const Mat3 &initial_R)
+      : markers(markers), reconstruction(reconstruction), initial_R(initial_R)
+  {
+  }
 
   // dRt has dR (delta R) encoded as a euler vector in the first 3 parameters,
   // followed by t in the next 3 parameters.
-  Vec operator()(const Vec6& dRt) const {
+  Vec operator()(const Vec6 &dRt) const
+  {
     // Unpack R, t from dRt.
     Mat3 R = RotationFromEulerVector(dRt.head<3>()) * initial_R;
     Vec3 t = dRt.tail<3>();
@@ -74,8 +76,7 @@ struct EuclideanResectCostFunction {
     Vec residuals(2 * markers.size());
     residuals.setZero();
     for (int i = 0; i < markers.size(); ++i) {
-      const EuclideanPoint& point =
-          *reconstruction.PointForTrack(markers[i].track);
+      const EuclideanPoint &point = *reconstruction.PointForTrack(markers[i].track);
       Vec3 projected = R * point.X + t;
       projected /= projected(2);
       residuals[2 * i + 0] = projected(0) - markers[i].x;
@@ -84,16 +85,17 @@ struct EuclideanResectCostFunction {
     return residuals;
   }
 
-  const vector<Marker>& markers;
-  const EuclideanReconstruction& reconstruction;
-  const Mat3& initial_R;
+  const vector<Marker> &markers;
+  const EuclideanReconstruction &reconstruction;
+  const Mat3 &initial_R;
 };
 
 }  // namespace
 
-bool EuclideanResect(const vector<Marker>& markers,
-                     EuclideanReconstruction* reconstruction,
-                     bool final_pass) {
+bool EuclideanResect(const vector<Marker> &markers,
+                     EuclideanReconstruction *reconstruction,
+                     bool final_pass)
+{
   if (markers.size() < 5) {
     return false;
   }
@@ -107,9 +109,8 @@ bool EuclideanResect(const vector<Marker>& markers,
   Mat3 R;
   Vec3 t;
 
-  if (0 ||
-      !euclidean_resection::EuclideanResection(
-          points_2d, points_3d, &R, &t, euclidean_resection::RESECTION_EPNP)) {
+  if (0 || !euclidean_resection::EuclideanResection(
+               points_2d, points_3d, &R, &t, euclidean_resection::RESECTION_EPNP)) {
     // printf("Resection for image %d failed\n", markers[0].image);
     LG << "Resection for image " << markers[0].image << " failed;"
        << " trying fallback projective resection.";
@@ -193,11 +194,14 @@ struct ProjectiveResectCostFunction {
   typedef Vec FMatrixType;
   typedef Vec12 XMatrixType;
 
-  ProjectiveResectCostFunction(const vector<Marker>& markers,
-                               const ProjectiveReconstruction& reconstruction)
-      : markers(markers), reconstruction(reconstruction) {}
+  ProjectiveResectCostFunction(const vector<Marker> &markers,
+                               const ProjectiveReconstruction &reconstruction)
+      : markers(markers), reconstruction(reconstruction)
+  {
+  }
 
-  Vec operator()(const Vec12& vector_P) const {
+  Vec operator()(const Vec12 &vector_P) const
+  {
     // Unpack P from vector_P.
     Map<const Mat34> P(vector_P.data(), 3, 4);
 
@@ -205,8 +209,7 @@ struct ProjectiveResectCostFunction {
     Vec residuals(2 * markers.size());
     residuals.setZero();
     for (int i = 0; i < markers.size(); ++i) {
-      const ProjectivePoint& point =
-          *reconstruction.PointForTrack(markers[i].track);
+      const ProjectivePoint &point = *reconstruction.PointForTrack(markers[i].track);
       Vec3 projected = P * point.X;
       projected /= projected(2);
       residuals[2 * i + 0] = projected(0) - markers[i].x;
@@ -215,14 +218,14 @@ struct ProjectiveResectCostFunction {
     return residuals;
   }
 
-  const vector<Marker>& markers;
-  const ProjectiveReconstruction& reconstruction;
+  const vector<Marker> &markers;
+  const ProjectiveReconstruction &reconstruction;
 };
 
 }  // namespace
 
-bool ProjectiveResect(const vector<Marker>& markers,
-                      ProjectiveReconstruction* reconstruction) {
+bool ProjectiveResect(const vector<Marker> &markers, ProjectiveReconstruction *reconstruction)
+{
   if (markers.size() < 5) {
     return false;
   }
@@ -231,8 +234,7 @@ bool ProjectiveResect(const vector<Marker>& markers,
   Mat2X points_2d = PointMatrixFromMarkers(markers);
   Mat4X points_3d_homogeneous(4, markers.size());
   for (int i = 0; i < markers.size(); i++) {
-    points_3d_homogeneous.col(i) =
-        reconstruction->PointForTrack(markers[i].track)->X;
+    points_3d_homogeneous.col(i) = reconstruction->PointForTrack(markers[i].track)->X;
   }
   LG << "Points for resect:\n" << points_2d;
 

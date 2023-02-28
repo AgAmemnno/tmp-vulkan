@@ -64,9 +64,9 @@
 #endif
 #define __EXIT__ \
   { \
-  GPU_context_end_frame(GPU_context_active_get());\
-  GPU_context_main_unlock();\
-  WM_exit(C);\
+    GPU_context_end_frame(GPU_context_active_get()); \
+    GPU_context_main_unlock(); \
+    WM_exit(C); \
   }
 /* -------------------------------------------------------------------- */
 /** \name Internal Utilities
@@ -763,7 +763,7 @@ static void wm_draw_region_blit(ARegion *region, int view)
 
   if (region->draw_buffer->viewport) {
     GPU_viewport_draw_to_screen(region->draw_buffer->viewport, view, &region->winrct);
-    //GPU_context_end_frame(GPU_context_active_get());
+    // GPU_context_end_frame(GPU_context_active_get());
   }
   else {
     GPU_offscreen_draw_to_screen(
@@ -904,7 +904,7 @@ static void wm_draw_window_offscreen(bContext *C, wmWindow *win, bool stereo)
         GPU_context_main_unlock();
         WM_exit(C);
       */
-      
+
       printf(
           "View 3D Draw ==========================================================>>>>>>>>>>>>> "
           "\n");
@@ -987,7 +987,6 @@ static void wm_draw_window_offscreen(bContext *C, wmWindow *win, bool stereo)
     CTX_wm_area_set(C, NULL);
 
     GPU_debug_group_end();
-    
   }
 
   /* Draw menus into their own frame-buffer. */
@@ -1006,8 +1005,6 @@ static void wm_draw_window_offscreen(bContext *C, wmWindow *win, bool stereo)
       region->type->layout(C, region);
     }
 
-
-
     wm_draw_region_buffer_create(region, false, false);
     wm_draw_region_bind(region, 0);
     GPU_clear_color(0.0f, 0.0f, 0.0f, 0.0f);
@@ -1016,12 +1013,9 @@ static void wm_draw_window_offscreen(bContext *C, wmWindow *win, bool stereo)
 
     GPU_debug_group_end();
 
-
     region->do_draw = false;
     CTX_wm_menu_set(C, NULL);
   }
-
-
 }
 
 static void wm_draw_window_onscreen(bContext *C, wmWindow *win, int view)
@@ -1051,7 +1045,7 @@ static void wm_draw_window_onscreen(bContext *C, wmWindow *win, int view)
       if (region->overlap == false) {
         /* Blit from off-screen buffer. */
         wm_draw_region_blit(region, view);
-        //wm_window_swap_buffers(win);
+        // wm_window_swap_buffers(win);
       }
     }
   }
@@ -1107,7 +1101,7 @@ static void wm_draw_window_onscreen(bContext *C, wmWindow *win, int view)
     }
     wm_draw_region_blend(region, 0, true);
   }
-        
+
   /* always draw, not only when screen tagged */
   if (win->gesture.first) {
     wm_gesture_draw(win);
@@ -1138,11 +1132,11 @@ static void wm_draw_window(bContext *C, wmWindow *win)
 {
   /*Loop over this passage for analysis.*/
   int CNT = 10;
-  while (CNT--){
+  while (CNT--) {
 
     if (CNT == 1) {
       printf("Input next loop >>");
-      scanf("%d",&CNT);
+      scanf("%d", &CNT);
     }
 
     GPU_context_begin_frame(win->gpuctx);
@@ -1170,7 +1164,9 @@ static void wm_draw_window(bContext *C, wmWindow *win)
       GPU_backbuffer_bind(GPU_BACKBUFFER_LEFT);
       wm_draw_window_onscreen(C, win, 0);
     }
-    else if (ELEM(win->stereo3d_format->display_mode, S3D_DISPLAY_ANAGLYPH, S3D_DISPLAY_INTERLACE)) {
+    else if (ELEM(win->stereo3d_format->display_mode,
+                  S3D_DISPLAY_ANAGLYPH,
+                  S3D_DISPLAY_INTERLACE)) {
       /* For anaglyph and interlace, we draw individual regions with
        * stereo frame-buffers using different shaders. */
       wm_draw_window_onscreen(C, win, -1);
@@ -1218,7 +1214,7 @@ static void wm_draw_window(bContext *C, wmWindow *win)
     screen->do_draw = false;
 
     GPU_context_end_frame(win->gpuctx);
-}
+  }
 
   GPU_context_main_unlock();
   WM_exit(C);

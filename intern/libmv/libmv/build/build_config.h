@@ -187,8 +187,8 @@
 // For access to standard POSIXish features use OS_POSIX instead of a
 // more specific macro.
 
-#if OS_AIX || OS_ANDROID || OS_ASMJS || OS_FREEBSD || OS_LINUX || OS_MACOSX || \
-    OS_NACL || OS_NETBSD || OS_OPENBSD || OS_QNX || OS_SOLARIS
+#if OS_AIX || OS_ANDROID || OS_ASMJS || OS_FREEBSD || OS_LINUX || OS_MACOSX || OS_NACL || \
+    OS_NETBSD || OS_OPENBSD || OS_QNX || OS_SOLARIS
 #  define OS_POSIX 1
 #else
 #  define OS_POSIX 0
@@ -243,7 +243,7 @@
 // particular case, that warning might be helpful to catch errors elsewhere.
 
 // C++11 check.
-#if ((defined(__cplusplus) && (__cplusplus > 199711L)) ||                      \
+#if ((defined(__cplusplus) && (__cplusplus > 199711L)) || \
      (defined(_MSC_VER) && (_MSC_VER >= 1800)))
 #  define COMPILER_SUPPORTS_CXX11 1
 #else
@@ -297,7 +297,7 @@
 #  define ARCH_CPU_S390 1
 #  define ARCH_CPU_31_BITS 1
 #  define ARCH_CPU_BIG_ENDIAN 1
-#elif (defined(__PPC64__) || defined(__PPC__)) && /* NOLINT */                 \
+#elif (defined(__PPC64__) || defined(__PPC__)) && /* NOLINT */ \
     defined(__BIG_ENDIAN__)                       // NOLINT
 #  define ARCH_CPU_PPC64_FAMILY 1
 #  define ARCH_CPU_PPC64 1

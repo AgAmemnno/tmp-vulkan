@@ -33,35 +33,32 @@ using libmv::vector;
 // The Tracks container stores correspondences between frames.
 class Tracks {
  public:
-  Tracks() {}
-  Tracks(const Tracks& other);
+  Tracks()
+  {
+  }
+  Tracks(const Tracks &other);
 
   // Create a tracks object with markers already initialized. Copies markers.
-  explicit Tracks(const vector<Marker>& markers);
+  explicit Tracks(const vector<Marker> &markers);
 
   // All getters append to the output argument vector.
-  bool GetMarker(int clip, int frame, int track, Marker* marker) const;
-  void GetMarkersForTrack(int track, vector<Marker>* markers) const;
-  void GetMarkersForTrackInClip(int clip,
-                                int track,
-                                vector<Marker>* markers) const;
-  void GetMarkersInFrame(int clip, int frame, vector<Marker>* markers) const;
+  bool GetMarker(int clip, int frame, int track, Marker *marker) const;
+  void GetMarkersForTrack(int track, vector<Marker> *markers) const;
+  void GetMarkersForTrackInClip(int clip, int track, vector<Marker> *markers) const;
+  void GetMarkersInFrame(int clip, int frame, vector<Marker> *markers) const;
 
   // Get the markers in frame1 and frame2 which have a common track.
   //
   // This is not the same as the union of the markers in frame1 and
   // frame2; each marker is for a track that appears in both images.
-  void GetMarkersForTracksInBothImages(int clip1,
-                                       int frame1,
-                                       int clip2,
-                                       int frame2,
-                                       vector<Marker>* markers) const;
+  void GetMarkersForTracksInBothImages(
+      int clip1, int frame1, int clip2, int frame2, vector<Marker> *markers) const;
 
-  void AddMarker(const Marker& marker);
+  void AddMarker(const Marker &marker);
 
   // Moves the contents of *markers over top of the existing markers. This
   // destroys *markers in the process (but avoids copies).
-  void SetMarkers(vector<Marker>* markers);
+  void SetMarkers(vector<Marker> *markers);
   bool RemoveMarker(int clip, int frame, int track);
   void RemoveMarkersForTrack(int track);
 
@@ -70,7 +67,10 @@ class Tracks {
   int MaxTrack() const;
   int NumMarkers() const;
 
-  const vector<Marker>& markers() const { return markers_; }
+  const vector<Marker> &markers() const
+  {
+    return markers_;
+  }
 
  private:
   vector<Marker> markers_;

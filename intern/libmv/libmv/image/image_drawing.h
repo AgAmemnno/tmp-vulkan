@@ -33,8 +33,9 @@ namespace libmv {
 
 /// Put the pixel in the image to the given color only if the point (xc,yc)
 /// is inside the image.
-template <class Image, class Color>
-inline void safePutPixel(int yc, int xc, const Color& col, Image* pim) {
+template<class Image, class Color>
+inline void safePutPixel(int yc, int xc, const Color &col, Image *pim)
+{
   if (!pim)
     return;
   if (pim->Contains(yc, xc)) {
@@ -44,8 +45,9 @@ inline void safePutPixel(int yc, int xc, const Color& col, Image* pim) {
 /// Put the pixel in the image to the given color only if the point (xc,yc)
 /// is inside the image. This function support multi-channel color
 /// \note The color pointer col must have size as the image depth
-template <class Image, class Color>
-inline void safePutPixel(int yc, int xc, const Color* col, Image* pim) {
+template<class Image, class Color>
+inline void safePutPixel(int yc, int xc, const Color *col, Image *pim)
+{
   if (!pim)
     return;
   if (pim->Contains(yc, xc)) {
@@ -58,14 +60,10 @@ inline void safePutPixel(int yc, int xc, const Color* col, Image* pim) {
 // http://raphaello.univ-fcomte.fr/ig/algorithme/ExemplesGLUt/BresenhamEllipse.htm
 // Add the rotation of the ellipse.
 // As the algo. use symmetry we must use 4 rotations.
-template <class Image, class Color>
-void DrawEllipse(int xc,
-                 int yc,
-                 int radiusA,
-                 int radiusB,
-                 const Color& col,
-                 Image* pim,
-                 double angle = 0.0) {
+template<class Image, class Color>
+void DrawEllipse(
+    int xc, int yc, int radiusA, int radiusB, const Color &col, Image *pim, double angle = 0.0)
+{
   int a = radiusA;
   int b = radiusB;
 
@@ -94,7 +92,8 @@ void DrawEllipse(int xc,
     if (d1 < 0) {
       d1 += b * b * (2 * x + 3);
       ++x;
-    } else {
+    }
+    else {
       d1 += b * b * (2 * x + 3) + a * a * (-2 * y + 2);
       ++x;
       --y;
@@ -118,7 +117,8 @@ void DrawEllipse(int xc,
       d2 += b * b * (2 * x + 2) + a * a * (-2 * y + 3);
       --y;
       ++x;
-    } else {
+    }
+    else {
       d2 += a * a * (-2 * y + 3);
       --y;
     }
@@ -140,13 +140,12 @@ void DrawEllipse(int xc,
 // Bresenham approach do not allow to draw concentric circle without holes.
 // So it's better the use the Andres method.
 // http://fr.wikipedia.org/wiki/Algorithme_de_tracé_de_cercle_d'Andres.
-template <class Image, class Color>
-void DrawCircle(int x, int y, int radius, const Color& col, Image* pim) {
-  Image& im = *pim;
-  if (im.Contains(y + radius, x + radius) ||
-      im.Contains(y + radius, x - radius) ||
-      im.Contains(y - radius, x + radius) ||
-      im.Contains(y - radius, x - radius)) {
+template<class Image, class Color>
+void DrawCircle(int x, int y, int radius, const Color &col, Image *pim)
+{
+  Image &im = *pim;
+  if (im.Contains(y + radius, x + radius) || im.Contains(y + radius, x - radius) ||
+      im.Contains(y - radius, x + radius) || im.Contains(y - radius, x - radius)) {
     int x1 = 0;
     int y1 = radius;
     int d = radius - 1;
@@ -163,11 +162,13 @@ void DrawCircle(int x, int y, int radius, const Color& col, Image* pim) {
       if (d >= 2 * x1) {
         d = d - 2 * x1 - 1;
         x1 += 1;
-      } else {
+      }
+      else {
         if (d <= 2 * (radius - y1)) {
           d = d + 2 * y1 - 1;
           y1 -= 1;
-        } else {
+        }
+        else {
           d = d + 2 * (y1 - x1 - 1);
           y1 -= 1;
           x1 += 1;
@@ -178,9 +179,10 @@ void DrawCircle(int x, int y, int radius, const Color& col, Image* pim) {
 }
 
 // Bresenham algorithm
-template <class Image, class Color>
-void DrawLine(int xa, int ya, int xb, int yb, const Color& col, Image* pim) {
-  Image& im = *pim;
+template<class Image, class Color>
+void DrawLine(int xa, int ya, int xb, int yb, const Color &col, Image *pim)
+{
+  Image &im = *pim;
 
   // If one point is outside the image
   // Replace the outside point by the intersection of the line and
@@ -190,9 +192,8 @@ void DrawLine(int xa, int ya, int xb, int yb, const Color& col, Image* pim) {
     int height = pim->Height();
     const bool xdir = xa < xb, ydir = ya < yb;
     float nx0 = xa, nx1 = xb, ny0 = ya, ny1 = yb, &xleft = xdir ? nx0 : nx1,
-          &yleft = xdir ? ny0 : ny1, &xright = xdir ? nx1 : nx0,
-          &yright = xdir ? ny1 : ny0, &xup = ydir ? nx0 : nx1,
-          &yup = ydir ? ny0 : ny1, &xdown = ydir ? nx1 : nx0,
+          &yleft = xdir ? ny0 : ny1, &xright = xdir ? nx1 : nx0, &yright = xdir ? ny1 : ny0,
+          &xup = ydir ? nx0 : nx1, &yup = ydir ? ny0 : ny1, &xdown = ydir ? nx1 : nx0,
           &ydown = ydir ? ny1 : ny0;
 
     if (xright < 0 || xleft >= width)
@@ -229,7 +230,8 @@ void DrawLine(int xa, int ya, int xb, int yb, const Color& col, Image* pim) {
     ybas = ya;
     xhaut = xb;
     yhaut = yb;
-  } else {
+  }
+  else {
     xbas = xb;
     ybas = yb;
     xhaut = xa;
@@ -241,13 +243,15 @@ void DrawLine(int xa, int ya, int xb, int yb, const Color& col, Image* pim) {
   dy = yhaut - ybas;
   if (dx > 0) {  // If xhaut > xbas we will increment X.
     incrmX = 1;
-  } else {
+  }
+  else {
     incrmX = -1;  // else we will decrement X.
     dx *= -1;
   }
   if (dy > 0) {  // Positive slope will increment X.
     incrmY = 1;
-  } else {  // Negative slope.
+  }
+  else {  // Negative slope.
     incrmY = -1;
   }
   if (dx >= dy) {
@@ -261,12 +265,14 @@ void DrawLine(int xa, int ya, int xb, int yb, const Color& col, Image* pim) {
       x += incrmX;
       if (dp <= 0) {  // Go in direction of the South Pixel.
         dp += S;
-      } else {  // Go to the North.
+      }
+      else {  // Go to the North.
         dp += N;
         y += incrmY;
       }
     }
-  } else {
+  }
+  else {
     dp = 2 * dx - dy;
     S = 2 * dx;
     N = 2 * (dx - dy);
@@ -277,7 +283,8 @@ void DrawLine(int xa, int ya, int xb, int yb, const Color& col, Image* pim) {
       y += incrmY;
       if (dp <= 0) {  // Go in direction of the South Pixel.
         dp += S;
-      } else {  // Go to the North.
+      }
+      else {  // Go to the North.
         dp += N;
         x += incrmX;
       }

@@ -19,9 +19,9 @@
 // IN THE SOFTWARE.
 
 #include "libmv/base/vector.h"
-#include <algorithm>
 #include "libmv/numeric/numeric.h"
 #include "testing/testing.h"
+#include <algorithm>
 
 namespace {
 using namespace libmv;
@@ -29,7 +29,8 @@ using namespace libmv;
 // This uses a Vec2d which is a fixed-size vectorizable Eigen type. It is
 // necessary to test vectorizable types to ensure that the alignment asserts
 // trigger if the alignment is not correct.
-TEST(VectorAlignmentTest, PushBack) {
+TEST(VectorAlignmentTest, PushBack)
+{
   Vec2 x1, x2;
   x1 << 1, 2;
   x2 << 3, 4;
@@ -61,19 +62,27 @@ int foo_destruct_calls = 0;
 
 struct Foo {
  public:
-  Foo() : value(5) { foo_construct_calls++; }
-  ~Foo() { foo_destruct_calls++; }
+  Foo() : value(5)
+  {
+    foo_construct_calls++;
+  }
+  ~Foo()
+  {
+    foo_destruct_calls++;
+  }
   int value;
 };
 
 struct VectorTest : public testing::Test {
-  VectorTest() {
+  VectorTest()
+  {
     foo_construct_calls = 0;
     foo_destruct_calls = 0;
   }
 };
 
-TEST_F(VectorTest, EmptyVectorDoesNotConstruct) {
+TEST_F(VectorTest, EmptyVectorDoesNotConstruct)
+{
   {
     vector<Foo> v;
     EXPECT_EQ(0, v.size());
@@ -82,7 +91,8 @@ TEST_F(VectorTest, EmptyVectorDoesNotConstruct) {
   EXPECT_EQ(0, foo_destruct_calls);
 }
 
-TEST_F(VectorTest, DestructorGetsCalled) {
+TEST_F(VectorTest, DestructorGetsCalled)
+{
   {
     vector<Foo> v;
     v.resize(5);
@@ -91,7 +101,8 @@ TEST_F(VectorTest, DestructorGetsCalled) {
   EXPECT_EQ(5, foo_destruct_calls);
 }
 
-TEST_F(VectorTest, ReserveDoesNotCallConstructorsOrDestructors) {
+TEST_F(VectorTest, ReserveDoesNotCallConstructorsOrDestructors)
+{
   vector<Foo> v;
   EXPECT_EQ(0, v.size());
   EXPECT_EQ(0, foo_construct_calls);
@@ -103,7 +114,8 @@ TEST_F(VectorTest, ReserveDoesNotCallConstructorsOrDestructors) {
   EXPECT_EQ(0, foo_destruct_calls);
 }
 
-TEST_F(VectorTest, ResizeConstructsAndDestructsAsExpected) {
+TEST_F(VectorTest, ResizeConstructsAndDestructsAsExpected)
+{
   vector<Foo> v;
 
   // Create one object.
@@ -128,7 +140,8 @@ TEST_F(VectorTest, ResizeConstructsAndDestructsAsExpected) {
   EXPECT_EQ(3, foo_construct_calls);
 }
 
-TEST_F(VectorTest, PushPopBack) {
+TEST_F(VectorTest, PushPopBack)
+{
   vector<Foo> v;
 
   Foo foo;
@@ -143,7 +156,8 @@ TEST_F(VectorTest, PushPopBack) {
   EXPECT_EQ(1, foo_destruct_calls);
 }
 
-TEST_F(VectorTest, CopyConstructor) {
+TEST_F(VectorTest, CopyConstructor)
+{
   vector<int> a;
   a.push_back(1);
   a.push_back(5);
@@ -156,7 +170,8 @@ TEST_F(VectorTest, CopyConstructor) {
   }
 }
 
-TEST_F(VectorTest, OperatorEquals) {
+TEST_F(VectorTest, OperatorEquals)
+{
   vector<int> a, b;
   a.push_back(1);
   a.push_back(5);
@@ -170,7 +185,8 @@ TEST_F(VectorTest, OperatorEquals) {
   }
 }
 
-TEST_F(VectorTest, STLFind) {
+TEST_F(VectorTest, STLFind)
+{
   vector<int> a;
   a.push_back(1);
   a.push_back(5);
@@ -191,7 +207,8 @@ TEST_F(VectorTest, STLFind) {
   EXPECT_EQ(std::find(a.begin(), a.end(), 52) == a.end(), true);
 }
 
-TEST(Vector, swap) {
+TEST(Vector, swap)
+{
   vector<int> a, b;
   a.push_back(1);
   a.push_back(2);

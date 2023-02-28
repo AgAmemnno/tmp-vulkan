@@ -24,7 +24,7 @@ class VKFrameBuffer : public FrameBuffer {
 
  private:
   /** OpenGL handle. */
-  GLuint fbo_id_ = 0;
+  uint32_t fbo_id_ = 0;
   /** Context the handle is from. Frame-buffers are not shared across contexts. */
   VKContext *context_ = nullptr;
   /** State Manager of the same contexts. */
@@ -81,7 +81,7 @@ class VKFrameBuffer : public FrameBuffer {
                         eGPUDataFormat data_format,
                         const void *clear_value) override;
 
-  void clear_color(int slot,const float clear_col[4]);
+  void clear_color(int slot, const float clear_col[4]);
   /* Attachment load-stores are currently no-op's in OpenGL. */
   void attachment_set_loadstore_op(GPUAttachmentType /*type*/,
                                    eGPULoadOp /*load_action*/,
@@ -117,9 +117,9 @@ class VKFrameBuffer : public FrameBuffer {
 
   void apply_state();
 
-  int   get_width();
+  int get_width();
 
-  int   get_height();
+  int get_height();
 
   bool get_srgb_enabled()
   {
@@ -190,7 +190,6 @@ class VKFrameBuffer : public FrameBuffer {
     if (sema != VK_NULL_HANDLE) {
       wait_sema.push_back(sema);
     }
-
   };
 
   Vector<VkPipeline> cache_pipes;
@@ -205,14 +204,18 @@ class VKFrameBuffer : public FrameBuffer {
   };
 
   void save_current_frame(const char *filename);
-  const Vector<VkAttachmentDescription>& get_attach_desc() {
+  const Vector<VkAttachmentDescription> &get_attach_desc()
+  {
     return vk_attachments_.vdesc_;
   };
 
   void update_attachments();
 
   void get_attachments(GPUAttachmentType type, GPUAttachment *&attach);
-  void readColorAttachment(VKTexture *tex, void *&data, VkDeviceMemory& dstImageMemory,int mip = 0);
+  void readColorAttachment(VKTexture *tex,
+                           void *&data,
+                           VkDeviceMemory &dstImageMemory,
+                           int mip = 0);
   VkSubresourceLayout subResourceLayout_;
 
  private:
@@ -235,11 +238,10 @@ class VKFrameBuffer : public FrameBuffer {
   bool is_srgb_;
 
   void init(VKContext *ctx);
- 
+
   void force_clear();
 
   VKContext *dirty_state_ctx_ = nullptr;
-  
 
   MEM_CXX_CLASS_ALLOC_FUNCS("VKFrameBuffer");
 };

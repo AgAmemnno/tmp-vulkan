@@ -572,9 +572,9 @@ struct ShaderCreateInfo {
     return *(Self *)this;
   }
 
-  Self &vertex_out(StageInterfaceInfo &interface)
+  Self &vertex_out(StageInterfaceInfo &interface_)
   {
-    vertex_out_interfaces_.append(&interface);
+    vertex_out_interfaces_.append(&interface_);
     return *(Self *)this;
   }
 
@@ -620,9 +620,9 @@ struct ShaderCreateInfo {
    * appended in the geometry shader IF AND ONLY IF the vertex_out interface instance name matches
    * the geometry_out interface instance name.
    */
-  Self &geometry_out(StageInterfaceInfo &interface)
+  Self &geometry_out(StageInterfaceInfo &interface_)
   {
-    geometry_out_interfaces_.append(&interface);
+    geometry_out_interfaces_.append(&interface_);
     return *(Self *)this;
   }
 

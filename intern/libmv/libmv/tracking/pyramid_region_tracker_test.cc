@@ -18,15 +18,16 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include "libmv/tracking/pyramid_region_tracker.h"
 #include "libmv/image/image.h"
 #include "libmv/tracking/klt_region_tracker.h"
+#include "libmv/tracking/pyramid_region_tracker.h"
 #include "testing/testing.h"
 
 namespace libmv {
 namespace {
 
-TEST(PyramidKltRegionTracker, Track) {
+TEST(PyramidKltRegionTracker, Track)
+{
   Array3Df image1(100, 100);
   image1.Fill(0);
 
@@ -63,7 +64,7 @@ TEST(PyramidKltRegionTracker, Track) {
     double x2_actual = x1;
     double y2_actual = y1;
 
-    KltRegionTracker* klt_tracker = new KltRegionTracker;
+    KltRegionTracker *klt_tracker = new KltRegionTracker;
     klt_tracker->half_window_size = half_window_size;
 
     PyramidRegionTracker tracker(klt_tracker, 3);

@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 // Initialize GLog logging.
-void libmv_initLogging(const char* argv0);
+void libmv_initLogging(const char *argv0);
 
 // Switch Glog to debug logging level.
 void libmv_startDebugLogging(void);

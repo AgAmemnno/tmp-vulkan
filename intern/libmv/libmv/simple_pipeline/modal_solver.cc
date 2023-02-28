@@ -34,7 +34,8 @@
 namespace libmv {
 
 namespace {
-void ProjectMarkerOnSphere(const Marker& marker, Vec3& X) {
+void ProjectMarkerOnSphere(const Marker &marker, Vec3 &X)
+{
   X(0) = marker.x;
   X(1) = marker.y;
   X(2) = 1.0;
@@ -42,15 +43,12 @@ void ProjectMarkerOnSphere(const Marker& marker, Vec3& X) {
   X *= 5.0 / X.norm();
 }
 
-void ModalSolverLogProgress(ProgressUpdateCallback* update_callback,
-                            double progress) {
+void ModalSolverLogProgress(ProgressUpdateCallback *update_callback, double progress)
+{
   if (update_callback) {
     char message[256];
 
-    snprintf(message,
-             sizeof(message),
-             "Solving progress %d%%",
-             (int)(progress * 100));
+    snprintf(message, sizeof(message), "Solving progress %d%%", (int)(progress * 100));
 
     update_callback->invoke(progress, message);
   }
@@ -60,15 +58,14 @@ struct ModalReprojectionError {
   ModalReprojectionError(double observed_x,
                          double observed_y,
                          const double weight,
-                         const Vec3& bundle)
-      : observed_x_(observed_x),
-        observed_y_(observed_y),
-        weight_(weight),
-        bundle_(bundle) {}
+                         const Vec3 &bundle)
+      : observed_x_(observed_x), observed_y_(observed_y), weight_(weight), bundle_(bundle)
+  {
+  }
 
   // TODO(keir): This should support bundling focal length as well.
-  template <typename T>
-  bool operator()(const T* quaternion, T* residuals) const {
+  template<typename T> bool operator()(const T *quaternion, T *residuals) const
+  {
     // Convert bundle position from double to T.
     T X[3] = {T(bundle_(0)), T(bundle_(1)), T(bundle_(2))};
 
@@ -103,9 +100,10 @@ struct ModalReprojectionError {
 };
 }  // namespace
 
-void ModalSolver(const Tracks& tracks,
-                 EuclideanReconstruction* reconstruction,
-                 ProgressUpdateCallback* update_callback) {
+void ModalSolver(const Tracks &tracks,
+                 EuclideanReconstruction *reconstruction,
+                 ProgressUpdateCallback *update_callback)
+{
   int max_image = tracks.MaxImage();
   int max_track = tracks.MaxTrack();
 
@@ -137,8 +135,8 @@ void ModalSolver(const Tracks& tracks,
     // 3D positions.
     Mat x1, x2;
     for (int i = 0; i < all_markers.size(); ++i) {
-      Marker& marker = all_markers[i];
-      EuclideanPoint* point = reconstruction->PointForTrack(marker.track);
+      Marker &marker = all_markers[i];
+      EuclideanPoint *point = reconstruction->PointForTrack(marker.track);
       if (point) {
         Vec3 X;
         ProjectMarkerOnSphere(marker, X);
@@ -180,21 +178,20 @@ void ModalSolver(const Tracks& tracks,
 
     // NOTE: Parameterization is lazily initialized when it is really needed,
     // and is re-used by all parameters block.
-    ceres::Manifold* quaternion_manifold = NULL;
+    ceres::Manifold *quaternion_manifold = NULL;
 
     int num_residuals = 0;
     for (int i = 0; i < all_markers.size(); ++i) {
-      Marker& marker = all_markers[i];
-      EuclideanPoint* point = reconstruction->PointForTrack(marker.track);
+      Marker &marker = all_markers[i];
+      EuclideanPoint *point = reconstruction->PointForTrack(marker.track);
 
       if (point && marker.weight != 0.0) {
-        problem.AddResidualBlock(
-            new ceres::AutoDiffCostFunction<ModalReprojectionError,
-                                            2, /* num_residuals */
-                                            4>(new ModalReprojectionError(
-                marker.x, marker.y, marker.weight, point->X)),
-            NULL,
-            &quaternion(0));
+        problem.AddResidualBlock(new ceres::AutoDiffCostFunction<ModalReprojectionError,
+                                                                 2, /* num_residuals */
+                                                                 4>(new ModalReprojectionError(
+                                     marker.x, marker.y, marker.weight, point->X)),
+                                 NULL,
+                                 &quaternion(0));
         num_residuals++;
 
         if (quaternion_manifold == NULL) {

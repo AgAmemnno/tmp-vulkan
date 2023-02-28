@@ -32,7 +32,8 @@ namespace {
 
 using namespace libmv;
 
-TEST(NViewTriangulate, FiveViews) {
+TEST(NViewTriangulate, FiveViews)
+{
   int nviews = 5;
   int npoints = 6;
   NViewDataSet d = NRealisticCamerasFull(nviews, npoints);
@@ -62,7 +63,8 @@ TEST(NViewTriangulate, FiveViews) {
   }
 }
 
-TEST(NViewTriangulateAlgebraic, FiveViews) {
+TEST(NViewTriangulateAlgebraic, FiveViews)
+{
   int nviews = 5;
   int npoints = 6;
   NViewDataSet d = NRealisticCamerasFull(nviews, npoints);

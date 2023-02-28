@@ -20,14 +20,13 @@
 #ifndef NV_SHADERMODULEMANAGER_INCLUDED
 #define NV_SHADERMODULEMANAGER_INCLUDED
 
-
 #include <mutex>
 #include <stdio.h>
 #include <string>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
-#ifdef NVP_SUPPORTS_SHADERC 
+#ifdef NVP_SUPPORTS_SHADERC
 #  define NV_EXTENSIONS
 #  include <shaderc/shaderc.h>
 #  undef NV_EXTENSIONS
@@ -38,8 +37,6 @@
 #include <stdio.h>
 #include <string>
 #include <vector>
-
-
 
 namespace nvh {
 
@@ -129,7 +126,7 @@ class ShaderFileManager {
     {
     }
     Definition(uint32_t type, std::string const &prepend, std::string const &filename)
-        : type(type), filename(filename) ,prepend(prepend)
+        : type(type), filename(filename), prepend(prepend)
     {
     }
     Definition(uint32_t type, std::string const &filename) : type(type), filename(filename)
@@ -406,6 +403,7 @@ class ShaderModuleManager : public nvh::ShaderFileManager {
   // ShaderFileManager functions.
   friend class ShadercIncludeBridge;
   friend class __ShadercIncludeBridge;
+
  private:
   ShaderModuleID createShaderModule(const Definition &def);
   bool setupShaderModule(ShaderModule &prog);
@@ -434,8 +432,6 @@ class ShaderModuleManager : public nvh::ShaderFileManager {
 
   std::vector<ShaderModule> m_shadermodules;
 };
-
-
 
 class __ShadercIncludeBridge : public shaderc::CompileOptions::IncluderInterface {
   // Borrowed pointer to our include file loader.
@@ -526,10 +522,6 @@ class __ShadercIncludeBridge : public shaderc::CompileOptions::IncluderInterface
   }
 };
 
-
-
 }  // namespace nvvk
-
-
 
 #endif  // NV_PROGRAM_INCLUDED

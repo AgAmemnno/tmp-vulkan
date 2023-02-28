@@ -1,21 +1,18 @@
 #ifdef DRAW_GTEST_SUITE
-#define DRAW_TESTING_CAPA 1
-#include "draw_testing.hh"
+#  define DRAW_TESTING_CAPA 1
+#  include "draw_testing.hh"
 #endif
 
+namespace blender {
 
-
-namespace blender{
-   
-    namespace draw {
-   
+namespace draw {
 
 #ifndef DRAW_GTEST_SUITE
-        void GPUTest::test_capabilities()
+void GPUTest::test_capabilities()
 #else
-        void test_capabilities()
+void test_capabilities()
 #endif
-        {
+{
 
 #if 0
             gpu::VKContext* ctx = (gpu::VKContext*)(gpu::Context::get());
@@ -50,8 +47,8 @@ namespace blender{
             gpu::GCaps.max_shader_storage_buffer_bindings = limits.maxPerStageDescriptorStorageBuffers;
             gpu::GCaps.max_compute_shader_storage_blocks = limits.maxPerStageDescriptorStorageBuffers;
             gpu::GCaps.extensions_len = 0;
-            
-#define PRINT_GCAPS(name) printf("GCaps          " #name " =    %d  \n", gpu::GCaps.##name);
+
+#  define PRINT_GCAPS(name) printf("GCaps          " #  name " =    %d  \n", gpu::GCaps.##name);
 
             PRINT_GCAPS(max_texture_size);
 
@@ -75,21 +72,12 @@ namespace blender{
 
             PRINT_GCAPS(max_vertex_attribs);
 #endif
-        };
-   
-
-
+};
 
 #ifdef DRAW_GTEST_SUITE
-        DRAW_TEST(capabilities)
+DRAW_TEST(capabilities)
 #endif
 
+};  // namespace draw
 
-
-
-
-};
-
-
-};
-
+};  // namespace blender

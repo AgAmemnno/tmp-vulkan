@@ -18,8 +18,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include "libmv/simple_pipeline/resect.h"
 #include "libmv/logging/logging.h"
+#include "libmv/simple_pipeline/resect.h"
 #include "testing/testing.h"
 
 #if 0

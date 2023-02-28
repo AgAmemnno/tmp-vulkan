@@ -30,19 +30,22 @@ namespace libmv {
 // TODO(keir): Documentation!
 class HybridRegionTracker : public RegionTracker {
  public:
-  HybridRegionTracker(RegionTracker* coarse_tracker,
-                      RegionTracker* fine_tracker)
-      : coarse_tracker_(coarse_tracker), fine_tracker_(fine_tracker) {}
+  HybridRegionTracker(RegionTracker *coarse_tracker, RegionTracker *fine_tracker)
+      : coarse_tracker_(coarse_tracker), fine_tracker_(fine_tracker)
+  {
+  }
 
-  virtual ~HybridRegionTracker() {}
+  virtual ~HybridRegionTracker()
+  {
+  }
 
   // Tracker interface.
-  virtual bool Track(const FloatImage& image1,
-                     const FloatImage& image2,
+  virtual bool Track(const FloatImage &image1,
+                     const FloatImage &image2,
                      double x1,
                      double y1,
-                     double* x2,
-                     double* y2) const;
+                     double *x2,
+                     double *y2) const;
 
   scoped_ptr<RegionTracker> coarse_tracker_;
   scoped_ptr<RegionTracker> fine_tracker_;

@@ -27,9 +27,6 @@
 
 #include "libmv/tracking/track_region.h"
 
-#include <Eigen/QR>
-#include <Eigen/SVD>
-#include <iostream>
 #include "ceres/ceres.h"
 #include "libmv/image/convolve.h"
 #include "libmv/image/image.h"
@@ -37,6 +34,9 @@
 #include "libmv/logging/logging.h"
 #include "libmv/multiview/homography.h"
 #include "libmv/numeric/numeric.h"
+#include <Eigen/QR>
+#include <Eigen/SVD>
+#include <iostream>
 
 // Expand the Jet functionality of Ceres to allow mixed numeric/autodiff.
 //
@@ -44,33 +44,51 @@
 namespace ceres {
 
 // A jet traits class to make it easier to work with mixed auto / numeric diff.
-template <typename T>
-struct JetOps {
-  static bool IsScalar() { return true; }
-  static T GetScalar(const T& t) { return t; }
-  static void SetScalar(const T& scalar, T* t) { *t = scalar; }
-  static void ScaleDerivative(double scale_by, T* value) {
+template<typename T> struct JetOps {
+  static bool IsScalar()
+  {
+    return true;
+  }
+  static T GetScalar(const T &t)
+  {
+    return t;
+  }
+  static void SetScalar(const T &scalar, T *t)
+  {
+    *t = scalar;
+  }
+  static void ScaleDerivative(double scale_by, T *value)
+  {
     // For double, there is no derivative to scale.
     (void)scale_by;  // Ignored.
     (void)value;     // Ignored.
   }
 };
 
-template <typename T, int N>
-struct JetOps<Jet<T, N>> {
-  static bool IsScalar() { return false; }
-  static T GetScalar(const Jet<T, N>& t) { return t.a; }
-  static void SetScalar(const T& scalar, Jet<T, N>* t) { t->a = scalar; }
-  static void ScaleDerivative(double scale_by, Jet<T, N>* value) {
+template<typename T, int N> struct JetOps<Jet<T, N>> {
+  static bool IsScalar()
+  {
+    return false;
+  }
+  static T GetScalar(const Jet<T, N> &t)
+  {
+    return t.a;
+  }
+  static void SetScalar(const T &scalar, Jet<T, N> *t)
+  {
+    t->a = scalar;
+  }
+  static void ScaleDerivative(double scale_by, Jet<T, N> *value)
+  {
     value->v *= scale_by;
   }
 };
 
-template <typename FunctionType, int kNumArgs, typename ArgumentType>
-struct Chain {
-  static ArgumentType Rule(const FunctionType& f,
+template<typename FunctionType, int kNumArgs, typename ArgumentType> struct Chain {
+  static ArgumentType Rule(const FunctionType &f,
                            const FunctionType dfdx[kNumArgs],
-                           const ArgumentType x[kNumArgs]) {
+                           const ArgumentType x[kNumArgs])
+  {
     // In the default case of scalars, there's nothing to do since there are no
     // derivatives to propagate.
     (void)dfdx;  // Ignored.
@@ -80,11 +98,12 @@ struct Chain {
 };
 
 // XXX Add documentation here!
-template <typename FunctionType, int kNumArgs, typename T, int N>
+template<typename FunctionType, int kNumArgs, typename T, int N>
 struct Chain<FunctionType, kNumArgs, Jet<T, N>> {
-  static Jet<T, N> Rule(const FunctionType& f,
+  static Jet<T, N> Rule(const FunctionType &f,
                         const FunctionType dfdx[kNumArgs],
-                        const Jet<T, N> x[kNumArgs]) {
+                        const Jet<T, N> x[kNumArgs])
+  {
     // x is itself a function of another variable ("z"); what this function
     // needs to return is "f", but with the derivative with respect to z
     // attached to the jet. So combine the derivative part of x's jets to form
@@ -95,8 +114,7 @@ struct Chain<FunctionType, kNumArgs, Jet<T, N>> {
     }
 
     // Map the input gradient dfdx into an Eigen row vector.
-    Eigen::Map<const Eigen::Matrix<FunctionType, 1, kNumArgs>> vector_dfdx(
-        dfdx, 1, kNumArgs);
+    Eigen::Map<const Eigen::Matrix<FunctionType, 1, kNumArgs>> vector_dfdx(dfdx, 1, kNumArgs);
 
     // Now apply the chain rule to obtain df/dz. Combine the derivative with
     // the scalar part to obtain f with full derivative information.
@@ -127,18 +145,20 @@ TrackRegionOptions::TrackRegionOptions()
       num_extra_points(0),
       regularization_coefficient(0.0),
       minimum_corner_shift_tolerance_pixels(0.005),
-      image1_mask(NULL) {
+      image1_mask(NULL)
+{
 }
 
 namespace {
 
 // TODO(keir): Consider adding padding.
-template <typename T>
-bool InBounds(const FloatImage& image, const T& x, const T& y) {
+template<typename T> bool InBounds(const FloatImage &image, const T &x, const T &y)
+{
   return 0.0 <= x && x < image.Width() && 0.0 <= y && y < image.Height();
 }
 
-bool AllInBounds(const FloatImage& image, const double* x, const double* y) {
+bool AllInBounds(const FloatImage &image, const double *x, const double *y)
+{
   for (int i = 0; i < 4; ++i) {
     if (!InBounds(image, x[i], y[i])) {
       return false;
@@ -150,10 +170,9 @@ bool AllInBounds(const FloatImage& image, const double* x, const double* y) {
 // Sample the image at position (x, y) but use the gradient, if present, to
 // propagate derivatives from x and y. This is needed to integrate the numeric
 // image gradients with Ceres's autodiff framework.
-template <typename T>
-static T SampleWithDerivative(const FloatImage& image_and_gradient,
-                              const T& x,
-                              const T& y) {
+template<typename T>
+static T SampleWithDerivative(const FloatImage &image_and_gradient, const T &x, const T &y)
+{
   float scalar_x = JetOps<T>::GetScalar(x);
   float scalar_y = JetOps<T>::GetScalar(y);
 
@@ -164,7 +183,8 @@ static T SampleWithDerivative(const FloatImage& image_and_gradient,
   if (JetOps<T>::IsScalar()) {
     // For the scalar case, only sample the image.
     sample[0] = SampleLinear(image_and_gradient, scalar_y, scalar_x, 0);
-  } else {
+  }
+  else {
     // For the derivative case, sample the gradient as well.
     SampleLinear(image_and_gradient, scalar_y, scalar_x, sample);
   }
@@ -172,23 +192,24 @@ static T SampleWithDerivative(const FloatImage& image_and_gradient,
   return Chain<float, 2, T>::Rule(sample[0], sample + 1, xy);
 }
 
-template <typename Warp>
-class TerminationCheckingCallback : public ceres::IterationCallback {
+template<typename Warp> class TerminationCheckingCallback : public ceres::IterationCallback {
  public:
-  TerminationCheckingCallback(const TrackRegionOptions& options,
-                              const FloatImage& image2,
-                              const Warp& warp,
-                              const double* x1,
-                              const double* y1)
+  TerminationCheckingCallback(const TrackRegionOptions &options,
+                              const FloatImage &image2,
+                              const Warp &warp,
+                              const double *x1,
+                              const double *y1)
       : options_(options),
         image2_(image2),
         warp_(warp),
         x1_(x1),
         y1_(y1),
-        have_last_successful_step_(false) {}
+        have_last_successful_step_(false)
+  {
+  }
 
-  virtual ceres::CallbackReturnType operator()(
-      const ceres::IterationSummary& summary) {
+  virtual ceres::CallbackReturnType operator()(const ceres::IterationSummary &summary)
+  {
     // If the step wasn't successful, there's nothing to do.
     if (!summary.step_is_successful) {
       return ceres::SOLVER_CONTINUE;
@@ -244,27 +265,26 @@ class TerminationCheckingCallback : public ceres::IterationCallback {
   }
 
  private:
-  const TrackRegionOptions& options_;
-  const FloatImage& image2_;
-  const Warp& warp_;
-  const double* x1_;
-  const double* y1_;
+  const TrackRegionOptions &options_;
+  const FloatImage &image2_;
+  const Warp &warp_;
+  const double *x1_;
+  const double *y1_;
 
   bool have_last_successful_step_;
   double x2_last_successful_[4];
   double y2_last_successful_[4];
 };
 
-template <typename Warp>
-class PixelDifferenceCostFunctor {
+template<typename Warp> class PixelDifferenceCostFunctor {
  public:
-  PixelDifferenceCostFunctor(const TrackRegionOptions& options,
-                             const FloatImage& image_and_gradient1,
-                             const FloatImage& image_and_gradient2,
-                             const Mat3& canonical_to_image1,
+  PixelDifferenceCostFunctor(const TrackRegionOptions &options,
+                             const FloatImage &image_and_gradient1,
+                             const FloatImage &image_and_gradient2,
+                             const Mat3 &canonical_to_image1,
                              int num_samples_x,
                              int num_samples_y,
-                             const Warp& warp)
+                             const Warp &warp)
       : options_(options),
         image_and_gradient1_(image_and_gradient1),
         image_and_gradient2_(image_and_gradient2),
@@ -274,11 +294,13 @@ class PixelDifferenceCostFunctor {
         warp_(warp),
         pattern_and_gradient_(num_samples_y_, num_samples_x_, 3),
         pattern_positions_(num_samples_y_, num_samples_x_, 2),
-        pattern_mask_(num_samples_y_, num_samples_x_, 1) {
+        pattern_mask_(num_samples_y_, num_samples_x_, 1)
+  {
     ComputeCanonicalPatchAndNormalizer();
   }
 
-  void ComputeCanonicalPatchAndNormalizer() {
+  void ComputeCanonicalPatchAndNormalizer()
+  {
     src_mean_ = 0.0;
     double num_samples = 0.0;
     for (int r = 0; r < num_samples_y_; ++r) {
@@ -311,8 +333,8 @@ class PixelDifferenceCostFunctor {
     src_mean_ /= num_samples;
   }
 
-  template <typename T>
-  bool operator()(const T* warp_parameters, T* residuals) const {
+  template<typename T> bool operator()(const T *warp_parameters, T *residuals) const
+  {
     if (options_.image1_mask != NULL) {
       VLOG(2) << "Using a mask.";
     }
@@ -329,8 +351,7 @@ class PixelDifferenceCostFunctor {
     for (int r = 0; r < num_samples_y_; ++r) {
       for (int c = 0; c < num_samples_x_; ++c) {
         // Use the pre-computed image1 position.
-        Vec2 image1_position(pattern_positions_(r, c, 0),
-                             pattern_positions_(r, c, 1));
+        Vec2 image1_position(pattern_positions_(r, c, 0), pattern_positions_(r, c, 1));
 
         // Sample the mask early; if it's zero, this pixel has no effect. This
         // allows early bailout from the expensive sampling that happens below.
@@ -383,16 +404,16 @@ class PixelDifferenceCostFunctor {
           // image2 position (the ESM hack), chain the image gradients to
           // obtain a sample with the derivative with respect to the warp
           // parameters attached.
-          src_sample = Chain<float, 2, T>::Rule(pattern_and_gradient_(r, c),
-                                                &pattern_and_gradient_(r, c, 1),
-                                                image1_position_jet);
+          src_sample = Chain<float, 2, T>::Rule(
+              pattern_and_gradient_(r, c), &pattern_and_gradient_(r, c, 1), image1_position_jet);
 
           // The jacobians for these should be averaged. Due to the subtraction
           // below, flip the sign of the src derivative so that the effect
           // after subtraction of the jets is that they are averaged.
           JetOps<T>::ScaleDerivative(-0.5, &src_sample);
           JetOps<T>::ScaleDerivative(0.5, &dst_sample);
-        } else {
+        }
+        else {
           // This is the traditional, forward-mode KLT solution.
           src_sample = T(pattern_and_gradient_(r, c));
         }
@@ -420,16 +441,15 @@ class PixelDifferenceCostFunctor {
   }
 
   // For normalized matching, the average and
-  template <typename T>
-  void ComputeNormalizingCoefficient(const T* warp_parameters,
-                                     T* dst_mean) const {
+  template<typename T>
+  void ComputeNormalizingCoefficient(const T *warp_parameters, T *dst_mean) const
+  {
     *dst_mean = T(0.0);
     double num_samples = 0.0;
     for (int r = 0; r < num_samples_y_; ++r) {
       for (int c = 0; c < num_samples_x_; ++c) {
         // Use the pre-computed image1 position.
-        Vec2 image1_position(pattern_positions_(r, c, 0),
-                             pattern_positions_(r, c, 1));
+        Vec2 image1_position(pattern_positions_(r, c, 0), pattern_positions_(r, c, 1));
 
         // Sample the mask early; if it's zero, this pixel has no effect. This
         // allows early bailout from the expensive sampling that happens below.
@@ -470,11 +490,10 @@ class PixelDifferenceCostFunctor {
   }
 
   // TODO(keir): Consider also computing the cost here.
-  double PearsonProductMomentCorrelationCoefficient(
-      const double* warp_parameters) const {
+  double PearsonProductMomentCorrelationCoefficient(const double *warp_parameters) const
+  {
     for (int i = 0; i < Warp::NUM_PARAMETERS; ++i) {
-      VLOG(2) << "Correlation warp_parameters[" << i
-              << "]: " << warp_parameters[i];
+      VLOG(2) << "Correlation warp_parameters[" << i << "]: " << warp_parameters[i];
     }
 
     // The single-pass PMCC computation is somewhat numerically unstable, but
@@ -488,8 +507,7 @@ class PixelDifferenceCostFunctor {
     for (int r = 0; r < num_samples_y_; ++r) {
       for (int c = 0; c < num_samples_x_; ++c) {
         // Use the pre-computed image1 position.
-        Vec2 image1_position(pattern_positions_(r, c, 0),
-                             pattern_positions_(r, c, 1));
+        Vec2 image1_position(pattern_positions_(r, c, 0), pattern_positions_(r, c, 1));
 
         double mask_value = 1.0;
         if (options_.image1_mask != NULL) {
@@ -517,7 +535,8 @@ class PixelDifferenceCostFunctor {
           x *= mask_value;
           y *= mask_value;
           num_samples += mask_value;
-        } else {
+        }
+        else {
           num_samples++;
         }
         sX += x;
@@ -539,19 +558,19 @@ class PixelDifferenceCostFunctor {
     double covariance_xy = sXY - sX * sY;
 
     double correlation = covariance_xy / sqrt(var_x * var_y);
-    LG << "Covariance xy: " << covariance_xy << ", var 1: " << var_x
-       << ", var 2: " << var_y << ", correlation: " << correlation;
+    LG << "Covariance xy: " << covariance_xy << ", var 1: " << var_x << ", var 2: " << var_y
+       << ", correlation: " << correlation;
     return correlation;
   }
 
  private:
-  const TrackRegionOptions& options_;
-  const FloatImage& image_and_gradient1_;
-  const FloatImage& image_and_gradient2_;
-  const Mat3& canonical_to_image1_;
+  const TrackRegionOptions &options_;
+  const FloatImage &image_and_gradient1_;
+  const FloatImage &image_and_gradient2_;
+  const Mat3 &canonical_to_image1_;
   int num_samples_x_;
   int num_samples_y_;
-  const Warp& warp_;
+  const Warp &warp_;
   double src_mean_;
   FloatImage pattern_and_gradient_;
 
@@ -563,21 +582,21 @@ class PixelDifferenceCostFunctor {
   FloatImage pattern_mask_;
 };
 
-template <typename Warp>
-class WarpRegularizingCostFunctor {
+template<typename Warp> class WarpRegularizingCostFunctor {
  public:
-  WarpRegularizingCostFunctor(const TrackRegionOptions& options,
-                              const double* x1,
-                              const double* y1,
-                              const double* x2_original,
-                              const double* y2_original,
-                              const Warp& warp)
+  WarpRegularizingCostFunctor(const TrackRegionOptions &options,
+                              const double *x1,
+                              const double *y1,
+                              const double *x2_original,
+                              const double *y2_original,
+                              const Warp &warp)
       : options_(options),
         x1_(x1),
         y1_(y1),
         x2_original_(x2_original),
         y2_original_(y2_original),
-        warp_(warp) {
+        warp_(warp)
+  {
     // Compute the centroid of the first guess quad.
     // TODO(keir): Use Quad class here.
     original_centroid_[0] = 0.0;
@@ -590,17 +609,14 @@ class WarpRegularizingCostFunctor {
     original_centroid_[1] /= 4;
   }
 
-  template <typename T>
-  bool operator()(const T* warp_parameters, T* residuals) const {
+  template<typename T> bool operator()(const T *warp_parameters, T *residuals) const
+  {
     T dst_centroid[2] = {T(0.0), T(0.0)};
     for (int i = 0; i < 4; ++i) {
       T image1_position[2] = {T(x1_[i]), T(y1_[i])};
       T image2_position[2];
-      warp_.Forward(warp_parameters,
-                    T(x1_[i]),
-                    T(y1_[i]),
-                    &image2_position[0],
-                    &image2_position[1]);
+      warp_.Forward(
+          warp_parameters, T(x1_[i]), T(y1_[i]), &image2_position[0], &image2_position[1]);
 
       // Subtract the positions. Note that this ignores the centroids.
       residuals[2 * i + 0] = image2_position[0] - image1_position[0];
@@ -627,24 +643,24 @@ class WarpRegularizingCostFunctor {
     return true;
   }
 
-  const TrackRegionOptions& options_;
-  const double* x1_;
-  const double* y1_;
-  const double* x2_original_;
-  const double* y2_original_;
+  const TrackRegionOptions &options_;
+  const double *x1_;
+  const double *y1_;
+  const double *x2_original_;
+  const double *y2_original_;
   double original_centroid_[2];
-  const Warp& warp_;
+  const Warp &warp_;
 };
 
 // Compute the warp from rectangular coordinates, where one corner is the
 // origin, and the opposite corner is at (num_samples_x, num_samples_y).
-Mat3 ComputeCanonicalHomography(const double* x1,
-                                const double* y1,
+Mat3 ComputeCanonicalHomography(const double *x1,
+                                const double *y1,
                                 int num_samples_x,
-                                int num_samples_y) {
+                                int num_samples_y)
+{
   Mat canonical(2, 4);
-  canonical << 0, num_samples_x, num_samples_x, 0, 0, 0, num_samples_y,
-      num_samples_y;
+  canonical << 0, num_samples_x, num_samples_x, 0, 0, 0, num_samples_y, num_samples_y;
 
   Mat xy1(2, 4);
   // clang-format off
@@ -1014,8 +1030,8 @@ struct HomographyWarp {
     }
   }
 
-  template <typename T>
-  static void Forward(const T* p, const T& x1, const T& y1, T* x2, T* y2) {
+  template<typename T> static void Forward(const T *p, const T &x1, const T &y1, T *x2, T *y2)
+  {
     // Homography warp with manual 3x3 matrix multiply.
     const T xx2 = (1.0 + p[0]) * x1 + p[1] * y1 + p[2];
     const T yy2 = p[3] * x1 + (1.0 + p[4]) * y1 + p[5];
@@ -1035,12 +1051,13 @@ struct HomographyWarp {
 //
 // The idea is to take the maximum x or y distance. This may be oversampling.
 // TODO(keir): Investigate the various choices; perhaps average is better?
-void PickSampling(const double* x1,
-                  const double* y1,
-                  const double* x2,
-                  const double* y2,
-                  int* num_samples_x,
-                  int* num_samples_y) {
+void PickSampling(const double *x1,
+                  const double *y1,
+                  const double *x2,
+                  const double *y2,
+                  int *num_samples_x,
+                  int *num_samples_y)
+{
   (void)x2;  // Ignored.
   (void)y2;  // Ignored.
 
@@ -1060,17 +1077,15 @@ void PickSampling(const double* x1,
   double y_dimensions[4] = {
       (a3 - a0).norm(), (a1 - a2).norm(), (b3 - b0).norm(), (b1 - b2).norm()};
   const double kScaleFactor = 1.0;
-  *num_samples_x = static_cast<int>(
-      kScaleFactor * *std::max_element(x_dimensions, x_dimensions + 4));
-  *num_samples_y = static_cast<int>(
-      kScaleFactor * *std::max_element(y_dimensions, y_dimensions + 4));
-  LG << "Automatic num_samples_x: " << *num_samples_x
-     << ", num_samples_y: " << *num_samples_y;
+  *num_samples_x = static_cast<int>(kScaleFactor *
+                                    *std::max_element(x_dimensions, x_dimensions + 4));
+  *num_samples_y = static_cast<int>(kScaleFactor *
+                                    *std::max_element(y_dimensions, y_dimensions + 4));
+  LG << "Automatic num_samples_x: " << *num_samples_x << ", num_samples_y: " << *num_samples_y;
 }
 
-bool SearchAreaTooBigForDescent(const FloatImage& image2,
-                                const double* x2,
-                                const double* y2) {
+bool SearchAreaTooBigForDescent(const FloatImage &image2, const double *x2, const double *y2)
+{
   // TODO(keir): Check the bounds and enable only when it makes sense.
   (void)image2;  // Ignored.
   (void)x2;      // Ignored.
@@ -1079,7 +1094,8 @@ bool SearchAreaTooBigForDescent(const FloatImage& image2,
   return true;
 }
 
-bool PointOnRightHalfPlane(const Vec2& a, const Vec2& b, double x, double y) {
+bool PointOnRightHalfPlane(const Vec2 &a, const Vec2 &b, double x, double y)
+{
   Vec2 ba = b - a;
   return ((Vec2(x, y) - b).transpose() * Vec2(-ba.y(), ba.x())) > 0;
 }
@@ -1097,36 +1113,35 @@ bool PointOnRightHalfPlane(const Vec2& a, const Vec2& b, double x, double y) {
 //    y
 //
 // The implementation does up to four half-plane comparisons.
-bool PointInQuad(const double* xs, const double* ys, double x, double y) {
+bool PointInQuad(const double *xs, const double *ys, double x, double y)
+{
   Vec2 a0(xs[0], ys[0]);
   Vec2 a1(xs[1], ys[1]);
   Vec2 a2(xs[2], ys[2]);
   Vec2 a3(xs[3], ys[3]);
 
-  return PointOnRightHalfPlane(a0, a1, x, y) &&
-         PointOnRightHalfPlane(a1, a2, x, y) &&
-         PointOnRightHalfPlane(a2, a3, x, y) &&
-         PointOnRightHalfPlane(a3, a0, x, y);
+  return PointOnRightHalfPlane(a0, a1, x, y) && PointOnRightHalfPlane(a1, a2, x, y) &&
+         PointOnRightHalfPlane(a2, a3, x, y) && PointOnRightHalfPlane(a3, a0, x, y);
 }
 
 // This makes it possible to map between Eigen float arrays and FloatImage
 // without using comparisons.
-typedef Eigen::Array<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
-    FloatArray;
+typedef Eigen::Array<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> FloatArray;
 
 // This creates a pattern in the frame of image2, from the pixel is image1,
 // based on the initial guess represented by the two quads x1, y1, and x2, y2.
-template <typename Warp>
-void CreateBrutePattern(const double* x1,
-                        const double* y1,
-                        const double* x2,
-                        const double* y2,
-                        const FloatImage& image1,
-                        const FloatImage* image1_mask,
-                        FloatArray* pattern,
-                        FloatArray* mask,
-                        int* origin_x,
-                        int* origin_y) {
+template<typename Warp>
+void CreateBrutePattern(const double *x1,
+                        const double *y1,
+                        const double *x2,
+                        const double *y2,
+                        const FloatImage &image1,
+                        const FloatImage *image1_mask,
+                        FloatArray *pattern,
+                        FloatArray *mask,
+                        int *origin_x,
+                        int *origin_y)
+{
   // Get integer bounding box of quad2 in image2.
   int min_x = static_cast<int>(floor(*std::min_element(x2, x2 + 4)));
   int min_y = static_cast<int>(floor(*std::min_element(y2, y2 + 4)));
@@ -1152,8 +1167,7 @@ void CreateBrutePattern(const double* x1,
       double dst_y = r;
       double src_x;
       double src_y;
-      inverse_warp.Forward(
-          inverse_warp.parameters, dst_x, dst_y, &src_x, &src_y);
+      inverse_warp.Forward(inverse_warp.parameters, dst_x, dst_y, &src_x, &src_y);
 
       if (PointInQuad(x1, y1, src_x, src_y)) {
         (*pattern)(i, j) = SampleLinear(image1, src_y, src_x);
@@ -1161,7 +1175,8 @@ void CreateBrutePattern(const double* x1,
         if (image1_mask) {
           (*mask)(i, j) = SampleLinear(*image1_mask, src_y, src_x);
         }
-      } else {
+      }
+      else {
         (*pattern)(i, j) = 0.0;
         (*mask)(i, j) = 0.0;
       }
@@ -1188,32 +1203,25 @@ void CreateBrutePattern(const double* x1,
 // pattern, when doing brute initialization. Unfortunately that implies a
 // totally different warping interface, since access to more than a the source
 // and current destination frame is necessary.
-template <typename Warp>
-bool BruteTranslationOnlyInitialize(const FloatImage& image1,
-                                    const FloatImage* image1_mask,
-                                    const FloatImage& image2,
+template<typename Warp>
+bool BruteTranslationOnlyInitialize(const FloatImage &image1,
+                                    const FloatImage *image1_mask,
+                                    const FloatImage &image2,
                                     const int num_extra_points,
                                     const bool use_normalized_intensities,
-                                    const double* x1,
-                                    const double* y1,
-                                    double* x2,
-                                    double* y2) {
+                                    const double *x1,
+                                    const double *y1,
+                                    double *x2,
+                                    double *y2)
+{
   // Create the pattern to match in the space of image2, assuming our inital
   // guess isn't too far from the template in image1. If there is no image1
   // mask, then the resulting mask is binary.
   FloatArray pattern;
   FloatArray mask;
   int origin_x = -1, origin_y = -1;
-  CreateBrutePattern<Warp>(x1,
-                           y1,
-                           x2,
-                           y2,
-                           image1,
-                           image1_mask,
-                           &pattern,
-                           &mask,
-                           &origin_x,
-                           &origin_y);
+  CreateBrutePattern<Warp>(
+      x1, y1, x2, y2, image1, image1_mask, &pattern, &mask, &origin_x, &origin_y);
 
   // For normalization, premultiply the pattern by the inverse pattern mean.
   double mask_sum = 1.0;
@@ -1254,13 +1262,10 @@ bool BruteTranslationOnlyInitialize(const FloatImage& image1,
         // TODO(keir): It's really dumb to recompute the search mean for every
         // shift. A smarter implementation would use summed area tables
         // instead, reducing the mean calculation to an O(1) operation.
-        double inverse_search_mean =
-            mask_sum / ((mask * search.block(r, c, h, w)).sum());
-        sad = (mask *
-               (pattern - (search.block(r, c, h, w) * inverse_search_mean)))
-                  .abs()
-                  .sum();
-      } else {
+        double inverse_search_mean = mask_sum / ((mask * search.block(r, c, h, w)).sum());
+        sad = (mask * (pattern - (search.block(r, c, h, w) * inverse_search_mean))).abs().sum();
+      }
+      else {
         sad = (mask * (pattern - search.block(r, c, h, w))).abs().sum();
       }
       if (sad < best_sad) {
@@ -1292,11 +1297,8 @@ bool BruteTranslationOnlyInitialize(const FloatImage& image1,
   return true;
 }
 
-void CopyQuad(double* src_x,
-              double* src_y,
-              double* dst_x,
-              double* dst_y,
-              int num_extra_points) {
+void CopyQuad(double *src_x, double *src_y, double *dst_x, double *dst_y, int num_extra_points)
+{
   for (int i = 0; i < 4 + num_extra_points; ++i) {
     dst_x[i] = src_x[i];
     dst_y[i] = src_y[i];
@@ -1305,19 +1307,19 @@ void CopyQuad(double* src_x,
 
 }  // namespace
 
-template <typename Warp>
-void TemplatedTrackRegion(const FloatImage& image1,
-                          const FloatImage& image2,
-                          const double* x1,
-                          const double* y1,
-                          const TrackRegionOptions& options,
-                          double* x2,
-                          double* y2,
-                          TrackRegionResult* result) {
+template<typename Warp>
+void TemplatedTrackRegion(const FloatImage &image1,
+                          const FloatImage &image2,
+                          const double *x1,
+                          const double *y1,
+                          const TrackRegionOptions &options,
+                          double *x2,
+                          double *y2,
+                          TrackRegionResult *result)
+{
   for (int i = 0; i < 4 + options.num_extra_points; ++i) {
-    LG << "P" << i << ": (" << x1[i] << ", " << y1[i] << "); guess (" << x2[i]
-       << ", " << y2[i] << "); (dx, dy): (" << (x2[i] - x1[i]) << ", "
-       << (y2[i] - y1[i]) << ").";
+    LG << "P" << i << ": (" << x1[i] << ", " << y1[i] << "); guess (" << x2[i] << ", " << y2[i]
+       << "); (dx, dy): (" << (x2[i] - x1[i]) << ", " << (y2[i] - y1[i]) << ").";
   }
 
   // Since (x2, y2) contains a prediction for where the tracked point should
@@ -1332,14 +1334,8 @@ void TemplatedTrackRegion(const FloatImage& image1,
     double y2_first_try[5];
     CopyQuad(x2, y2, x2_first_try, y2_first_try, options.num_extra_points);
 
-    TemplatedTrackRegion<Warp>(image1,
-                               image2,
-                               x1,
-                               y1,
-                               modified_options,
-                               x2_first_try,
-                               y2_first_try,
-                               result);
+    TemplatedTrackRegion<Warp>(
+        image1, image2, x1, y1, modified_options, x2_first_try, y2_first_try, result);
 
     // Of the things that can happen in the first pass, don't try the brute
     // pass (and second attempt) if the error is one of the terminations below.
@@ -1352,7 +1348,8 @@ void TemplatedTrackRegion(const FloatImage& image1,
       CopyQuad(x2_first_try, y2_first_try, x2, y2, options.num_extra_points);
       LG << "Early termination correlation: " << result->correlation;
       return;
-    } else {
+    }
+    else {
       LG << "Initial eager-refinement failed; retrying normally.";
     }
   }
@@ -1383,25 +1380,22 @@ void TemplatedTrackRegion(const FloatImage& image1,
   // Prepare the image and gradient.
   Array3Df image_and_gradient1;
   Array3Df image_and_gradient2;
-  BlurredImageAndDerivativesChannels(
-      image1, options.sigma, &image_and_gradient1);
-  BlurredImageAndDerivativesChannels(
-      image2, options.sigma, &image_and_gradient2);
+  BlurredImageAndDerivativesChannels(image1, options.sigma, &image_and_gradient1);
+  BlurredImageAndDerivativesChannels(image2, options.sigma, &image_and_gradient2);
 
   // Possibly do a brute-force translation-only initialization.
-  if (SearchAreaTooBigForDescent(image2, x2, y2) &&
-      options.use_brute_initialization) {
+  if (SearchAreaTooBigForDescent(image2, x2, y2) && options.use_brute_initialization) {
     LG << "Running brute initialization...";
-    bool found_any_alignment =
-        BruteTranslationOnlyInitialize<Warp>(image_and_gradient1,
-                                             options.image1_mask,
-                                             image2,
-                                             options.num_extra_points,
-                                             options.use_normalized_intensities,
-                                             x1,
-                                             y1,
-                                             x2,
-                                             y2);
+    bool found_any_alignment = BruteTranslationOnlyInitialize<Warp>(
+        image_and_gradient1,
+        options.image1_mask,
+        image2,
+        options.num_extra_points,
+        options.use_normalized_intensities,
+        x1,
+        y1,
+        x2,
+        y2);
     if (!found_any_alignment) {
       LG << "Brute failed to find an alignment; pattern too small. "
          << "Failing entire track operation.";
@@ -1409,9 +1403,8 @@ void TemplatedTrackRegion(const FloatImage& image1,
       return;
     }
     for (int i = 0; i < 4; ++i) {
-      LG << "P" << i << ": (" << x1[i] << ", " << y1[i] << "); brute (" << x2[i]
-         << ", " << y2[i] << "); (dx, dy): (" << (x2[i] - x1[i]) << ", "
-         << (y2[i] - y1[i]) << ").";
+      LG << "P" << i << ": (" << x1[i] << ", " << y1[i] << "); brute (" << x2[i] << ", " << y2[i]
+         << "); (dx, dy): (" << (x2[i] - x1[i]) << ", " << (y2[i] - y1[i]) << ").";
     }
   }
 
@@ -1426,13 +1419,12 @@ void TemplatedTrackRegion(const FloatImage& image1,
   PickSampling(x1, y1, x2, y2, &num_samples_x, &num_samples_y);
 
   // Compute the warp from rectangular coordinates.
-  Mat3 canonical_homography =
-      ComputeCanonicalHomography(x1, y1, num_samples_x, num_samples_y);
+  Mat3 canonical_homography = ComputeCanonicalHomography(x1, y1, num_samples_x, num_samples_y);
 
   ceres::Problem problem;
 
   // Construct the warp cost function. AutoDiffCostFunction takes ownership.
-  PixelDifferenceCostFunctor<Warp>* pixel_difference_cost_function =
+  PixelDifferenceCostFunctor<Warp> *pixel_difference_cost_function =
       new PixelDifferenceCostFunctor<Warp>(options,
                                            image_and_gradient1,
                                            image_and_gradient2,
@@ -1440,25 +1432,22 @@ void TemplatedTrackRegion(const FloatImage& image1,
                                            num_samples_x,
                                            num_samples_y,
                                            warp);
-  problem.AddResidualBlock(
-      new ceres::AutoDiffCostFunction<PixelDifferenceCostFunctor<Warp>,
-                                      ceres::DYNAMIC,
-                                      Warp::NUM_PARAMETERS>(
-          pixel_difference_cost_function, num_samples_x * num_samples_y),
-      NULL,
-      warp.parameters);
+  problem.AddResidualBlock(new ceres::AutoDiffCostFunction<PixelDifferenceCostFunctor<Warp>,
+                                                           ceres::DYNAMIC,
+                                                           Warp::NUM_PARAMETERS>(
+                               pixel_difference_cost_function, num_samples_x * num_samples_y),
+                           NULL,
+                           warp.parameters);
 
   // Construct the regularizing cost function
   if (options.regularization_coefficient != 0.0) {
-    WarpRegularizingCostFunctor<Warp>* regularizing_warp_cost_function =
-        new WarpRegularizingCostFunctor<Warp>(
-            options, x1, y2, x2_original, y2_original, warp);
+    WarpRegularizingCostFunctor<Warp> *regularizing_warp_cost_function =
+        new WarpRegularizingCostFunctor<Warp>(options, x1, y2, x2_original, y2_original, warp);
 
     problem.AddResidualBlock(
         new ceres::AutoDiffCostFunction<WarpRegularizingCostFunctor<Warp>,
                                         8 /* num_residuals */,
-                                        Warp::NUM_PARAMETERS>(
-            regularizing_warp_cost_function),
+                                        Warp::NUM_PARAMETERS>(regularizing_warp_cost_function),
         NULL,
         warp.parameters);
   }
@@ -1488,9 +1477,8 @@ void TemplatedTrackRegion(const FloatImage& image1,
   // Also warp any extra points on the end of the array.
   for (int i = 0; i < 4 + options.num_extra_points; ++i) {
     warp.Forward(warp.parameters, x1[i], y1[i], x2 + i, y2 + i);
-    LG << "Warped point " << i << ": (" << x1[i] << ", " << y1[i] << ") -> ("
-       << x2[i] << ", " << y2[i] << "); (dx, dy): (" << (x2[i] - x1[i]) << ", "
-       << (y2[i] - y1[i]) << ").";
+    LG << "Warped point " << i << ": (" << x1[i] << ", " << y1[i] << ") -> (" << x2[i] << ", "
+       << y2[i] << "); (dx, dy): (" << (x2[i] - x1[i]) << ", " << (y2[i] - y1[i]) << ").";
   }
 
   // TODO(keir): Update the result statistics.
@@ -1501,10 +1489,10 @@ void TemplatedTrackRegion(const FloatImage& image1,
     return;
   }
 
-#define HANDLE_TERMINATION(termination_enum)                                   \
-  if (summary.termination_type == ceres::termination_enum) {                   \
-    result->termination = TrackRegionResult::termination_enum;                 \
-    return;                                                                    \
+#define HANDLE_TERMINATION(termination_enum) \
+  if (summary.termination_type == ceres::termination_enum) { \
+    result->termination = TrackRegionResult::termination_enum; \
+    return; \
   }
 
   // Avoid computing correlation for tracking failures.
@@ -1512,9 +1500,8 @@ void TemplatedTrackRegion(const FloatImage& image1,
 
   // Otherwise, run a final correlation check.
   if (options.minimum_correlation > 0.0) {
-    result->correlation =
-        pixel_difference_cost_function
-            ->PearsonProductMomentCorrelationCoefficient(warp.parameters);
+    result->correlation = pixel_difference_cost_function
+                              ->PearsonProductMomentCorrelationCoefficient(warp.parameters);
     if (result->correlation < options.minimum_correlation) {
       LG << "Failing with insufficient correlation.";
       result->termination = TrackRegionResult::INSUFFICIENT_CORRELATION;
@@ -1537,20 +1524,20 @@ void TemplatedTrackRegion(const FloatImage& image1,
 #undef HANDLE_TERMINATION
 };
 
-void TrackRegion(const FloatImage& image1,
-                 const FloatImage& image2,
-                 const double* x1,
-                 const double* y1,
-                 const TrackRegionOptions& options,
-                 double* x2,
-                 double* y2,
-                 TrackRegionResult* result) {
+void TrackRegion(const FloatImage &image1,
+                 const FloatImage &image2,
+                 const double *x1,
+                 const double *y1,
+                 const TrackRegionOptions &options,
+                 double *x2,
+                 double *y2,
+                 TrackRegionResult *result)
+{
   // Enum is necessary due to templated nature of autodiff.
-#define HANDLE_MODE(mode_enum, mode_type)                                      \
-  if (options.mode == TrackRegionOptions::mode_enum) {                         \
-    TemplatedTrackRegion<mode_type>(                                           \
-        image1, image2, x1, y1, options, x2, y2, result);                      \
-    return;                                                                    \
+#define HANDLE_MODE(mode_enum, mode_type) \
+  if (options.mode == TrackRegionOptions::mode_enum) { \
+    TemplatedTrackRegion<mode_type>(image1, image2, x1, y1, options, x2, y2, result); \
+    return; \
   }
   HANDLE_MODE(TRANSLATION, TranslationWarp);
   HANDLE_MODE(TRANSLATION_SCALE, TranslationScaleWarp);
@@ -1561,15 +1548,16 @@ void TrackRegion(const FloatImage& image1,
 #undef HANDLE_MODE
 }
 
-bool SamplePlanarPatch(const FloatImage& image,
-                       const double* xs,
-                       const double* ys,
+bool SamplePlanarPatch(const FloatImage &image,
+                       const double *xs,
+                       const double *ys,
                        int num_samples_x,
                        int num_samples_y,
-                       FloatImage* mask,
-                       FloatImage* patch,
-                       double* warped_position_x,
-                       double* warped_position_y) {
+                       FloatImage *mask,
+                       FloatImage *patch,
+                       double *warped_position_x,
+                       double *warped_position_y)
+{
   // Bail early if the points are outside the image.
   if (!AllInBounds(image, xs, ys)) {
     LG << "Can't sample patch: out of bounds.";
@@ -1580,8 +1568,7 @@ bool SamplePlanarPatch(const FloatImage& image,
   patch->Resize(num_samples_y, num_samples_x, image.Depth());
 
   // Compute the warp from rectangular coordinates.
-  Mat3 canonical_homography =
-      ComputeCanonicalHomography(xs, ys, num_samples_x, num_samples_y);
+  Mat3 canonical_homography = ComputeCanonicalHomography(xs, ys, num_samples_x, num_samples_y);
 
   // Walk over the coordinates in the canonical space, sampling from the image
   // in the original space and copying the result into the patch.
@@ -1589,11 +1576,9 @@ bool SamplePlanarPatch(const FloatImage& image,
     for (int c = 0; c < num_samples_x; ++c) {
       Vec3 image_position = canonical_homography * Vec3(c, r, 1);
       image_position /= image_position(2);
-      SampleLinear(
-          image, image_position(1), image_position(0), &(*patch)(r, c, 0));
+      SampleLinear(image, image_position(1), image_position(0), &(*patch)(r, c, 0));
       if (mask) {
-        float mask_value =
-            SampleLinear(*mask, image_position(1), image_position(0), 0);
+        float mask_value = SampleLinear(*mask, image_position(1), image_position(0), 0);
 
         for (int d = 0; d < image.Depth(); d++)
           (*patch)(r, c, d) *= mask_value;

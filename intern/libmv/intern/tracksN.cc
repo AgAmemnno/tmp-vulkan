@@ -9,7 +9,8 @@
 using mv::Marker;
 using mv::Tracks;
 
-void libmv_apiMarkerToMarker(const libmv_Marker& libmv_marker, Marker* marker) {
+void libmv_apiMarkerToMarker(const libmv_Marker &libmv_marker, Marker *marker)
+{
   marker->clip = libmv_marker.clip;
   marker->frame = libmv_marker.frame;
   marker->track = libmv_marker.track;
@@ -33,7 +34,8 @@ void libmv_apiMarkerToMarker(const libmv_Marker& libmv_marker, Marker* marker) {
   marker->disabled_channels = libmv_marker.disabled_channels;
 }
 
-void libmv_markerToApiMarker(const Marker& marker, libmv_Marker* libmv_marker) {
+void libmv_markerToApiMarker(const Marker &marker, libmv_Marker *libmv_marker)
+{
   libmv_marker->clip = marker.clip;
   libmv_marker->frame = marker.frame;
   libmv_marker->track = marker.track;
@@ -57,56 +59,59 @@ void libmv_markerToApiMarker(const Marker& marker, libmv_Marker* libmv_marker) {
   libmv_marker->disabled_channels = marker.disabled_channels;
 }
 
-libmv_TracksN* libmv_tracksNewN(void) {
-  Tracks* tracks = LIBMV_OBJECT_NEW(Tracks);
+libmv_TracksN *libmv_tracksNewN(void)
+{
+  Tracks *tracks = LIBMV_OBJECT_NEW(Tracks);
 
-  return (libmv_TracksN*)tracks;
+  return (libmv_TracksN *)tracks;
 }
 
-void libmv_tracksDestroyN(libmv_TracksN* libmv_tracks) {
+void libmv_tracksDestroyN(libmv_TracksN *libmv_tracks)
+{
   LIBMV_OBJECT_DELETE(libmv_tracks, Tracks);
 }
 
-void libmv_tracksAddMarkerN(libmv_TracksN* libmv_tracks,
-                            const libmv_Marker* libmv_marker) {
+void libmv_tracksAddMarkerN(libmv_TracksN *libmv_tracks, const libmv_Marker *libmv_marker)
+{
   Marker marker;
   libmv_apiMarkerToMarker(*libmv_marker, &marker);
-  ((Tracks*)libmv_tracks)->AddMarker(marker);
+  ((Tracks *)libmv_tracks)->AddMarker(marker);
 }
 
-void libmv_tracksGetMarkerN(libmv_TracksN* libmv_tracks,
-                            int clip,
-                            int frame,
-                            int track,
-                            libmv_Marker* libmv_marker) {
+void libmv_tracksGetMarkerN(
+    libmv_TracksN *libmv_tracks, int clip, int frame, int track, libmv_Marker *libmv_marker)
+{
   Marker marker;
-  ((Tracks*)libmv_tracks)->GetMarker(clip, frame, track, &marker);
+  ((Tracks *)libmv_tracks)->GetMarker(clip, frame, track, &marker);
   libmv_markerToApiMarker(marker, libmv_marker);
 }
 
-void libmv_tracksRemoveMarkerN(libmv_TracksN* libmv_tracks,
-                               int clip,
-                               int frame,
-                               int track) {
-  ((Tracks*)libmv_tracks)->RemoveMarker(clip, frame, track);
+void libmv_tracksRemoveMarkerN(libmv_TracksN *libmv_tracks, int clip, int frame, int track)
+{
+  ((Tracks *)libmv_tracks)->RemoveMarker(clip, frame, track);
 }
 
-void libmv_tracksRemoveMarkersForTrack(libmv_TracksN* libmv_tracks, int track) {
-  ((Tracks*)libmv_tracks)->RemoveMarkersForTrack(track);
+void libmv_tracksRemoveMarkersForTrack(libmv_TracksN *libmv_tracks, int track)
+{
+  ((Tracks *)libmv_tracks)->RemoveMarkersForTrack(track);
 }
 
-int libmv_tracksMaxClipN(libmv_TracksN* libmv_tracks) {
-  return ((Tracks*)libmv_tracks)->MaxClip();
+int libmv_tracksMaxClipN(libmv_TracksN *libmv_tracks)
+{
+  return ((Tracks *)libmv_tracks)->MaxClip();
 }
 
-int libmv_tracksMaxFrameN(libmv_TracksN* libmv_tracks, int clip) {
-  return ((Tracks*)libmv_tracks)->MaxFrame(clip);
+int libmv_tracksMaxFrameN(libmv_TracksN *libmv_tracks, int clip)
+{
+  return ((Tracks *)libmv_tracks)->MaxFrame(clip);
 }
 
-int libmv_tracksMaxTrackN(libmv_TracksN* libmv_tracks) {
-  return ((Tracks*)libmv_tracks)->MaxTrack();
+int libmv_tracksMaxTrackN(libmv_TracksN *libmv_tracks)
+{
+  return ((Tracks *)libmv_tracks)->MaxTrack();
 }
 
-int libmv_tracksNumMarkersN(libmv_TracksN* libmv_tracks) {
-  return ((Tracks*)libmv_tracks)->NumMarkers();
+int libmv_tracksNumMarkersN(libmv_TracksN *libmv_tracks)
+{
+  return ((Tracks *)libmv_tracks)->NumMarkers();
 }

@@ -40,10 +40,17 @@ typedef Array3Ds ShortImage;
 class Image {
  public:
   // Create an image from an array. The image takes ownership of the array.
-  Image(Array3Du* array) : array_type_(BYTE), array_(array) {}
-  Image(Array3Df* array) : array_type_(FLOAT), array_(array) {}
+  Image(Array3Du *array) : array_type_(BYTE), array_(array)
+  {
+  }
+  Image(Array3Df *array) : array_type_(FLOAT), array_(array)
+  {
+  }
 
-  Image(const Image& img) : array_type_(NONE), array_(NULL) { *this = img; }
+  Image(const Image &img) : array_type_(NONE), array_(NULL)
+  {
+    *this = img;
+  }
 
   // Underlying data type.
   enum DataType {
@@ -55,80 +62,97 @@ class Image {
   };
 
   // Size in bytes that the image takes in memory.
-  int MemorySizeInBytes() {
+  int MemorySizeInBytes()
+  {
     int size;
     switch (array_type_) {
       case BYTE:
-        size = reinterpret_cast<Array3Du*>(array_)->MemorySizeInBytes();
+        size = reinterpret_cast<Array3Du *>(array_)->MemorySizeInBytes();
         break;
       case FLOAT:
-        size = reinterpret_cast<Array3Df*>(array_)->MemorySizeInBytes();
+        size = reinterpret_cast<Array3Df *>(array_)->MemorySizeInBytes();
         break;
       case INT:
-        size = reinterpret_cast<Array3Di*>(array_)->MemorySizeInBytes();
+        size = reinterpret_cast<Array3Di *>(array_)->MemorySizeInBytes();
         break;
       case SHORT:
-        size = reinterpret_cast<Array3Ds*>(array_)->MemorySizeInBytes();
+        size = reinterpret_cast<Array3Ds *>(array_)->MemorySizeInBytes();
         break;
-      default: size = 0; assert(0);
+      default:
+        size = 0;
+        assert(0);
     }
     size += sizeof(*this);
     return size;
   }
 
-  ~Image() {
+  ~Image()
+  {
     switch (array_type_) {
-      case BYTE: delete reinterpret_cast<Array3Du*>(array_); break;
-      case FLOAT: delete reinterpret_cast<Array3Df*>(array_); break;
-      case INT: delete reinterpret_cast<Array3Di*>(array_); break;
-      case SHORT: delete reinterpret_cast<Array3Ds*>(array_); break;
-      default: assert(0);
+      case BYTE:
+        delete reinterpret_cast<Array3Du *>(array_);
+        break;
+      case FLOAT:
+        delete reinterpret_cast<Array3Df *>(array_);
+        break;
+      case INT:
+        delete reinterpret_cast<Array3Di *>(array_);
+        break;
+      case SHORT:
+        delete reinterpret_cast<Array3Ds *>(array_);
+        break;
+      default:
+        assert(0);
     }
   }
 
-  Image& operator=(const Image& f) {
+  Image &operator=(const Image &f)
+  {
     if (this != &f) {
       array_type_ = f.array_type_;
       switch (array_type_) {
         case BYTE:
-          delete reinterpret_cast<Array3Du*>(array_);
-          array_ = new Array3Du(*(Array3Du*)f.array_);
+          delete reinterpret_cast<Array3Du *>(array_);
+          array_ = new Array3Du(*(Array3Du *)f.array_);
           break;
         case FLOAT:
-          delete reinterpret_cast<Array3Df*>(array_);
-          array_ = new Array3Df(*(Array3Df*)f.array_);
+          delete reinterpret_cast<Array3Df *>(array_);
+          array_ = new Array3Df(*(Array3Df *)f.array_);
           break;
         case INT:
-          delete reinterpret_cast<Array3Di*>(array_);
-          array_ = new Array3Di(*(Array3Di*)f.array_);
+          delete reinterpret_cast<Array3Di *>(array_);
+          array_ = new Array3Di(*(Array3Di *)f.array_);
           break;
         case SHORT:
-          delete reinterpret_cast<Array3Ds*>(array_);
-          array_ = new Array3Ds(*(Array3Ds*)f.array_);
+          delete reinterpret_cast<Array3Ds *>(array_);
+          array_ = new Array3Ds(*(Array3Ds *)f.array_);
           break;
-        default: assert(0);
+        default:
+          assert(0);
       }
     }
     return *this;
   }
 
-  Array3Du* AsArray3Du() const {
+  Array3Du *AsArray3Du() const
+  {
     if (array_type_ == BYTE) {
-      return reinterpret_cast<Array3Du*>(array_);
+      return reinterpret_cast<Array3Du *>(array_);
     }
     return NULL;
   }
 
-  Array3Df* AsArray3Df() const {
+  Array3Df *AsArray3Df() const
+  {
     if (array_type_ == FLOAT) {
-      return reinterpret_cast<Array3Df*>(array_);
+      return reinterpret_cast<Array3Df *>(array_);
     }
     return NULL;
   }
 
  private:
   DataType array_type_;
-  BaseArray* array_;
+  BaseArray *array_;
 };
 
 }  // namespace libmv

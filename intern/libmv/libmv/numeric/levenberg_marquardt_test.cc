@@ -29,7 +29,8 @@ class F {
  public:
   typedef Vec4 FMatrixType;
   typedef Vec3 XMatrixType;
-  Vec4 operator()(const Vec3& x) const {
+  Vec4 operator()(const Vec3 &x) const
+  {
     double x1 = x.x() - 2;
     double y1 = x.y() - 5;
     double z1 = x.z();
@@ -39,7 +40,8 @@ class F {
   }
 };
 
-TEST(LevenbergMarquardt, SimpleCase) {
+TEST(LevenbergMarquardt, SimpleCase)
+{
   Vec3 x(0.76026643, -30.01799744, 0.55192142);
   F f;
   LevenbergMarquardt<F>::SolverParameters params;

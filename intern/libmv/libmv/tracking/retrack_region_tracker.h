@@ -31,15 +31,17 @@ namespace libmv {
 // track that doesn't track backwards to the starting point.
 class RetrackRegionTracker : public RegionTracker {
  public:
-  RetrackRegionTracker(RegionTracker* tracker, double tolerance)
-      : tracker_(tracker), tolerance_(tolerance) {}
+  RetrackRegionTracker(RegionTracker *tracker, double tolerance)
+      : tracker_(tracker), tolerance_(tolerance)
+  {
+  }
 
-  virtual bool Track(const FloatImage& image1,
-                     const FloatImage& image2,
+  virtual bool Track(const FloatImage &image1,
+                     const FloatImage &image2,
                      double x1,
                      double y1,
-                     double* x2,
-                     double* y2) const;
+                     double *x2,
+                     double *y2) const;
 
  private:
   scoped_ptr<RegionTracker> tracker_;

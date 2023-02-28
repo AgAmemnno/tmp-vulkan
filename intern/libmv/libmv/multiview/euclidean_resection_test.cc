@@ -18,8 +18,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include "libmv/multiview/euclidean_resection.h"
 #include "libmv/logging/logging.h"
+#include "libmv/multiview/euclidean_resection.h"
 #include "libmv/multiview/projection.h"
 #include "libmv/numeric/numeric.h"
 #include "testing/testing.h"
@@ -28,15 +28,16 @@ using namespace libmv::euclidean_resection;
 using namespace libmv;
 
 // Generates all necessary inputs and expected outputs for EuclideanResection.
-static void CreateCameraSystem(const Mat3& KK,
-                               const Mat3X& x_image,
-                               const Vec& X_distances,
-                               const Mat3& R_input,
-                               const Vec3& T_input,
-                               Mat2X* x_camera,
-                               Mat3X* X_world,
-                               Mat3* R_expected,
-                               Vec3* T_expected) {
+static void CreateCameraSystem(const Mat3 &KK,
+                               const Mat3X &x_image,
+                               const Vec &X_distances,
+                               const Mat3 &R_input,
+                               const Vec3 &T_input,
+                               Mat2X *x_camera,
+                               Mat3X *X_world,
+                               Mat3 *R_expected,
+                               Vec3 *T_expected)
+{
   int num_points = x_image.cols();
 
   Mat3X x_unit_cam(3, num_points);
@@ -68,7 +69,8 @@ static void CreateCameraSystem(const Mat3& KK,
   *T_expected = *R_expected * (-T_input);
 };
 
-TEST(AbsoluteOrientation, QuaternionSolution) {
+TEST(AbsoluteOrientation, QuaternionSolution)
+{
   int num_points = 4;
   Mat X;
   Mat Xp;
@@ -102,7 +104,8 @@ TEST(AbsoluteOrientation, QuaternionSolution) {
   EXPECT_MATRIX_NEAR(R, R_input, 1e-8);
 }
 
-TEST(EuclideanResection, Points4KnownImagePointsRandomTranslationRotation) {
+TEST(EuclideanResection, Points4KnownImagePointsRandomTranslationRotation)
+{
   // In this test only the translation and rotation are random. The image
   // points are selected from a real case and are well conditioned.
   Vec2i image_dimensions;
@@ -143,21 +146,13 @@ TEST(EuclideanResection, Points4KnownImagePointsRandomTranslationRotation) {
   Vec3 T_expected;
   Mat3X X_world;
   Mat2X x_camera;
-  CreateCameraSystem(KK,
-                     x_image,
-                     X_distances,
-                     R_input,
-                     T_input,
-                     &x_camera,
-                     &X_world,
-                     &R_expected,
-                     &T_expected);
+  CreateCameraSystem(
+      KK, x_image, X_distances, R_input, T_input, &x_camera, &X_world, &R_expected, &T_expected);
 
   // Finally, run the code under test.
   Mat3 R_output;
   Vec3 T_output;
-  EuclideanResection(
-      x_camera, X_world, &R_output, &T_output, RESECTION_ANSAR_DANIILIDIS);
+  EuclideanResection(x_camera, X_world, &R_output, &T_output, RESECTION_ANSAR_DANIILIDIS);
 
   EXPECT_MATRIX_NEAR(T_output, T_expected, 1e-5);
   EXPECT_MATRIX_NEAR(R_output, R_expected, 1e-7);
@@ -180,7 +175,8 @@ TEST(EuclideanResection, Points4KnownImagePointsRandomTranslationRotation) {
 }
 
 // TODO(jmichot): Reduce the code duplication here with the code above.
-TEST(EuclideanResection, Points6AllRandomInput) {
+TEST(EuclideanResection, Points6AllRandomInput)
+{
   Mat3 KK;
   // clang-format off
   KK << 2796, 0,    804,
@@ -215,22 +211,14 @@ TEST(EuclideanResection, Points6AllRandomInput) {
   Mat3 R_expected;
   Vec3 T_expected;
   Mat3X X_world;
-  CreateCameraSystem(KK,
-                     x_image,
-                     X_distances,
-                     R_input,
-                     T_input,
-                     &x_camera,
-                     &X_world,
-                     &R_expected,
-                     &T_expected);
+  CreateCameraSystem(
+      KK, x_image, X_distances, R_input, T_input, &x_camera, &X_world, &R_expected, &T_expected);
 
   // Test each of the resection methods.
   {
     Mat3 R_output;
     Vec3 T_output;
-    EuclideanResection(
-        x_camera, X_world, &R_output, &T_output, RESECTION_ANSAR_DANIILIDIS);
+    EuclideanResection(x_camera, X_world, &R_output, &T_output, RESECTION_ANSAR_DANIILIDIS);
     EXPECT_MATRIX_NEAR(T_output, T_expected, 1e-5);
     EXPECT_MATRIX_NEAR(R_output, R_expected, 1e-7);
   }

@@ -48,8 +48,6 @@
 
 #include "BLF_api.h"
 
-
-
 Global G;
 UserDef U;
 
@@ -62,19 +60,19 @@ void BKE_blender_free(void)
   /* samples are in a global list..., also sets G_MAIN->sound->sample NULL */
 
   /* Needs to run before main free as window-manager is still referenced for icons preview jobs. */
- // BKE_studiolight_free();
+  // BKE_studiolight_free();
 
-  //BKE_blender_globals_clear();
+  // BKE_blender_globals_clear();
 
   if (G.log.file != NULL) {
     fclose(G.log.file);
   }
 
-  //BKE_spacetypes_free(); /* after free main, it uses space callbacks */
+  // BKE_spacetypes_free(); /* after free main, it uses space callbacks */
 
-  //IMB_exit();
+  // IMB_exit();
   BKE_cachefiles_exit();
-  //DEG_free_node_types();
+  // DEG_free_node_types();
 
   BKE_brush_system_exit();
   RE_texture_rng_exit();
@@ -83,7 +81,7 @@ void BKE_blender_free(void)
 
   IMB_moviecache_destruct();
 
- // BKE_node_system_exit();
+  // BKE_node_system_exit();
 }
 
 /** \} */

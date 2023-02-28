@@ -105,23 +105,24 @@ struct Marker {
   int disabled_channels;
 
   // Offset everything (center, patch, search) by the given delta.
-  template <typename T>
-  void Offset(const T& offset) {
+  template<typename T> void Offset(const T &offset)
+  {
     center += offset.template cast<float>();
     patch.coordinates.rowwise() += offset.template cast<int>();
     search_region.Offset(offset);
   }
 
   // Shift the center to the given new position (and patch, search).
-  template <typename T>
-  void SetPosition(const T& new_center) {
+  template<typename T> void SetPosition(const T &new_center)
+  {
     Offset(new_center - center);
   }
 };
 
-inline std::ostream& operator<<(std::ostream& out, const Marker& marker) {
-  out << "{" << marker.clip << ", " << marker.frame << ", " << marker.track
-      << ", (" << marker.center.x() << ", " << marker.center.y() << ")"
+inline std::ostream &operator<<(std::ostream &out, const Marker &marker)
+{
+  out << "{" << marker.clip << ", " << marker.frame << ", " << marker.track << ", ("
+      << marker.center.x() << ", " << marker.center.y() << ")"
       << "}";
   return out;
 }

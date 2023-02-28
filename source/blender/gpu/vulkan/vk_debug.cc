@@ -7,7 +7,6 @@
  * Debug features of Vulkan.
  */
 
-
 #include "BKE_global.h"
 
 #include "GPU_debug.h"
@@ -15,20 +14,15 @@
 
 #include "CLG_log.h"
 
-
 #include "vk_context.hh"
 #include "vk_debug.hh"
 
 #include "GHOST_C-api.h"
 
-
-
-#  include <sstream>
-#  include <unordered_set>
-
+#include <sstream>
+#include <unordered_set>
 
 static CLG_LogRef LOG = {"gpu.debug.vulkan"};
-
 
 namespace blender {
 namespace gpu {
@@ -56,8 +50,6 @@ struct VKDebuggingTools {
 }  // namespace debug
 }  // namespace gpu
 }  // namespace blender
-
-
 
 namespace blender {
 namespace gpu {
@@ -130,9 +122,7 @@ debugUtilsCB(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
   return VK_FALSE;
 }
 
- static VkResult CreateDebugUtils(
-                                 VkDebugUtilsMessageSeverityFlagsEXT flag,
-                                 VKDebuggingTools &deb)
+static VkResult CreateDebugUtils(VkDebugUtilsMessageSeverityFlagsEXT flag, VKDebuggingTools &deb)
 {
   deb.dbgIgnoreMessages.clear();
   deb.createDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
@@ -171,25 +161,24 @@ static VkResult DestroyDebugUtils(VKDebuggingTools &deb)
   return VK_SUCCESS;
 }
 
- static GHOST_TSuccess CreateDebug(VKDebuggingTools &deb)
+static GHOST_TSuccess CreateDebug(VKDebuggingTools &deb)
 {
 
+  VkDebugUtilsMessageSeverityFlagsEXT flag = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
+                                             VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                                             VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 
-    VkDebugUtilsMessageSeverityFlagsEXT flag = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
-                                               VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-                                               VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+  flag = (VkDebugReportFlagBitsEXT)(flag | VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT);
 
-    flag = (VkDebugReportFlagBitsEXT)(flag | VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT);
-
-    VK_CHECK(CreateDebugUtils( flag, deb));
-    return GHOST_kSuccess;
-
+  VK_CHECK(CreateDebugUtils(flag, deb));
+  return GHOST_kSuccess;
 };
 
-GHOST_TSuccess init_vk_callbacks(void* instance)
+GHOST_TSuccess init_vk_callbacks(void *instance)
 {
   CLOG_ENSURE(&LOG);
-  BLI_assert( (tools.instance == VK_NULL_HANDLE)  || ((tools.instance != VK_NULL_HANDLE) && (instance == tools.instance)));
+  BLI_assert((tools.instance == VK_NULL_HANDLE) ||
+             ((tools.instance != VK_NULL_HANDLE) && (instance == tools.instance)));
   if (tools.instance != VK_NULL_HANDLE) {
     return GHOST_kSuccess;
   }
@@ -206,21 +195,20 @@ void destroy_vk_callbacks()
 
 void object_vk_label(VkDevice device, VkObjectType objType, uint64_t obj, const std::string &name)
 {
- if ( G.debug & G_DEBUG_GPU ) {
+  if (G.debug & G_DEBUG_GPU) {
     VkDebugUtilsObjectNameInfoEXT info = {};
     info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
     info.objectType = objType;
     info.objectHandle = obj;
     info.pObjectName = name.c_str();
     vkSetDebugUtilsObjectNameEXT(device, &info);
- }
+  }
 }
-
 
 template<> void object_vk_label(VkDevice device, VkPipeline obj, const std::string &name)
 {
   static int stat = 0;
-  auto name_ = name  + "_" + std::to_string(stat++);
+  auto name_ = name + "_" + std::to_string(stat++);
   object_vk_label(device, VK_OBJECT_TYPE_PIPELINE, (uint64_t)obj, name_);
 }
 template<> void object_vk_label(VkDevice device, VkFramebuffer obj, const std::string &name)
@@ -271,13 +259,14 @@ template<> void object_vk_label(VkDevice device, VkDescriptorSet obj, const std:
   auto name_ = name + "_" + std::to_string(stat++);
   object_vk_label(device, VK_OBJECT_TYPE_DESCRIPTOR_SET, (uint64_t)obj, name_);
 }
-template<> void object_vk_label(VkDevice device, VkDescriptorSetLayout obj, const std::string &name)
+template<>
+void object_vk_label(VkDevice device, VkDescriptorSetLayout obj, const std::string &name)
 {
   static int stat = 0;
   auto name_ = name + "_" + std::to_string(stat++);
   object_vk_label(device, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, (uint64_t)obj, name_);
 }
-template<>void object_vk_label(VkDevice device, VkShaderModule obj, const std::string &name)
+template<> void object_vk_label(VkDevice device, VkShaderModule obj, const std::string &name)
 {
   static int stat = 0;
   auto name_ = name + "_" + std::to_string(stat++);
@@ -345,18 +334,13 @@ void popMarker(VkQueue q)
   }
 }
 
-
- void init_vk_debug_layer(){};
+void init_vk_debug_layer(){};
 void raise_vk_error(const char *info){};
 void check_vk_resources(const char *info){};
-
-
 
 }  // namespace debug
 }  // namespace gpu
 }  // namespace blender
-
-
 
 /*
  * TODO:: Comment
@@ -434,12 +418,12 @@ void DebugMaster::_setObjectName(uint64_t object, const std::string &name, VkObj
   vkSetDebugUtilsObjectNameEXT(device, &s);
 }
 
-#if VK_NV_ray_tracing
+#  if VK_NV_ray_tracing
 void DebugMaster::setObjectName(VkAccelerationStructureNV object, const std::string &name)
 {
   _setObjectName((uint64_t)object, name, VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV);
 }
-#endif
+#  endif
 void DebugMaster::setObjectName(VkBuffer object, const std::string &name)
 {
   _setObjectName((uint64_t)object, name, VK_OBJECT_TYPE_BUFFER);

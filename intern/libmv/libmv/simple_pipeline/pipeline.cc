@@ -46,33 +46,33 @@ struct EuclideanPipelineRoutines {
   typedef EuclideanCamera Camera;
   typedef EuclideanPoint Point;
 
-  static void Bundle(const Tracks& tracks,
-                     EuclideanReconstruction* reconstruction) {
+  static void Bundle(const Tracks &tracks, EuclideanReconstruction *reconstruction)
+  {
     EuclideanBundle(tracks, reconstruction);
   }
 
-  static bool Resect(const vector<Marker>& markers,
-                     EuclideanReconstruction* reconstruction,
-                     bool final_pass) {
+  static bool Resect(const vector<Marker> &markers,
+                     EuclideanReconstruction *reconstruction,
+                     bool final_pass)
+  {
     return EuclideanResect(markers, reconstruction, final_pass);
   }
 
-  static bool Intersect(const vector<Marker>& markers,
-                        EuclideanReconstruction* reconstruction) {
+  static bool Intersect(const vector<Marker> &markers, EuclideanReconstruction *reconstruction)
+  {
     return EuclideanIntersect(markers, reconstruction);
   }
 
-  static Marker ProjectMarker(const EuclideanPoint& point,
-                              const EuclideanCamera& camera,
-                              const CameraIntrinsics& intrinsics) {
+  static Marker ProjectMarker(const EuclideanPoint &point,
+                              const EuclideanCamera &camera,
+                              const CameraIntrinsics &intrinsics)
+  {
     Vec3 projected = camera.R * point.X + camera.t;
     projected /= projected(2);
 
     Marker reprojected_marker;
-    intrinsics.ApplyIntrinsics(projected(0),
-                               projected(1),
-                               &reprojected_marker.x,
-                               &reprojected_marker.y);
+    intrinsics.ApplyIntrinsics(
+        projected(0), projected(1), &reprojected_marker.x, &reprojected_marker.y);
 
     reprojected_marker.image = camera.image;
     reprojected_marker.track = point.track;
@@ -85,35 +85,35 @@ struct ProjectivePipelineRoutines {
   typedef ProjectiveCamera Camera;
   typedef ProjectivePoint Point;
 
-  static void Bundle(const Tracks& tracks,
-                     ProjectiveReconstruction* reconstruction) {
+  static void Bundle(const Tracks &tracks, ProjectiveReconstruction *reconstruction)
+  {
     ProjectiveBundle(tracks, reconstruction);
   }
 
-  static bool Resect(const vector<Marker>& markers,
-                     ProjectiveReconstruction* reconstruction,
-                     bool final_pass) {
+  static bool Resect(const vector<Marker> &markers,
+                     ProjectiveReconstruction *reconstruction,
+                     bool final_pass)
+  {
     (void)final_pass;  // Ignored.
 
     return ProjectiveResect(markers, reconstruction);
   }
 
-  static bool Intersect(const vector<Marker>& markers,
-                        ProjectiveReconstruction* reconstruction) {
+  static bool Intersect(const vector<Marker> &markers, ProjectiveReconstruction *reconstruction)
+  {
     return ProjectiveIntersect(markers, reconstruction);
   }
 
-  static Marker ProjectMarker(const ProjectivePoint& point,
-                              const ProjectiveCamera& camera,
-                              const CameraIntrinsics& intrinsics) {
+  static Marker ProjectMarker(const ProjectivePoint &point,
+                              const ProjectiveCamera &camera,
+                              const CameraIntrinsics &intrinsics)
+  {
     Vec3 projected = camera.P * point.X;
     projected /= projected(2);
 
     Marker reprojected_marker;
-    intrinsics.ApplyIntrinsics(projected(0),
-                               projected(1),
-                               &reprojected_marker.x,
-                               &reprojected_marker.y);
+    intrinsics.ApplyIntrinsics(
+        projected(0), projected(1), &reprojected_marker.x, &reprojected_marker.y);
 
     reprojected_marker.image = camera.image;
     reprojected_marker.track = point.track;
@@ -123,34 +123,28 @@ struct ProjectivePipelineRoutines {
 
 }  // namespace
 
-static void CompleteReconstructionLogProgress(
-    ProgressUpdateCallback* update_callback,
-    double progress,
-    const char* step = NULL) {
+static void CompleteReconstructionLogProgress(ProgressUpdateCallback *update_callback,
+                                              double progress,
+                                              const char *step = NULL)
+{
   if (update_callback) {
     char message[256];
 
     if (step)
-      snprintf(message,
-               sizeof(message),
-               "Completing solution %d%% | %s",
-               (int)(progress * 100),
-               step);
+      snprintf(
+          message, sizeof(message), "Completing solution %d%% | %s", (int)(progress * 100), step);
     else
-      snprintf(message,
-               sizeof(message),
-               "Completing solution %d%%",
-               (int)(progress * 100));
+      snprintf(message, sizeof(message), "Completing solution %d%%", (int)(progress * 100));
 
     update_callback->invoke(progress, message);
   }
 }
 
-template <typename PipelineRoutines>
-void InternalCompleteReconstruction(
-    const Tracks& tracks,
-    typename PipelineRoutines::Reconstruction* reconstruction,
-    ProgressUpdateCallback* update_callback = NULL) {
+template<typename PipelineRoutines>
+void InternalCompleteReconstruction(const Tracks &tracks,
+                                    typename PipelineRoutines::Reconstruction *reconstruction,
+                                    ProgressUpdateCallback *update_callback = NULL)
+{
   int max_track = tracks.MaxTrack();
   int max_image = tracks.MaxImage();
   int num_resects = -1;
@@ -176,16 +170,14 @@ void InternalCompleteReconstruction(
           reconstructed_markers.push_back(all_markers[i]);
         }
       }
-      LG << "Got " << reconstructed_markers.size()
-         << " reconstructed markers for track " << track;
+      LG << "Got " << reconstructed_markers.size() << " reconstructed markers for track " << track;
       if (reconstructed_markers.size() >= 2) {
-        CompleteReconstructionLogProgress(update_callback,
-                                          double(tot_resects) / (max_image));
-        if (PipelineRoutines::Intersect(reconstructed_markers,
-                                        reconstruction)) {
+        CompleteReconstructionLogProgress(update_callback, double(tot_resects) / (max_image));
+        if (PipelineRoutines::Intersect(reconstructed_markers, reconstruction)) {
           num_intersects++;
           LG << "Ran Intersect() for track " << track;
-        } else {
+        }
+        else {
           LG << "Failed Intersect() for track " << track;
         }
       }
@@ -214,17 +206,15 @@ void InternalCompleteReconstruction(
           reconstructed_markers.push_back(all_markers[i]);
         }
       }
-      LG << "Got " << reconstructed_markers.size()
-         << " reconstructed markers for image " << image;
+      LG << "Got " << reconstructed_markers.size() << " reconstructed markers for image " << image;
       if (reconstructed_markers.size() >= 5) {
-        CompleteReconstructionLogProgress(update_callback,
-                                          double(tot_resects) / (max_image));
-        if (PipelineRoutines::Resect(
-                reconstructed_markers, reconstruction, false)) {
+        CompleteReconstructionLogProgress(update_callback, double(tot_resects) / (max_image));
+        if (PipelineRoutines::Resect(reconstructed_markers, reconstruction, false)) {
           num_resects++;
           tot_resects++;
           LG << "Ran Resect() for image " << image;
-        } else {
+        }
+        else {
           LG << "Failed Resect() for image " << image;
         }
       }
@@ -253,13 +243,12 @@ void InternalCompleteReconstruction(
       }
     }
     if (reconstructed_markers.size() >= 5) {
-      CompleteReconstructionLogProgress(update_callback,
-                                        double(tot_resects) / (max_image));
-      if (PipelineRoutines::Resect(
-              reconstructed_markers, reconstruction, true)) {
+      CompleteReconstructionLogProgress(update_callback, double(tot_resects) / (max_image));
+      if (PipelineRoutines::Resect(reconstructed_markers, reconstruction, true)) {
         num_resects++;
         LG << "Ran final Resect() for image " << image;
-      } else {
+      }
+      else {
         LG << "Failed final Resect() for image " << image;
       }
     }
@@ -271,29 +260,27 @@ void InternalCompleteReconstruction(
   }
 }
 
-template <typename PipelineRoutines>
-double InternalReprojectionError(
-    const Tracks& image_tracks,
-    const typename PipelineRoutines::Reconstruction& reconstruction,
-    const CameraIntrinsics& intrinsics) {
+template<typename PipelineRoutines>
+double InternalReprojectionError(const Tracks &image_tracks,
+                                 const typename PipelineRoutines::Reconstruction &reconstruction,
+                                 const CameraIntrinsics &intrinsics)
+{
   int num_skipped = 0;
   int num_reprojected = 0;
   double total_error = 0.0;
   vector<Marker> markers = image_tracks.AllMarkers();
   for (int i = 0; i < markers.size(); ++i) {
     double weight = markers[i].weight;
-    const typename PipelineRoutines::Camera* camera =
-        reconstruction.CameraForImage(markers[i].image);
-    const typename PipelineRoutines::Point* point =
-        reconstruction.PointForTrack(markers[i].track);
+    const typename PipelineRoutines::Camera *camera = reconstruction.CameraForImage(
+        markers[i].image);
+    const typename PipelineRoutines::Point *point = reconstruction.PointForTrack(markers[i].track);
     if (!camera || !point || weight == 0.0) {
       num_skipped++;
       continue;
     }
     num_reprojected++;
 
-    Marker reprojected_marker =
-        PipelineRoutines::ProjectMarker(*point, *camera, intrinsics);
+    Marker reprojected_marker = PipelineRoutines::ProjectMarker(*point, *camera, intrinsics);
     double ex = (reprojected_marker.x - markers[i].x) * weight;
     double ey = (reprojected_marker.y - markers[i].y) * weight;
 
@@ -326,37 +313,40 @@ double InternalReprojectionError(
   return total_error / num_reprojected;
 }
 
-double EuclideanReprojectionError(const Tracks& image_tracks,
-                                  const EuclideanReconstruction& reconstruction,
-                                  const CameraIntrinsics& intrinsics) {
+double EuclideanReprojectionError(const Tracks &image_tracks,
+                                  const EuclideanReconstruction &reconstruction,
+                                  const CameraIntrinsics &intrinsics)
+{
   return InternalReprojectionError<EuclideanPipelineRoutines>(
       image_tracks, reconstruction, intrinsics);
 }
 
-double ProjectiveReprojectionError(
-    const Tracks& image_tracks,
-    const ProjectiveReconstruction& reconstruction,
-    const CameraIntrinsics& intrinsics) {
+double ProjectiveReprojectionError(const Tracks &image_tracks,
+                                   const ProjectiveReconstruction &reconstruction,
+                                   const CameraIntrinsics &intrinsics)
+{
   return InternalReprojectionError<ProjectivePipelineRoutines>(
       image_tracks, reconstruction, intrinsics);
 }
 
-void EuclideanCompleteReconstruction(const Tracks& tracks,
-                                     EuclideanReconstruction* reconstruction,
-                                     ProgressUpdateCallback* update_callback) {
+void EuclideanCompleteReconstruction(const Tracks &tracks,
+                                     EuclideanReconstruction *reconstruction,
+                                     ProgressUpdateCallback *update_callback)
+{
   InternalCompleteReconstruction<EuclideanPipelineRoutines>(
       tracks, reconstruction, update_callback);
 }
 
-void ProjectiveCompleteReconstruction(
-    const Tracks& tracks, ProjectiveReconstruction* reconstruction) {
-  InternalCompleteReconstruction<ProjectivePipelineRoutines>(tracks,
-                                                             reconstruction);
+void ProjectiveCompleteReconstruction(const Tracks &tracks,
+                                      ProjectiveReconstruction *reconstruction)
+{
+  InternalCompleteReconstruction<ProjectivePipelineRoutines>(tracks, reconstruction);
 }
 
-void InvertIntrinsicsForTracks(const Tracks& raw_tracks,
-                               const CameraIntrinsics& camera_intrinsics,
-                               Tracks* calibrated_tracks) {
+void InvertIntrinsicsForTracks(const Tracks &raw_tracks,
+                               const CameraIntrinsics &camera_intrinsics,
+                               Tracks *calibrated_tracks)
+{
   vector<Marker> markers = raw_tracks.AllMarkers();
   for (int i = 0; i < markers.size(); ++i) {
     camera_intrinsics.InvertIntrinsics(

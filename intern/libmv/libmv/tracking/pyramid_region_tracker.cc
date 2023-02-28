@@ -29,9 +29,8 @@
 
 namespace libmv {
 
-static void MakePyramid(const FloatImage& image,
-                        int num_levels,
-                        std::vector<FloatImage>* pyramid) {
+static void MakePyramid(const FloatImage &image, int num_levels, std::vector<FloatImage> *pyramid)
+{
   pyramid->resize(num_levels);
   (*pyramid)[0] = image;
   for (int i = 1; i < num_levels; ++i) {
@@ -39,12 +38,13 @@ static void MakePyramid(const FloatImage& image,
   }
 }
 
-bool PyramidRegionTracker::Track(const FloatImage& image1,
-                                 const FloatImage& image2,
+bool PyramidRegionTracker::Track(const FloatImage &image1,
+                                 const FloatImage &image2,
                                  double x1,
                                  double y1,
-                                 double* x2,
-                                 double* y2) const {
+                                 double *x2,
+                                 double *y2) const
+{
   // Shrink the guessed x and y location to match the coarsest level + 1 (which
   // when gets corrected in the loop).
   *x2 /= pow(2., num_levels_);
@@ -74,8 +74,7 @@ bool PyramidRegionTracker::Track(const FloatImage& image1,
 
     // Track the point on this level with the base tracker.
     LG << "Tracking on level " << i;
-    bool succeeded =
-        tracker_->Track(pyramid1[i], pyramid2[i], xx, yy, &x2_new, &y2_new);
+    bool succeeded = tracker_->Track(pyramid1[i], pyramid2[i], xx, yy, &x2_new, &y2_new);
 
     if (!succeeded) {
       if (i == 0) {
@@ -87,7 +86,8 @@ bool PyramidRegionTracker::Track(const FloatImage& image1,
       }
 
       LG << "Failed to track at level " << i << "; restoring guess.";
-    } else {
+    }
+    else {
       // Only save the update if the track for this level succeeded. This is a
       // bit of a hack; the jury remains out on whether this is better than
       // re-using the previous failed-attempt.

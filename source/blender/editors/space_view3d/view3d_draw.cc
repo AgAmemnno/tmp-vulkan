@@ -1578,7 +1578,7 @@ static void view3d_update_viewer_path(const bContext *C)
 
 void view3d_main_region_draw(const bContext *C, ARegion *region)
 {
-  Main *bmain  = CTX_data_main(C);
+  Main *bmain = CTX_data_main(C);
   View3D *v3d = CTX_wm_view3d(C);
 
   view3d_update_viewer_path(C);

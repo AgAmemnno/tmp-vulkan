@@ -37,12 +37,11 @@
 
 namespace libmv {
 
-template <typename Function,
-          typename Jacobian = NumericJacobian<Function>,
-          typename Solver = Eigen::PartialPivLU<
-              Matrix<typename Function::FMatrixType::RealScalar,
-                     Function::XMatrixType::RowsAtCompileTime,
-                     Function::XMatrixType::RowsAtCompileTime>>>
+template<typename Function,
+         typename Jacobian = NumericJacobian<Function>,
+         typename Solver = Eigen::PartialPivLU<Matrix<typename Function::FMatrixType::RealScalar,
+                                                      Function::XMatrixType::RowsAtCompileTime,
+                                                      Function::XMatrixType::RowsAtCompileTime>>>
 class LevenbergMarquardt {
  public:
   typedef typename Function::XMatrixType::RealScalar Scalar;
@@ -67,7 +66,9 @@ class LevenbergMarquardt {
     HIT_MAX_ITERATIONS,
   };
 
-  LevenbergMarquardt(const Function& f) : f_(f), df_(f) {}
+  LevenbergMarquardt(const Function &f) : f_(f), df_(f)
+  {
+  }
 
   struct SolverParameters {
     SolverParameters()
@@ -75,7 +76,9 @@ class LevenbergMarquardt {
           relative_step_threshold(1e-16),
           error_threshold(1e-16),
           initial_scale_factor(1e-3),
-          max_iterations(100) {}
+          max_iterations(100)
+    {
+    }
     Scalar gradient_threshold;       // eps > max(J'*f(x))
     Scalar relative_step_threshold;  // eps > ||dx|| / ||x||
     Scalar error_threshold;          // eps > ||f(x)||
@@ -90,31 +93,35 @@ class LevenbergMarquardt {
     Status status;
   };
 
-  Status Update(const Parameters& x,
-                const SolverParameters& params,
-                JMatrixType* J,
-                AMatrixType* A,
-                FVec* error,
-                Parameters* g) {
+  Status Update(const Parameters &x,
+                const SolverParameters &params,
+                JMatrixType *J,
+                AMatrixType *A,
+                FVec *error,
+                Parameters *g)
+  {
     *J = df_(x);
     *A = (*J).transpose() * (*J);
     *error = -f_(x);
     *g = (*J).transpose() * *error;
     if (g->array().abs().maxCoeff() < params.gradient_threshold) {
       return GRADIENT_TOO_SMALL;
-    } else if (error->norm() < params.error_threshold) {
+    }
+    else if (error->norm() < params.error_threshold) {
       return ERROR_TOO_SMALL;
     }
     return RUNNING;
   }
 
-  Results minimize(Parameters* x_and_min) {
+  Results minimize(Parameters *x_and_min)
+  {
     SolverParameters params;
     minimize(params, x_and_min);
   }
 
-  Results minimize(const SolverParameters& params, Parameters* x_and_min) {
-    Parameters& x = *x_and_min;
+  Results minimize(const SolverParameters &params, Parameters *x_and_min)
+  {
+    Parameters &x = *x_and_min;
     JMatrixType J;
     AMatrixType A;
     FVec error;
@@ -135,8 +142,7 @@ class LevenbergMarquardt {
       VLOG(3) << "u: " << u;
       VLOG(3) << "v: " << v;
 
-      AMatrixType A_augmented =
-          A + u * AMatrixType::Identity(J.cols(), J.cols());
+      AMatrixType A_augmented = A + u * AMatrixType::Identity(J.cols(), J.cols());
       Solver solver(A_augmented);
       dx = solver.solve(g);
       bool solved = (A_augmented * dx).isApprox(g);
@@ -152,8 +158,7 @@ class LevenbergMarquardt {
         // Rho is the ratio of the actual reduction in error to the reduction
         // in error that would be obtained if the problem was linear.
         // See [1] for details.
-        Scalar rho((error.squaredNorm() - f_(x_new).squaredNorm()) /
-                   dx.dot(u * dx + g));
+        Scalar rho((error.squaredNorm() - f_(x_new).squaredNorm()) / dx.dot(u * dx + g));
         if (rho > 0) {
           // Accept the Gauss-Newton step because the linear model fits well.
           x = x_new;
@@ -180,7 +185,7 @@ class LevenbergMarquardt {
   }
 
  private:
-  const Function& f_;
+  const Function &f_;
   Jacobian df_;
 };
 

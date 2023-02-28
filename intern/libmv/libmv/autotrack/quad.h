@@ -27,8 +27,7 @@
 
 namespace mv {
 
-template <typename T, int D>
-struct Quad {
+template<typename T, int D> struct Quad {
   // A quad is 4 points; generally in 2D or 3D.
   //
   //    +----------> x

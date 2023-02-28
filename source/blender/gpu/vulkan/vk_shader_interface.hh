@@ -35,7 +35,9 @@
 #include "vk_context.hh"
 
 #include "gpu_shader_create_info.hh"
+
 #include "vk_shader_interface_type.hh"
+
 #include "vk_vertex_array.hh"
 
 /// https://github.com/KhronosGroup/SPIRV-Cross
@@ -74,7 +76,7 @@ struct VKDescriptorInputs {
   void append(uint32_t stride, uint32_t binding, bool vert);
   void initialise(uint32_t attr_vertex_nums, uint32_t attr_instance_nums, bool block);
   void finalise();
-  void finalise(VKVao &vao,VkCommandBuffer cmd);
+  void finalise(VKVao &vao, VkCommandBuffer cmd);
 };
 struct _max_name_len {
   uint32_t attr, ubo, ssbo, image, push;
@@ -239,13 +241,12 @@ class VKShaderInterface : public ShaderInterface {
 
   bool increment_desc_set()
   {
-    descID_ = (descID_ +1)%max_descID ;
+    descID_ = (descID_ + 1) % max_descID;
 
     return true;
   }
+
  private:
-
-
   VkShaderStageFlagBits current_stage_;
   int pool_image_index_[3];
   /* Assume that the set number is only 0. */

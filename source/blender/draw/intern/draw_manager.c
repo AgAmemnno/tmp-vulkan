@@ -3197,7 +3197,7 @@ void DRW_opengl_context_enable_ex(bool UNUSED(restore))
     /* IMPORTANT: We don't support immediate mode in render mode!
      * This shall remain in effect until immediate mode supports
      * multiple threads. */
-    
+
     BLI_ticket_mutex_lock(DST.gl_context_mutex);
     /* Use active context for render begin. */
     WM_opengl_context_activate(DST.gl_context);
@@ -3228,7 +3228,6 @@ void DRW_opengl_context_disable_ex(bool restore)
     /* Render boundaries are opened and closed here as this may be
      * called outside of an existing render loop. */
     GPU_render_end();
-
 
     BLI_ticket_mutex_unlock(DST.gl_context_mutex);
   }

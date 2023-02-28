@@ -30,20 +30,22 @@ class F {
  public:
   typedef Vec2 FMatrixType;
   typedef Vec3 XMatrixType;
-  Vec2 operator()(const Vec3& x) const {
+  Vec2 operator()(const Vec3 &x) const
+  {
     Vec2 fx;
-    fx << 0.19 * x(0) + 0.19 * x(1) * x(1) + x(2),
-        3 * sin(x(0)) + 2 * cos(x(1));
+    fx << 0.19 * x(0) + 0.19 * x(1) * x(1) + x(2), 3 * sin(x(0)) + 2 * cos(x(1));
     return fx;
   }
-  Mat23 J(const Vec3& x) const {
+  Mat23 J(const Vec3 &x) const
+  {
     Mat23 jacobian;
     jacobian << 0.19, 2 * 0.19 * x(1), 1.0, 3 * cos(x(0)), -2 * sin(x(1)), 0;
     return jacobian;
   }
 };
 
-TEST(FunctionDerivative, SimpleCase) {
+TEST(FunctionDerivative, SimpleCase)
+{
   Vec3 x;
   x << 0.76026643, 0.01799744, 0.55192142;
   F f;

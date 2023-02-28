@@ -23,23 +23,26 @@ using libmv::TrackRegionResult;
 
 namespace {
 
-TrackRegionOptions::Direction convertDirection(
-    libmv_TrackRegionDirection direction) {
+TrackRegionOptions::Direction convertDirection(libmv_TrackRegionDirection direction)
+{
   switch (direction) {
-    case LIBMV_TRACK_REGION_FORWARD: return TrackRegionOptions::FORWARD;
-    case LIBMV_TRACK_REGION_BACKWARD: return TrackRegionOptions::BACKWARD;
+    case LIBMV_TRACK_REGION_FORWARD:
+      return TrackRegionOptions::FORWARD;
+    case LIBMV_TRACK_REGION_BACKWARD:
+      return TrackRegionOptions::BACKWARD;
   }
 
-  LOG(FATAL) << "Unhandled tracking direction " << direction
-             << ", should never happen.";
+  LOG(FATAL) << "Unhandled tracking direction " << direction << ", should never happen.";
 
   return TrackRegionOptions::FORWARD;
 }
 
-TrackRegionOptions::Mode convertMotionModelToMode(int motion_model) {
+TrackRegionOptions::Mode convertMotionModelToMode(int motion_model)
+{
   switch (motion_model) {
-#define LIBMV_CONVERT(the_model)                                               \
-  case TrackRegionOptions::the_model: return TrackRegionOptions::the_model;
+#define LIBMV_CONVERT(the_model) \
+  case TrackRegionOptions::the_model: \
+    return TrackRegionOptions::the_model;
 
     LIBMV_CONVERT(TRANSLATION)
     LIBMV_CONVERT(TRANSLATION_ROTATION)
@@ -51,17 +54,16 @@ TrackRegionOptions::Mode convertMotionModelToMode(int motion_model) {
 #undef LIBMV_CONVERT
   }
 
-  LOG(FATAL) << "Unhandled motion model " << motion_model
-             << ", should never happen.";
+  LOG(FATAL) << "Unhandled motion model " << motion_model << ", should never happen.";
 
   return TrackRegionOptions::TRANSLATION;
 }
 
 }  // namespace
 
-void libmv_configureTrackRegionOptions(
-    const libmv_TrackRegionOptions& options,
-    TrackRegionOptions* track_region_options) {
+void libmv_configureTrackRegionOptions(const libmv_TrackRegionOptions &options,
+                                       TrackRegionOptions *track_region_options)
+{
   track_region_options->direction = convertDirection(options.direction);
   track_region_options->mode = convertMotionModelToMode(options.motion_model);
   track_region_options->minimum_correlation = options.minimum_correlation;
@@ -84,25 +86,27 @@ void libmv_configureTrackRegionOptions(
   track_region_options->use_normalized_intensities = options.use_normalization;
 }
 
-void libmv_regionTrackergetResult(const TrackRegionResult& track_region_result,
-                                  libmv_TrackRegionResult* result) {
+void libmv_regionTrackergetResult(const TrackRegionResult &track_region_result,
+                                  libmv_TrackRegionResult *result)
+{
   result->termination = (int)track_region_result.termination;
   result->termination_reason = "";
   result->correlation = track_region_result.correlation;
 }
 
-int libmv_trackRegion(const libmv_TrackRegionOptions* options,
-                      const float* image1,
+int libmv_trackRegion(const libmv_TrackRegionOptions *options,
+                      const float *image1,
                       int image1_width,
                       int image1_height,
-                      const float* image2,
+                      const float *image2,
                       int image2_width,
                       int image2_height,
-                      const double* x1,
-                      const double* y1,
-                      libmv_TrackRegionResult* /*result*/,
-                      double* x2,
-                      double* y2) {
+                      const double *x1,
+                      const double *y1,
+                      libmv_TrackRegionResult * /*result*/,
+                      double *x2,
+                      double *y2)
+{
   double xx1[5], yy1[5];
   double xx2[5], yy2[5];
   bool tracking_result = false;
@@ -128,20 +132,12 @@ int libmv_trackRegion(const libmv_TrackRegionOptions* options,
 
   // Convert from raw float buffers to libmv's FloatImage.
   FloatImage old_patch, new_patch;
-  libmv_floatBufferToFloatImage(
-      image1, image1_width, image1_height, 1, &old_patch);
-  libmv_floatBufferToFloatImage(
-      image2, image2_width, image2_height, 1, &new_patch);
+  libmv_floatBufferToFloatImage(image1, image1_width, image1_height, 1, &old_patch);
+  libmv_floatBufferToFloatImage(image2, image2_width, image2_height, 1, &new_patch);
 
   TrackRegionResult track_region_result;
-  TrackRegion(old_patch,
-              new_patch,
-              xx1,
-              yy1,
-              track_region_options,
-              xx2,
-              yy2,
-              &track_region_result);
+  TrackRegion(
+      old_patch, new_patch, xx1, yy1, track_region_options, xx2, yy2, &track_region_result);
 
   // Convert to floats for the blender api.
   for (int i = 0; i < 5; ++i) {

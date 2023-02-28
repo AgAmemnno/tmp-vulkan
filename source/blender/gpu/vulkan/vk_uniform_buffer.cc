@@ -65,8 +65,10 @@ void VKUniformBuf::init()
 
   VKResourceOptions options;
   options.setHostVisible(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-  ubo = new VKBuffer(
-      size_in_bytes_, VKStagingBufferManager::vk_staging_buffer_min_alignment, "VKUniformBuf",options);
+  ubo = new VKBuffer(size_in_bytes_,
+                     VKStagingBufferManager::vk_staging_buffer_min_alignment,
+                     "VKUniformBuf",
+                     options);
 
   ubo_id_ = (uint64_t)(ubo);
   /* TODO::  #debug::object_label(VK_UNIFORM_BUFFER, ubo_id_, name_);*/
@@ -125,14 +127,14 @@ void VKUniformBuf::bind(int slot)
   info.offset = 0;
   info.range = VK_WHOLE_SIZE;
   VKShader *shader = VKContext::get()->pipeline_state.active_shader;
-  #if 0
+#if 0
   char *d = (char*)ubo->get_host_ptr();
   printf("BIND ================== set  %d  slot %d  size  %zu  host Pointer     %llx  \n",
          setID,
          slot,
          size_in_bytes_,
     (uintptr_t) d);
-  #endif
+#endif
   shader->append_write_descriptor(setID, slot_, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, info);
 
 #if 0

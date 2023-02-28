@@ -5,23 +5,22 @@
 #include "intern/utildefines.h"
 #include "libmv/tracking/track_region.h"
 
-#include <png.h>
 #include <cassert>
+#include <png.h>
 
 using libmv::FloatImage;
 using libmv::SamplePlanarPatch;
 
-void libmv_floatImageDestroy(libmv_FloatImage* image) {
+void libmv_floatImageDestroy(libmv_FloatImage *image)
+{
   delete[] image->buffer;
 }
 
 /* Image <-> buffers conversion */
 
-void libmv_byteBufferToFloatImage(const unsigned char* buffer,
-                                  int width,
-                                  int height,
-                                  int channels,
-                                  FloatImage* image) {
+void libmv_byteBufferToFloatImage(
+    const unsigned char *buffer, int width, int height, int channels, FloatImage *image)
+{
   image->Resize(height, width, channels);
   for (int y = 0, a = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
@@ -32,11 +31,9 @@ void libmv_byteBufferToFloatImage(const unsigned char* buffer,
   }
 }
 
-void libmv_floatBufferToFloatImage(const float* buffer,
-                                   int width,
-                                   int height,
-                                   int channels,
-                                   FloatImage* image) {
+void libmv_floatBufferToFloatImage(
+    const float *buffer, int width, int height, int channels, FloatImage *image)
+{
   image->Resize(height, width, channels);
   for (int y = 0, a = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
@@ -47,7 +44,8 @@ void libmv_floatBufferToFloatImage(const float* buffer,
   }
 }
 
-void libmv_floatImageToFloatBuffer(const FloatImage& image, float* buffer) {
+void libmv_floatImageToFloatBuffer(const FloatImage &image, float *buffer)
+{
   for (int y = 0, a = 0; y < image.Height(); y++) {
     for (int x = 0; x < image.Width(); x++) {
       for (int k = 0; k < image.Depth(); k++) {
@@ -57,8 +55,8 @@ void libmv_floatImageToFloatBuffer(const FloatImage& image, float* buffer) {
   }
 }
 
-void libmv_floatImageToByteBuffer(const libmv::FloatImage& image,
-                                  unsigned char* buffer) {
+void libmv_floatImageToByteBuffer(const libmv::FloatImage &image, unsigned char *buffer)
+{
   for (int y = 0, a = 0; y < image.Height(); y++) {
     for (int x = 0; x < image.Width(); x++) {
       for (int k = 0; k < image.Depth(); k++) {
@@ -68,15 +66,16 @@ void libmv_floatImageToByteBuffer(const libmv::FloatImage& image,
   }
 }
 
-static bool savePNGImage(png_bytep* row_pointers,
+static bool savePNGImage(png_bytep *row_pointers,
                          int width,
                          int height,
                          int depth,
                          int color_type,
-                         const char* file_name) {
+                         const char *file_name)
+{
   png_infop info_ptr;
   png_structp png_ptr;
-  FILE* fp = fopen(file_name, "wb");
+  FILE *fp = fopen(file_name, "wb");
 
   if (fp == NULL) {
     return false;
@@ -131,12 +130,10 @@ static bool savePNGImage(png_bytep* row_pointers,
   return true;
 }
 
-bool libmv_saveImage(const FloatImage& image,
-                     const char* prefix,
-                     int x0,
-                     int y0) {
+bool libmv_saveImage(const FloatImage &image, const char *prefix, int x0, int y0)
+{
   int x, y;
-  png_bytep* row_pointers;
+  png_bytep *row_pointers;
 
   assert(image.Depth() == 1);
 
@@ -151,7 +148,8 @@ bool libmv_saveImage(const FloatImage& image,
         row_pointers[y][x * 4 + 1] = 0;
         row_pointers[y][x * 4 + 2] = 0;
         row_pointers[y][x * 4 + 3] = 255;
-      } else {
+      }
+      else {
         float pixel = image(image.Height() - y - 1, x, 0);
         row_pointers[y][x * 4 + 0] = pixel * 255;
         row_pointers[y][x * 4 + 1] = pixel * 255;
@@ -163,14 +161,9 @@ bool libmv_saveImage(const FloatImage& image,
 
   static int image_counter = 0;
   char file_name[128];
-  snprintf(
-      file_name, sizeof(file_name), "%s_%02d.png", prefix, ++image_counter);
-  bool result = savePNGImage(row_pointers,
-                             image.Width(),
-                             image.Height(),
-                             8,
-                             PNG_COLOR_TYPE_RGBA,
-                             file_name);
+  snprintf(file_name, sizeof(file_name), "%s_%02d.png", prefix, ++image_counter);
+  bool result = savePNGImage(
+      row_pointers, image.Width(), image.Height(), 8, PNG_COLOR_TYPE_RGBA, file_name);
 
   for (y = 0; y < image.Height(); y++) {
     delete[] row_pointers[y];
@@ -180,20 +173,21 @@ bool libmv_saveImage(const FloatImage& image,
   return result;
 }
 
-void libmv_samplePlanarPatchFloat(const float* image,
+void libmv_samplePlanarPatchFloat(const float *image,
                                   int width,
                                   int height,
                                   int channels,
-                                  const double* xs,
-                                  const double* ys,
+                                  const double *xs,
+                                  const double *ys,
                                   int num_samples_x,
                                   int num_samples_y,
-                                  const float* mask,
-                                  float* patch,
-                                  double* warped_position_x,
-                                  double* warped_position_y) {
+                                  const float *mask,
+                                  float *patch,
+                                  double *warped_position_x,
+                                  double *warped_position_y)
+{
   FloatImage libmv_image, libmv_patch, libmv_mask;
-  FloatImage* libmv_mask_for_sample = NULL;
+  FloatImage *libmv_mask_for_sample = NULL;
 
   libmv_floatBufferToFloatImage(image, width, height, channels, &libmv_image);
 
@@ -215,20 +209,21 @@ void libmv_samplePlanarPatchFloat(const float* image,
   libmv_floatImageToFloatBuffer(libmv_patch, patch);
 }
 
-void libmv_samplePlanarPatchByte(const unsigned char* image,
+void libmv_samplePlanarPatchByte(const unsigned char *image,
                                  int width,
                                  int height,
                                  int channels,
-                                 const double* xs,
-                                 const double* ys,
+                                 const double *xs,
+                                 const double *ys,
                                  int num_samples_x,
                                  int num_samples_y,
-                                 const float* mask,
-                                 unsigned char* patch,
-                                 double* warped_position_x,
-                                 double* warped_position_y) {
+                                 const float *mask,
+                                 unsigned char *patch,
+                                 double *warped_position_x,
+                                 double *warped_position_y)
+{
   libmv::FloatImage libmv_image, libmv_patch, libmv_mask;
-  libmv::FloatImage* libmv_mask_for_sample = NULL;
+  libmv::FloatImage *libmv_mask_for_sample = NULL;
 
   libmv_byteBufferToFloatImage(image, width, height, channels, &libmv_image);
 

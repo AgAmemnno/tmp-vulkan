@@ -10,7 +10,6 @@
 #include "gpu_index_buffer_private.hh"
 #include "vk_context.hh"
 
-
 namespace blender::gpu {
 
 class VKBuffer;
@@ -20,10 +19,9 @@ class VKIndexBuf : public IndexBuf {
   friend class VKDrawList;
   friend class VKShader; /* For compute shaders. */
  private:
-  VKBuffer* ibo_id_ = nullptr;
+  VKBuffer *ibo_id_ = nullptr;
 
  public:
-
   ~VKIndexBuf();
 
   void bind();
@@ -45,22 +43,20 @@ class VKIndexBuf : public IndexBuf {
   const uint32_t *read() const override;
   void upload_data() override;
   void update_sub(uint start, uint len, const void *data) override;
-  void vk_bind(VkCommandBuffer cmd, VkDeviceSize offset= 0);
+  void vk_bind(VkCommandBuffer cmd, VkDeviceSize offset = 0);
 
  private:
-   bool is_active() const;
-   void strip_restart_indices() override
-   {
-     /* No-op. */
-   }
-
+  bool is_active() const;
+  void strip_restart_indices() override
+  {
+    /* No-op. */
+  }
 };
 
-static inline VkIndexType  to_vk(GPUIndexBufType type)
+static inline VkIndexType to_vk(GPUIndexBufType type)
 {
 
   return (type == GPU_INDEX_U32) ? VK_INDEX_TYPE_UINT32 : VK_INDEX_TYPE_UINT16;
 }
-
 
 }  // namespace blender::gpu

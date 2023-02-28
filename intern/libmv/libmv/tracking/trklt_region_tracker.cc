@@ -31,16 +31,17 @@ namespace libmv {
 // TODO(keir): Switch this to use the smarter LM loop like in ESM.
 
 // Computes U and e from the Ud = e equation (number 14) from the paper.
-static void ComputeTrackingEquation(const Array3Df& image_and_gradient1,
-                                    const Array3Df& image_and_gradient2,
+static void ComputeTrackingEquation(const Array3Df &image_and_gradient1,
+                                    const Array3Df &image_and_gradient2,
                                     double x1,
                                     double y1,
                                     double x2,
                                     double y2,
                                     int half_width,
                                     double lambda,
-                                    Mat2f* U,
-                                    Vec2f* e) {
+                                    Mat2f *U,
+                                    Vec2f *e)
+{
   Mat2f A, B, C, D;
   A = B = C = D = Mat2f::Zero();
 
@@ -83,10 +84,8 @@ static void ComputeTrackingEquation(const Array3Df& image_and_gradient1,
   *e = (A + lambda * Mat2f::Identity()) * Di * (V - W) + 0.5 * (S - R);
 }
 
-static bool RegionIsInBounds(const FloatImage& image1,
-                             double x,
-                             double y,
-                             int half_window_size) {
+static bool RegionIsInBounds(const FloatImage &image1, double x, double y, int half_window_size)
+{
   // Check the minimum coordinates.
   int min_x = floor(x) - half_window_size - 1;
   int min_y = floor(y) - half_window_size - 1;
@@ -105,12 +104,13 @@ static bool RegionIsInBounds(const FloatImage& image1,
   return true;
 }
 
-bool TrkltRegionTracker::Track(const FloatImage& image1,
-                               const FloatImage& image2,
+bool TrkltRegionTracker::Track(const FloatImage &image1,
+                               const FloatImage &image2,
                                double x1,
                                double y1,
-                               double* x2,
-                               double* y2) const {
+                               double *x2,
+                               double *y2) const
+{
   if (!RegionIsInBounds(image1, x1, y1, half_window_size)) {
     LG << "Fell out of image1's window with x1=" << x1 << ", y1=" << y1
        << ", hw=" << half_window_size << ".";

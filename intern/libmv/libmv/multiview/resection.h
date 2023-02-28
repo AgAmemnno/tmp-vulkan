@@ -33,10 +33,9 @@ namespace libmv {
 namespace resection {
 
 // x's are 2D image coordinates, (x,y,1), and X's are homogeneous four vectors.
-template <typename T>
-void Resection(const Matrix<T, 2, Dynamic>& x,
-               const Matrix<T, 4, Dynamic>& X,
-               Matrix<T, 3, 4>* P) {
+template<typename T>
+void Resection(const Matrix<T, 2, Dynamic> &x, const Matrix<T, 4, Dynamic> &X, Matrix<T, 3, 4> *P)
+{
   int N = x.cols();
   assert(X.cols() == N);
 

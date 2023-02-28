@@ -483,7 +483,7 @@ static void immEndVertex() /* and move on to the next vertex */
     for (uint a_idx = 0; a_idx < imm->vertex_format.attr_len; a_idx++) {
       if ((imm->unassigned_attr_bits >> a_idx) & 1) {
         const GPUVertAttr *a = &imm->vertex_format.attrs[a_idx];
-
+/* IF0 */
 #if 0
         printf("copying %s from vertex %u to %u\n", a->name, imm->vertex_idx - 1, imm->vertex_idx);
 #endif
@@ -735,7 +735,5 @@ void immThemeColorShadeAlpha(int colorid, int coloffset, int alphaoffset)
   UI_GetThemeColorShadeAlpha4ubv(colorid, coloffset, alphaoffset, col);
   immUniformColor4ub(col[0], col[1], col[2], col[3]);
 }
-
-
 
 #endif /* GPU_STANDALONE */

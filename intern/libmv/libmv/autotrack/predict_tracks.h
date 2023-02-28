@@ -46,9 +46,7 @@ enum class PredictDirection {
 
 // Predict the position of the given marker, and update it accordingly. The
 // existing position will be overwritten.
-bool PredictMarkerPosition(const Tracks& tracks,
-                           const PredictDirection direction,
-                           Marker* marker);
+bool PredictMarkerPosition(const Tracks &tracks, const PredictDirection direction, Marker *marker);
 
 }  // namespace mv
 

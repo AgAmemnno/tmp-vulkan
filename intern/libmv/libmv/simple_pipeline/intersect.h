@@ -47,8 +47,7 @@ namespace libmv {
 
     \sa EuclideanResect
 */
-bool EuclideanIntersect(const vector<Marker>& markers,
-                        EuclideanReconstruction* reconstruction);
+bool EuclideanIntersect(const vector<Marker> &markers, EuclideanReconstruction *reconstruction);
 
 /*!
     Estimate the homogeneous coordinates of a track by intersecting rays.
@@ -71,8 +70,7 @@ bool EuclideanIntersect(const vector<Marker>& markers,
 
     \sa Resect
 */
-bool ProjectiveIntersect(const vector<Marker>& markers,
-                         ProjectiveReconstruction* reconstruction);
+bool ProjectiveIntersect(const vector<Marker> &markers, ProjectiveReconstruction *reconstruction);
 
 }  // namespace libmv
 

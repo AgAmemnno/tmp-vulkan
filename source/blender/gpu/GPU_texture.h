@@ -399,7 +399,6 @@ void GPU_texture_update_sub_from_pixel_buffer(GPUTexture *tex,
  */
 void GPU_unpack_row_length_set(uint len);
 
-
 void *GPU_texture_read(GPUTexture *tex, eGPUDataFormat data_format, int miplvl);
 /**
  * Fills the whole texture with the same data for all pixels.
@@ -485,9 +484,9 @@ void GPU_pixel_buffer_unmap(GPUPixelBuffer *pix_buf);
 uint GPU_pixel_buffer_size(GPUPixelBuffer *pix_buf);
 int64_t GPU_pixel_buffer_get_native_handle(GPUPixelBuffer *pix_buf);
 
-
 int GPU_texture_save(const GPUTexture *tex);
-int GPU_rect_save(void *data, int w, int h, eGPUTextureFormat tex_format, eGPUDataFormat data_format);
+int GPU_rect_save(
+    void *data, int w, int h, eGPUTextureFormat tex_format, eGPUDataFormat data_format);
 #ifdef __cplusplus
 }
 #endif

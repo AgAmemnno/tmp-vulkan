@@ -29,7 +29,8 @@ class F {
  public:
   typedef Vec4 FMatrixType;
   typedef Vec3 XMatrixType;
-  Vec4 operator()(const Vec3& x) const {
+  Vec4 operator()(const Vec3 &x) const
+  {
     double x1 = x.x() - 2;
     double y1 = x.y() - 5;
     double z1 = x.z();
@@ -39,7 +40,8 @@ class F {
   }
 };
 
-TEST(Dogleg, SimpleCase) {
+TEST(Dogleg, SimpleCase)
+{
   Vec3 x;
   x << 0.76026643, -30.01799744, 0.55192142;
   F f;
@@ -59,7 +61,8 @@ class F32 {
  public:
   typedef Vec2 FMatrixType;
   typedef Vec2 XMatrixType;
-  Vec2 operator()(const Vec2& x) const {
+  Vec2 operator()(const Vec2 &x) const
+  {
     double x1 = x(0);
     double x2 = 10 * x(0) / (x(0) + 0.1) + 2 * x(1) * x(1);
     Vec2 fx;
@@ -70,8 +73,12 @@ class F32 {
 
 class JF32 {
  public:
-  JF32(const F32& f) { (void)f; }
-  Mat2 operator()(const Vec2& x) {
+  JF32(const F32 &f)
+  {
+    (void)f;
+  }
+  Mat2 operator()(const Vec2 &x)
+  {
     Mat2 J;
     J << 1, 0, 1. / pow(x(0) + 0.1, 2), 4 * x(1) * x(1);
     return J;

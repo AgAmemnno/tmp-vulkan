@@ -34,10 +34,11 @@ namespace libmv {
 
 // x's are 2D coordinates (x,y,1) in each image; Ps are projective cameras. The
 // output, X, is a homogeneous four vectors.
-template <typename T>
-void NViewTriangulate(const Matrix<T, 2, Dynamic>& x,
-                      const vector<Matrix<T, 3, 4>>& Ps,
-                      Matrix<T, 4, 1>* X) {
+template<typename T>
+void NViewTriangulate(const Matrix<T, 2, Dynamic> &x,
+                      const vector<Matrix<T, 3, 4>> &Ps,
+                      Matrix<T, 4, 1> *X)
+{
   int nviews = x.cols();
   assert(nviews == Ps.size());
 
@@ -60,10 +61,11 @@ void NViewTriangulate(const Matrix<T, 2, Dynamic>& x,
 // This method uses the algebraic distance approximation.
 // Note that this method works better when the 2D points are normalized
 // with an isotopic normalization.
-template <typename T>
-void NViewTriangulateAlgebraic(const Matrix<T, 2, Dynamic>& x,
-                               const vector<Matrix<T, 3, 4>>& Ps,
-                               Matrix<T, 4, 1>* X) {
+template<typename T>
+void NViewTriangulateAlgebraic(const Matrix<T, 2, Dynamic> &x,
+                               const vector<Matrix<T, 3, 4>> &Ps,
+                               Matrix<T, 4, 1> *X)
+{
   int nviews = x.cols();
   assert(nviews == Ps.size());
 

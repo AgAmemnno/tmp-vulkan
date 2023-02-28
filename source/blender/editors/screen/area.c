@@ -246,10 +246,12 @@ static void draw_azone_arrow(float x1, float y1, float x2, float y2, AZEdge edge
   immBegin(GPU_PRIM_TRI_FAN, 6);
   for (int i = 0; i < 6; i++) {
     if (axis == 0) {
-      immVertex3f(pos, center[0] + points[i][0] * size, center[1] + points[i][1] * sign * size,0.);
+      immVertex3f(
+          pos, center[0] + points[i][0] * size, center[1] + points[i][1] * sign * size, 0.);
     }
     else {
-      immVertex3f(pos, center[0] + points[i][1] * sign * size, center[1] + points[i][0] * size,0.);
+      immVertex3f(
+          pos, center[0] + points[i][1] * sign * size, center[1] + points[i][0] * size, 0.);
     }
   }
   immEnd();

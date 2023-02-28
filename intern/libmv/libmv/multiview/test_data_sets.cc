@@ -28,7 +28,8 @@
 
 namespace libmv {
 
-TwoViewDataSet TwoRealisticCameras(bool same_K) {
+TwoViewDataSet TwoRealisticCameras(bool same_K)
+{
   TwoViewDataSet d;
 
   // clang-format off
@@ -38,7 +39,8 @@ TwoViewDataSet TwoRealisticCameras(bool same_K) {
   // clang-format on
   if (same_K) {
     d.K2 = d.K1;
-  } else {
+  }
+  else {
     // clang-format off
     d.K2 << 360,   0, 170,
               0, 360, 110,
@@ -64,7 +66,8 @@ TwoViewDataSet TwoRealisticCameras(bool same_K) {
 }
 
 nViewDatasetConfigator::nViewDatasetConfigator(
-    int fx, int fy, int cx, int cy, double distance, double jitter_amount) {
+    int fx, int fy, int cx, int cy, double distance, double jitter_amount)
+{
   _fx = fx;
   _fy = fy;
   _cx = cx;
@@ -73,9 +76,8 @@ nViewDatasetConfigator::nViewDatasetConfigator(
   _jitter_amount = jitter_amount;
 }
 
-NViewDataSet NRealisticCamerasFull(int nviews,
-                                   int npoints,
-                                   const nViewDatasetConfigator config) {
+NViewDataSet NRealisticCamerasFull(int nviews, int npoints, const nViewDatasetConfigator config)
+{
   NViewDataSet d;
   d.n = nviews;
   d.K.resize(nviews);
@@ -122,7 +124,8 @@ NViewDataSet NRealisticCamerasSparse(int nviews,
                                      int npoints,
                                      float view_ratio,
                                      unsigned min_projections,
-                                     const nViewDatasetConfigator config) {
+                                     const nViewDatasetConfigator config)
+{
   assert(view_ratio <= 1.0);
   assert(view_ratio > 0.0);
   assert(min_projections <= npoints);

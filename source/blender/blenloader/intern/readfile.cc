@@ -297,14 +297,12 @@ static void oldnewmap_clear(OldNewMap *onm)
 {
   /* Free unused data. */
   for (NewAddress &new_addr : onm->map.values()) {
-    //printf("FD MAP %llx   addr %llx  nr  %d  \n", (uintptr_t)(onm), new_addr.newp, new_addr.nr);
+    // printf("FD MAP %llx   addr %llx  nr  %d  \n", (uintptr_t)(onm), new_addr.newp, new_addr.nr);
     if (new_addr.nr == 0) {
       MEM_freeN(new_addr.newp);
     }
   }
   onm->map.clear_and_shrink();
-
-
 }
 
 static void oldnewmap_free(OldNewMap *onm)
@@ -1800,7 +1798,7 @@ static void *read_struct(FileData *fd, BHead *bh, const char *blockname)
         /* SDNA_CMP_EQUAL */
         temp = MEM_mallocN(bh->len, blockname);
         if (bh->len == 32) {
-          //printf("BP 32B  %s  %llx \n",blockname,(uintptr_t)temp);
+          // printf("BP 32B  %s  %llx \n",blockname,(uintptr_t)temp);
         }
 #ifdef USE_BHEAD_READ_ON_DEMAND
         if (BHEADN_FROM_BHEAD(bh)->has_data) {
@@ -3297,7 +3295,6 @@ static bool read_libblock_undo_restore(
       &LOG_UNDO, 2, "UNDO: read %s (uuid %u) -> read at new address", id->name, id->session_uuid);
   return false;
 }
-
 
 /* This routine reads a datablock and its direct data, and advances bhead to
  * the next datablock. For library linked datablocks, only a placeholder will

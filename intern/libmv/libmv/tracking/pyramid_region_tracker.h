@@ -29,15 +29,17 @@ namespace libmv {
 
 class PyramidRegionTracker : public RegionTracker {
  public:
-  PyramidRegionTracker(RegionTracker* tracker, int num_levels)
-      : tracker_(tracker), num_levels_(num_levels) {}
+  PyramidRegionTracker(RegionTracker *tracker, int num_levels)
+      : tracker_(tracker), num_levels_(num_levels)
+  {
+  }
 
-  virtual bool Track(const FloatImage& image1,
-                     const FloatImage& image2,
+  virtual bool Track(const FloatImage &image1,
+                     const FloatImage &image2,
                      double x1,
                      double y1,
-                     double* x2,
-                     double* y2) const;
+                     double *x2,
+                     double *y2) const;
 
  private:
   scoped_ptr<RegionTracker> tracker_;

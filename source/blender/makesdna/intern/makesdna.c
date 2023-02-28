@@ -52,14 +52,9 @@ static const char *includefiles[] = {
 };
 void MEM_StackInfo(void *ptr, const char *str, uint64_t len)
 {
-
 }
-void MEM_PopInfo(void *ptr)
-{
-};
-void MEM_PrintInfo()
-{
-};
+void MEM_PopInfo(void *ptr){};
+void MEM_PrintInfo(){};
 
 /* -------------------------------------------------------------------- */
 /** \name Variables

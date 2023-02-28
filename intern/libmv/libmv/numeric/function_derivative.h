@@ -36,8 +36,7 @@ enum NumericJacobianMode {
   FORWARD,
 };
 
-template <typename Function, NumericJacobianMode mode = CENTRAL>
-class NumericJacobian {
+template<typename Function, NumericJacobianMode mode = CENTRAL> class NumericJacobian {
  public:
   typedef typename Function::XMatrixType Parameters;
   typedef typename Function::XMatrixType::RealScalar XScalar;
@@ -47,10 +46,13 @@ class NumericJacobian {
                  Function::XMatrixType::RowsAtCompileTime>
       JMatrixType;
 
-  NumericJacobian(const Function& f) : f_(f) {}
+  NumericJacobian(const Function &f) : f_(f)
+  {
+  }
 
   // TODO(keir): Perhaps passing the jacobian back by value is not a good idea.
-  JMatrixType operator()(const Parameters& x) {
+  JMatrixType operator()(const Parameters &x)
+  {
     // Empirically determined constant.
     Parameters eps = x.array().abs() * XScalar(1e-5);
     // To handle cases where a paremeter is exactly zero, instead use the mean
@@ -79,7 +81,8 @@ class NumericJacobian {
         x_plus_delta(c) = x(c) - eps(c);
         jacobian.col(c) -= f_(x_plus_delta);
         one_over_h /= 2;
-      } else {
+      }
+      else {
         jacobian.col(c) -= fx;
       }
       x_plus_delta(c) = x(c);
@@ -89,11 +92,12 @@ class NumericJacobian {
   }
 
  private:
-  const Function& f_;
+  const Function &f_;
 };
 
-template <typename Function, typename Jacobian>
-bool CheckJacobian(const Function& f, const typename Function::XMatrixType& x) {
+template<typename Function, typename Jacobian>
+bool CheckJacobian(const Function &f, const typename Function::XMatrixType &x)
+{
   Jacobian j_analytic(f);
   NumericJacobian<Function> j_numeric(f);
 

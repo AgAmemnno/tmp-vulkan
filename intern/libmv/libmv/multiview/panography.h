@@ -53,9 +53,7 @@ namespace libmv {
 //   K = [0 f 0]
 //       [0 0 1]
 //
-void F_FromCorrespondance_2points(const Mat& x1,
-                                  const Mat& x2,
-                                  vector<double>* fs);
+void F_FromCorrespondance_2points(const Mat &x1, const Mat &x2, vector<double> *fs);
 
 // Compute the 3x3 rotation matrix that fits two 3D point clouds in the least
 // square sense. The method is from:
@@ -91,10 +89,7 @@ void F_FromCorrespondance_2points(const Mat& x1,
 //
 //   R = arg min || X2 - R * x1 ||
 //
-void GetR_FixedCameraCenter(const Mat& x1,
-                            const Mat& x2,
-                            const double focal,
-                            Mat3* R);
+void GetR_FixedCameraCenter(const Mat &x1, const Mat &x2, const double focal, Mat3 *R);
 
 }  // namespace libmv
 

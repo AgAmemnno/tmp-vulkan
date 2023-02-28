@@ -17,30 +17,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vk_context.hh"
 #include "vk_shaders.hh"
+#include "vk_context.hh"
 #include <algorithm>
+#include <algorithm>  // std::max
 #include <assert.h>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <stdarg.h>
 #include <stdio.h>
-#include <algorithm>  // std::max
-#include <fstream>
-#include <sstream>
 #include <vector>
-
-
-
-
-
 
 #ifdef NVP_SUPPORTS_SHADERC
 #  include <shaderc/shaderc.hpp>
 #endif
-
-
 
 //#include "nvprint.hpp"
 
@@ -75,12 +66,9 @@
 #include "gl_shader.hh"
 #include "gl_shader_interface.hh"
 
-
-
 /* -------------------------------------------------------------------- */
 /** \name Creation / Destruction
  * \{ */
-
 
 namespace nvh {
 
@@ -218,9 +206,6 @@ inline bool endsWith(std::string const &value, std::string const &ending)
 }
 
 }  // namespace nvh
-
-
-
 
 namespace nvh {
 
@@ -483,11 +468,6 @@ std::string ShaderFileManager::getProcessedContent(std::string const &filename,
 
 }  // namespace nvh
 
-
-
-
-
-
 #define NV_LINE_MARKERS 1
 
 namespace nvvk {
@@ -739,13 +719,13 @@ bool ShaderModuleManager::setupShaderModule(ShaderModule &module)
         else if (m_apiMajor == 1 && m_apiMinor == 3) {
           fprintf(stderr, "This version <= 1.2 \n");
           exit(-1);
-          //shaderc_compile_options_set_target_env(
+          // shaderc_compile_options_set_target_env(
           //    m_shadercOptions, shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_3);
         }
         else {
           GPU_VK_DEBUG_PRINTF("nvvk::ShaderModuleManager: Unsupported Vulkan version: %i.%i\n",
-               int(m_apiMajor),
-               int(m_apiMinor));
+                              int(m_apiMajor),
+                              int(m_apiMinor));
           assert(0);
         }
 
@@ -781,9 +761,9 @@ bool ShaderModuleManager::setupShaderModule(ShaderModule &module)
       if (shaderc_result_get_compilation_status(result) != shaderc_compilation_status_success) {
         bool failedToOptimize = strstr(shaderc_result_get_error_message(result),
                                        "failed to optimize");
-        //int level = failedToOptimize ? LOGLEVEL_WARNING : LOGLEVEL_ERROR;
-        GPU_VK_DEBUG_PRINTF( "%s: optimization_level_performance\n", definition.filename.c_str());
-       GPU_VK_DEBUG_PRINTF("  %s\n", definition.prepend.c_str());
+        // int level = failedToOptimize ? LOGLEVEL_WARNING : LOGLEVEL_ERROR;
+        GPU_VK_DEBUG_PRINTF("%s: optimization_level_performance\n", definition.filename.c_str());
+        GPU_VK_DEBUG_PRINTF("  %s\n", definition.prepend.c_str());
         GPU_VK_DEBUG_PRINTF("  %s\n", shaderc_result_get_error_message(result));
         shaderc_result_release(result);
 

@@ -27,17 +27,21 @@
 namespace libmv {
 
 struct BruteRegionTracker : public RegionTracker {
-  BruteRegionTracker() : half_window_size(4), minimum_correlation(0.78) {}
+  BruteRegionTracker() : half_window_size(4), minimum_correlation(0.78)
+  {
+  }
 
-  virtual ~BruteRegionTracker() {}
+  virtual ~BruteRegionTracker()
+  {
+  }
 
   // Tracker interface.
-  virtual bool Track(const FloatImage& image1,
-                     const FloatImage& image2,
+  virtual bool Track(const FloatImage &image1,
+                     const FloatImage &image2,
                      double x1,
                      double y1,
-                     double* x2,
-                     double* y2) const;
+                     double *x2,
+                     double *y2) const;
 
   // No point in creating getters or setters.
   int half_window_size;

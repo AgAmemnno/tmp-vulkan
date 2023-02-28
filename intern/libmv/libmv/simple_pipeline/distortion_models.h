@@ -46,27 +46,28 @@ void InvertPolynomialDistortionModel(const double focal_length_x,
                                      const double p2,
                                      const double image_x,
                                      const double image_y,
-                                     double* normalized_x,
-                                     double* normalized_y);
+                                     double *normalized_x,
+                                     double *normalized_y);
 
 // Apply camera intrinsics to the normalized point to get image coordinates.
 // This applies the radial lens distortion to a point which is in normalized
 // camera coordinates (i.e. the principal point is at (0, 0)) to get image
 // coordinates in pixels. Templated for use with autodifferentiation.
-template <typename T>
-inline void ApplyPolynomialDistortionModel(const T& focal_length_x,
-                                           const T& focal_length_y,
-                                           const T& principal_point_x,
-                                           const T& principal_point_y,
-                                           const T& k1,
-                                           const T& k2,
-                                           const T& k3,
-                                           const T& p1,
-                                           const T& p2,
-                                           const T& normalized_x,
-                                           const T& normalized_y,
-                                           T* image_x,
-                                           T* image_y) {
+template<typename T>
+inline void ApplyPolynomialDistortionModel(const T &focal_length_x,
+                                           const T &focal_length_y,
+                                           const T &principal_point_x,
+                                           const T &principal_point_y,
+                                           const T &k1,
+                                           const T &k2,
+                                           const T &k3,
+                                           const T &p1,
+                                           const T &p2,
+                                           const T &normalized_x,
+                                           const T &normalized_y,
+                                           T *image_x,
+                                           T *image_y)
+{
   T x = normalized_x;
   T y = normalized_y;
 
@@ -96,8 +97,8 @@ void InvertDivisionDistortionModel(const double focal_length_x,
                                    const double k2,
                                    const double image_x,
                                    const double image_y,
-                                   double* normalized_x,
-                                   double* normalized_y);
+                                   double *normalized_x,
+                                   double *normalized_y);
 
 // Apply camera intrinsics to the normalized point to get image coordinates.
 // This applies the radial lens distortion to a point which is in normalized
@@ -105,17 +106,18 @@ void InvertDivisionDistortionModel(const double focal_length_x,
 // coordinates in pixels. Templated for use with autodifferentiation.
 //
 // Uses division distortion model.
-template <typename T>
-inline void ApplyDivisionDistortionModel(const T& focal_length_x,
-                                         const T& focal_length_y,
-                                         const T& principal_point_x,
-                                         const T& principal_point_y,
-                                         const T& k1,
-                                         const T& k2,
-                                         const T& normalized_x,
-                                         const T& normalized_y,
-                                         T* image_x,
-                                         T* image_y) {
+template<typename T>
+inline void ApplyDivisionDistortionModel(const T &focal_length_x,
+                                         const T &focal_length_y,
+                                         const T &principal_point_x,
+                                         const T &principal_point_y,
+                                         const T &k1,
+                                         const T &k2,
+                                         const T &normalized_x,
+                                         const T &normalized_y,
+                                         T *image_x,
+                                         T *image_y)
+{
   T x = normalized_x;
   T y = normalized_y;
   T r2 = x * x + y * y;
@@ -134,19 +136,20 @@ inline void ApplyDivisionDistortionModel(const T& focal_length_x,
 // coordinates to get normalized coordinates.
 //
 // Uses Nuke distortion model.
-template <typename T>
-void InvertNukeDistortionModel(const T& focal_length_x,
-                               const T& focal_length_y,
-                               const T& principal_point_x,
-                               const T& principal_point_y,
+template<typename T>
+void InvertNukeDistortionModel(const T &focal_length_x,
+                               const T &focal_length_y,
+                               const T &principal_point_x,
+                               const T &principal_point_y,
                                const int image_width,
                                const int image_height,
-                               const T& k1,
-                               const T& k2,
-                               const T& image_x,
-                               const T& image_y,
-                               T* normalized_x,
-                               T* normalized_y) {
+                               const T &k1,
+                               const T &k2,
+                               const T &image_x,
+                               const T &image_y,
+                               T *normalized_x,
+                               T *normalized_y)
+{
   // According to the documentation:
   //
   //   xu = xd / (1 + k0 * rd^2 + k1 * rd^4)
@@ -199,8 +202,8 @@ void ApplyNukeDistortionModel(const double focal_length_x,
                               const double k2,
                               const double normalized_x,
                               const double normalized_y,
-                              double* image_x,
-                              double* image_y);
+                              double *image_x,
+                              double *image_y);
 
 // Invert camera intrinsics on the image point to get normalized coordinates.
 // This inverts the radial lens distortion to a point which is in image pixel
@@ -217,24 +220,25 @@ void InvertBrownDistortionModel(const double focal_length_x,
                                 const double p2,
                                 const double image_x,
                                 const double image_y,
-                                double* normalized_x,
-                                double* normalized_y);
+                                double *normalized_x,
+                                double *normalized_y);
 
-template <typename T>
-inline void ApplyBrownDistortionModel(const T& focal_length_x,
-                                      const T& focal_length_y,
-                                      const T& principal_point_x,
-                                      const T& principal_point_y,
-                                      const T& k1,
-                                      const T& k2,
-                                      const T& k3,
-                                      const T& k4,
-                                      const T& p1,
-                                      const T& p2,
-                                      const T& normalized_x,
-                                      const T& normalized_y,
-                                      T* image_x,
-                                      T* image_y) {
+template<typename T>
+inline void ApplyBrownDistortionModel(const T &focal_length_x,
+                                      const T &focal_length_y,
+                                      const T &principal_point_x,
+                                      const T &principal_point_y,
+                                      const T &k1,
+                                      const T &k2,
+                                      const T &k3,
+                                      const T &k4,
+                                      const T &p1,
+                                      const T &p2,
+                                      const T &normalized_x,
+                                      const T &normalized_y,
+                                      T *image_x,
+                                      T *image_y)
+{
   T x = normalized_x;
   T y = normalized_y;
 

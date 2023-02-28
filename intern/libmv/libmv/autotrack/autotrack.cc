@@ -34,23 +34,27 @@ namespace {
 
 class DisableChannelsTransform : public FrameAccessor::Transform {
  public:
-  DisableChannelsTransform(int disabled_channels)
-      : disabled_channels_(disabled_channels) {}
+  DisableChannelsTransform(int disabled_channels) : disabled_channels_(disabled_channels)
+  {
+  }
 
-  int64_t key() const { return disabled_channels_; }
+  int64_t key() const
+  {
+    return disabled_channels_;
+  }
 
-  void run(const FloatImage& input, FloatImage* output) const {
+  void run(const FloatImage &input, FloatImage *output) const
+  {
     bool disable_red = (disabled_channels_ & Marker::CHANNEL_R) != 0,
          disable_green = (disabled_channels_ & Marker::CHANNEL_G) != 0,
          disable_blue = (disabled_channels_ & Marker::CHANNEL_B) != 0;
 
-    LG << "Disabling channels: " << (disable_red ? "R " : "")
-       << (disable_green ? "G " : "") << (disable_blue ? "B" : "");
+    LG << "Disabling channels: " << (disable_red ? "R " : "") << (disable_green ? "G " : "")
+       << (disable_blue ? "B" : "");
 
     // It's important to rescale the resultappropriately so that e.g. if only
     // blue is selected, it's not zeroed out.
-    float scale = (disable_red ? 0.0f : 0.2126f) +
-                  (disable_green ? 0.0f : 0.7152f) +
+    float scale = (disable_red ? 0.0f : 0.2126f) + (disable_green ? 0.0f : 0.7152f) +
                   (disable_blue ? 0.0f : 0.0722f);
 
     output->Resize(input.Height(), input.Width(), 1);
@@ -69,15 +73,17 @@ class DisableChannelsTransform : public FrameAccessor::Transform {
   int disabled_channels_;
 };
 
-template <typename QuadT, typename ArrayT>
-void QuadToArrays(const QuadT& quad, ArrayT* x, ArrayT* y) {
+template<typename QuadT, typename ArrayT>
+void QuadToArrays(const QuadT &quad, ArrayT *x, ArrayT *y)
+{
   for (int i = 0; i < 4; ++i) {
     x[i] = quad.coordinates(i, 0);
     y[i] = quad.coordinates(i, 1);
   }
 }
 
-void MarkerToArrays(const Marker& marker, double* x, double* y) {
+void MarkerToArrays(const Marker &marker, double *x, double *y)
+{
   Quad2Df offset_quad = marker.patch;
   Vec2f origin = marker.search_region.Rounded().min;
   offset_quad.coordinates.rowwise() -= origin.transpose();
@@ -86,9 +92,10 @@ void MarkerToArrays(const Marker& marker, double* x, double* y) {
   y[4] = marker.center.y() - origin(1);
 }
 
-FrameAccessor::Key GetImageForMarker(const Marker& marker,
-                                     FrameAccessor* frame_accessor,
-                                     FloatImage* image) {
+FrameAccessor::Key GetImageForMarker(const Marker &marker,
+                                     FrameAccessor *frame_accessor,
+                                     FloatImage *image)
+{
   // TODO(sergey): Currently we pass float region to the accessor,
   // but we don't want the accessor to decide the rounding, so we
   // do rounding here.
@@ -107,18 +114,21 @@ FrameAccessor::Key GetImageForMarker(const Marker& marker,
                                   image);
 }
 
-FrameAccessor::Key GetMaskForMarker(const Marker& marker,
-                                    FrameAccessor* frame_accessor,
-                                    FloatImage* mask) {
+FrameAccessor::Key GetMaskForMarker(const Marker &marker,
+                                    FrameAccessor *frame_accessor,
+                                    FloatImage *mask)
+{
   Region region = marker.search_region.Rounded();
-  return frame_accessor->GetMaskForTrack(
-      marker.clip, marker.frame, marker.track, &region, mask);
+  return frame_accessor->GetMaskForTrack(marker.clip, marker.frame, marker.track, &region, mask);
 }
 
-PredictDirection getPredictDirection(const TrackRegionOptions* track_options) {
+PredictDirection getPredictDirection(const TrackRegionOptions *track_options)
+{
   switch (track_options->direction) {
-    case TrackRegionOptions::FORWARD: return PredictDirection::FORWARD;
-    case TrackRegionOptions::BACKWARD: return PredictDirection::BACKWARD;
+    case TrackRegionOptions::FORWARD:
+      return PredictDirection::FORWARD;
+    case TrackRegionOptions::BACKWARD:
+      return PredictDirection::BACKWARD;
   }
 
   LOG(FATAL) << "Unhandled tracking direction " << track_options->direction
@@ -129,16 +139,18 @@ PredictDirection getPredictDirection(const TrackRegionOptions* track_options) {
 
 }  // namespace
 
-bool AutoTrack::TrackMarker(Marker* tracked_marker,
-                            TrackRegionResult* result,
-                            const TrackRegionOptions* track_options) {
+bool AutoTrack::TrackMarker(Marker *tracked_marker,
+                            TrackRegionResult *result,
+                            const TrackRegionOptions *track_options)
+{
   // Try to predict the location of the second marker.
   const PredictDirection predict_direction = getPredictDirection(track_options);
   bool predicted_position = false;
   if (PredictMarkerPosition(tracks_, predict_direction, tracked_marker)) {
     LG << "Successfully predicted!";
     predicted_position = true;
-  } else {
+  }
+  else {
     LG << "Prediction failed; trying to track anyway.";
   }
 
@@ -158,20 +170,20 @@ bool AutoTrack::TrackMarker(Marker* tracked_marker,
   // TODO(keir): Technically this could take a smaller slice from the source
   // image instead of taking one the size of the search window.
   FloatImage reference_image;
-  FrameAccessor::Key reference_key =
-      GetImageForMarker(reference_marker, frame_accessor_, &reference_image);
+  FrameAccessor::Key reference_key = GetImageForMarker(
+      reference_marker, frame_accessor_, &reference_image);
   if (!reference_key) {
     LG << "Couldn't get frame for reference marker: " << reference_marker;
     return false;
   }
 
   FloatImage reference_mask;
-  FrameAccessor::Key reference_mask_key =
-      GetMaskForMarker(reference_marker, frame_accessor_, &reference_mask);
+  FrameAccessor::Key reference_mask_key = GetMaskForMarker(
+      reference_marker, frame_accessor_, &reference_mask);
 
   FloatImage tracked_image;
-  FrameAccessor::Key tracked_key =
-      GetImageForMarker(*tracked_marker, frame_accessor_, &tracked_image);
+  FrameAccessor::Key tracked_key = GetImageForMarker(
+      *tracked_marker, frame_accessor_, &tracked_image);
   if (!tracked_key) {
     frame_accessor_->ReleaseImage(reference_key);
     LG << "Couldn't get frame for tracked marker: " << tracked_marker;
@@ -192,14 +204,7 @@ bool AutoTrack::TrackMarker(Marker* tracked_marker,
   }
   local_track_region_options.num_extra_points = 1;  // For center point.
   local_track_region_options.attempt_refine_before_brute = predicted_position;
-  TrackRegion(reference_image,
-              tracked_image,
-              x1,
-              y1,
-              local_track_region_options,
-              x2,
-              y2,
-              result);
+  TrackRegion(reference_image, tracked_image, x1, y1, local_track_region_options, x2, y2, result);
 
   // Copy results over the tracked marker.
   Vec2f tracked_origin = tracked_marker->search_region.Rounded().min;
@@ -227,22 +232,23 @@ bool AutoTrack::TrackMarker(Marker* tracked_marker,
   return true;
 }
 
-void AutoTrack::AddMarker(const Marker& marker) {
+void AutoTrack::AddMarker(const Marker &marker)
+{
   tracks_.AddMarker(marker);
 }
 
-void AutoTrack::SetMarkers(vector<Marker>* markers) {
+void AutoTrack::SetMarkers(vector<Marker> *markers)
+{
   tracks_.SetMarkers(markers);
 }
 
-bool AutoTrack::GetMarker(int clip,
-                          int frame,
-                          int track,
-                          Marker* markers) const {
+bool AutoTrack::GetMarker(int clip, int frame, int track, Marker *markers) const
+{
   return tracks_.GetMarker(clip, frame, track, markers);
 }
 
-void AutoTrack::DetectAndTrack(const DetectAndTrackOptions& options) {
+void AutoTrack::DetectAndTrack(const DetectAndTrackOptions &options)
+{
   int num_clips = frame_accessor_->NumClips();
   for (int clip = 0; clip < num_clips; ++clip) {
     int num_frames = frame_accessor_->NumFrames(clip);
@@ -259,8 +265,7 @@ void AutoTrack::DetectAndTrack(const DetectAndTrackOptions& options) {
       // First, get or detect markers for this frame.
       vector<Marker> this_frame_markers;
       tracks_.GetMarkersInFrame(clip, frame, &this_frame_markers);
-      LG << "Clip " << clip << ", frame " << frame << " have "
-         << this_frame_markers.size();
+      LG << "Clip " << clip << ", frame " << frame << " have " << this_frame_markers.size();
       if (this_frame_markers.size() < options.min_num_features) {
         DetectFeaturesInFrame(clip, frame);
         this_frame_markers.clear();
@@ -282,14 +287,15 @@ void AutoTrack::DetectAndTrack(const DetectAndTrackOptions& options) {
       std::sort(tracks_in_this_frame.begin(), tracks_in_this_frame.end());
 
       // Find tracks in the previous frame that are not in this one.
-      vector<Marker*> previous_frame_markers_to_track;
+      vector<Marker *> previous_frame_markers_to_track;
       int num_skipped = 0;
       for (int i = 0; i < previous_frame_markers.size(); ++i) {
         if (std::binary_search(tracks_in_this_frame.begin(),
                                tracks_in_this_frame.end(),
                                previous_frame_markers[i].track)) {
           num_skipped++;
-        } else {
+        }
+        else {
           previous_frame_markers_to_track.push_back(&previous_frame_markers[i]);
         }
       }
@@ -306,7 +312,8 @@ void AutoTrack::DetectAndTrack(const DetectAndTrackOptions& options) {
           LG << "Success: " << this_frame_marker;
           AddMarker(this_frame_marker);
           this_frame_markers.push_back(this_frame_marker);
-        } else {
+        }
+        else {
           LG << "Failed to track: " << this_frame_marker;
         }
       }

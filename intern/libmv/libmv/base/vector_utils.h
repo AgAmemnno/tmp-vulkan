@@ -22,8 +22,8 @@
 #define LIBMV_BASE_VECTOR_UTILS_H_
 
 /// Delete the contents of a container.
-template <class Array>
-void DeleteElements(Array* array) {
+template<class Array> void DeleteElements(Array *array)
+{
   for (int i = 0; i < array->size(); ++i) {
     delete (*array)[i];
   }

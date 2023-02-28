@@ -33,14 +33,14 @@ namespace libmv {
  *     H = |d e f|
  *         |g h 1|
  */
-template <typename T = double>
-class Homography2DNormalizedParameterization {
+template<typename T = double> class Homography2DNormalizedParameterization {
  public:
   typedef Eigen::Matrix<T, 8, 1> Parameters;     // a, b, ... g, h
   typedef Eigen::Matrix<T, 3, 3> Parameterized;  // H
 
   /// Convert from the 8 parameters to a H matrix.
-  static void To(const Parameters& p, Parameterized* h) {
+  static void To(const Parameters &p, Parameterized *h)
+  {
     // clang-format off
     *h << p(0), p(1), p(2),
           p(3), p(4), p(5),
@@ -49,7 +49,8 @@ class Homography2DNormalizedParameterization {
   }
 
   /// Convert from a H matrix to the 8 parameters.
-  static void From(const Parameterized& h, Parameters* p) {
+  static void From(const Parameterized &h, Parameters *p)
+  {
     // clang-format off
     *p << h(0, 0), h(0, 1), h(0, 2),
           h(1, 0), h(1, 1), h(1, 2),
@@ -67,14 +68,14 @@ class Homography2DNormalizedParameterization {
  *          |i j k l|
  *          |m n o 1|
  */
-template <typename T = double>
-class Homography3DNormalizedParameterization {
+template<typename T = double> class Homography3DNormalizedParameterization {
  public:
   typedef Eigen::Matrix<T, 15, 1> Parameters;    // a, b, ... n, o
   typedef Eigen::Matrix<T, 4, 4> Parameterized;  // H
 
   /// Convert from the 15 parameters to a H matrix.
-  static void To(const Parameters& p, Parameterized* h) {
+  static void To(const Parameters &p, Parameterized *h)
+  {
     // clang-format off
     *h << p(0), p(1), p(2), p(3),
           p(4), p(5), p(6), p(7),
@@ -84,7 +85,8 @@ class Homography3DNormalizedParameterization {
   }
 
   /// Convert from a H matrix to the 15 parameters.
-  static void From(const Parameterized& h, Parameters* p) {
+  static void From(const Parameterized &h, Parameters *p)
+  {
     // clang-format off
     *p << h(0, 0), h(0, 1), h(0, 2), h(0, 3),
           h(1, 0), h(1, 1), h(1, 2), h(1, 3),

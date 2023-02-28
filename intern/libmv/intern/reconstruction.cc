@@ -35,7 +35,7 @@ struct libmv_Reconstruction {
 
   /* Used for per-track average error calculation after reconstruction */
   Tracks tracks;
-  CameraIntrinsics* intrinsics;
+  CameraIntrinsics *intrinsics;
 
   double error;
   bool is_valid;
@@ -45,14 +45,15 @@ namespace {
 
 class ReconstructUpdateCallback : public ProgressUpdateCallback {
  public:
-  ReconstructUpdateCallback(
-      reconstruct_progress_update_cb progress_update_callback,
-      void* callback_customdata) {
+  ReconstructUpdateCallback(reconstruct_progress_update_cb progress_update_callback,
+                            void *callback_customdata)
+  {
     progress_update_callback_ = progress_update_callback;
     callback_customdata_ = callback_customdata;
   }
 
-  void invoke(double progress, const char* message) {
+  void invoke(double progress, const char *message)
+  {
     if (progress_update_callback_) {
       progress_update_callback_(callback_customdata_, progress, message);
     }
@@ -60,17 +61,17 @@ class ReconstructUpdateCallback : public ProgressUpdateCallback {
 
  protected:
   reconstruct_progress_update_cb progress_update_callback_;
-  void* callback_customdata_;
+  void *callback_customdata_;
 };
 
-void libmv_solveRefineIntrinsics(
-    const Tracks& tracks,
-    const int refine_intrinsics,
-    const int bundle_constraints,
-    reconstruct_progress_update_cb progress_update_callback,
-    void* callback_customdata,
-    EuclideanReconstruction* reconstruction,
-    CameraIntrinsics* intrinsics) {
+void libmv_solveRefineIntrinsics(const Tracks &tracks,
+                                 const int refine_intrinsics,
+                                 const int bundle_constraints,
+                                 reconstruct_progress_update_cb progress_update_callback,
+                                 void *callback_customdata,
+                                 EuclideanReconstruction *reconstruction,
+                                 CameraIntrinsics *intrinsics)
+{
   /* only a few combinations are supported but trust the caller/ */
   int bundle_intrinsics = 0;
 
@@ -81,11 +82,11 @@ void libmv_solveRefineIntrinsics(
     bundle_intrinsics |= libmv::BUNDLE_PRINCIPAL_POINT;
   }
 
-#define SET_DISTORTION_FLAG_CHECKED(type, coefficient)                         \
-  do {                                                                         \
-    if (refine_intrinsics & LIBMV_REFINE_##type##_DISTORTION_##coefficient) {  \
-      bundle_intrinsics |= libmv::BUNDLE_##type##_##coefficient;               \
-    }                                                                          \
+#define SET_DISTORTION_FLAG_CHECKED(type, coefficient) \
+  do { \
+    if (refine_intrinsics & LIBMV_REFINE_##type##_DISTORTION_##coefficient) { \
+      bundle_intrinsics |= libmv::BUNDLE_##type##_##coefficient; \
+    } \
   } while (0)
 
   SET_DISTORTION_FLAG_CHECKED(RADIAL, K1);
@@ -100,45 +101,41 @@ void libmv_solveRefineIntrinsics(
 
   progress_update_callback(callback_customdata, 1.0, "Refining solution");
 
-  EuclideanBundleCommonIntrinsics(tracks,
-                                  bundle_intrinsics,
-                                  bundle_constraints,
-                                  reconstruction,
-                                  intrinsics);
+  EuclideanBundleCommonIntrinsics(
+      tracks, bundle_intrinsics, bundle_constraints, reconstruction, intrinsics);
 }
 
-void finishReconstruction(
-    const Tracks& tracks,
-    const CameraIntrinsics& camera_intrinsics,
-    libmv_Reconstruction* libmv_reconstruction,
-    reconstruct_progress_update_cb progress_update_callback,
-    void* callback_customdata) {
-  EuclideanReconstruction& reconstruction =
-      libmv_reconstruction->reconstruction;
+void finishReconstruction(const Tracks &tracks,
+                          const CameraIntrinsics &camera_intrinsics,
+                          libmv_Reconstruction *libmv_reconstruction,
+                          reconstruct_progress_update_cb progress_update_callback,
+                          void *callback_customdata)
+{
+  EuclideanReconstruction &reconstruction = libmv_reconstruction->reconstruction;
 
   /* Reprojection error calculation. */
   progress_update_callback(callback_customdata, 1.0, "Finishing solution");
   libmv_reconstruction->tracks = tracks;
-  libmv_reconstruction->error =
-      EuclideanReprojectionError(tracks, reconstruction, camera_intrinsics);
+  libmv_reconstruction->error = EuclideanReprojectionError(
+      tracks, reconstruction, camera_intrinsics);
 }
 
-bool selectTwoKeyframesBasedOnGRICAndVariance(
-    Tracks& tracks,
-    Tracks& normalized_tracks,
-    CameraIntrinsics& camera_intrinsics,
-    int& keyframe1,
-    int& keyframe2) {
+bool selectTwoKeyframesBasedOnGRICAndVariance(Tracks &tracks,
+                                              Tracks &normalized_tracks,
+                                              CameraIntrinsics &camera_intrinsics,
+                                              int &keyframe1,
+                                              int &keyframe2)
+{
   libmv::vector<int> keyframes;
 
   /* Get list of all keyframe candidates first. */
-  SelectKeyframesBasedOnGRICAndVariance(
-      normalized_tracks, camera_intrinsics, keyframes);
+  SelectKeyframesBasedOnGRICAndVariance(normalized_tracks, camera_intrinsics, keyframes);
 
   if (keyframes.size() < 2) {
     LG << "Not enough keyframes detected by GRIC";
     return false;
-  } else if (keyframes.size() == 2) {
+  }
+  else if (keyframes.size() == 2) {
     keyframe1 = keyframes[0];
     keyframe2 = keyframes[1];
     return true;
@@ -157,9 +154,8 @@ bool selectTwoKeyframesBasedOnGRICAndVariance(
   for (int i = 1; i < keyframes.size(); i++) {
     EuclideanReconstruction reconstruction;
     int current_keyframe = keyframes[i];
-    libmv::vector<Marker> keyframe_markers =
-        normalized_tracks.MarkersForTracksInBothImages(previous_keyframe,
-                                                       current_keyframe);
+    libmv::vector<Marker> keyframe_markers = normalized_tracks.MarkersForTracksInBothImages(
+        previous_keyframe, current_keyframe);
 
     Tracks keyframe_tracks(keyframe_markers);
 
@@ -168,11 +164,10 @@ bool selectTwoKeyframesBasedOnGRICAndVariance(
     EuclideanBundle(keyframe_tracks, &reconstruction);
     EuclideanCompleteReconstruction(keyframe_tracks, &reconstruction, NULL);
 
-    double current_error =
-        EuclideanReprojectionError(tracks, reconstruction, camera_intrinsics);
+    double current_error = EuclideanReprojectionError(tracks, reconstruction, camera_intrinsics);
 
-    LG << "Error between " << previous_keyframe << " and " << current_keyframe
-       << ": " << current_error;
+    LG << "Error between " << previous_keyframe << " and " << current_keyframe << ": "
+       << current_error;
 
     if (current_error < best_error) {
       best_error = current_error;
@@ -186,9 +181,10 @@ bool selectTwoKeyframesBasedOnGRICAndVariance(
   return true;
 }
 
-Marker libmv_projectMarker(const EuclideanPoint& point,
-                           const EuclideanCamera& camera,
-                           const CameraIntrinsics& intrinsics) {
+Marker libmv_projectMarker(const EuclideanPoint &point,
+                           const EuclideanCamera &camera,
+                           const CameraIntrinsics &intrinsics)
+{
   libmv::Vec3 projected = camera.R * point.X + camera.t;
   projected /= projected(2);
 
@@ -201,41 +197,39 @@ Marker libmv_projectMarker(const EuclideanPoint& point,
   return reprojected_marker;
 }
 
-void libmv_getNormalizedTracks(const Tracks& tracks,
-                               const CameraIntrinsics& camera_intrinsics,
-                               Tracks* normalized_tracks) {
+void libmv_getNormalizedTracks(const Tracks &tracks,
+                               const CameraIntrinsics &camera_intrinsics,
+                               Tracks *normalized_tracks)
+{
   libmv::vector<Marker> markers = tracks.AllMarkers();
   for (int i = 0; i < markers.size(); ++i) {
-    Marker& marker = markers[i];
-    camera_intrinsics.InvertIntrinsics(
-        marker.x, marker.y, &marker.x, &marker.y);
-    normalized_tracks->Insert(
-        marker.image, marker.track, marker.x, marker.y, marker.weight);
+    Marker &marker = markers[i];
+    camera_intrinsics.InvertIntrinsics(marker.x, marker.y, &marker.x, &marker.y);
+    normalized_tracks->Insert(marker.image, marker.track, marker.x, marker.y, marker.weight);
   }
 }
 
 }  // namespace
 
-libmv_Reconstruction* libmv_solveReconstruction(
-    const libmv_Tracks* libmv_tracks,
-    const libmv_CameraIntrinsicsOptions* libmv_camera_intrinsics_options,
-    libmv_ReconstructionOptions* libmv_reconstruction_options,
+libmv_Reconstruction *libmv_solveReconstruction(
+    const libmv_Tracks *libmv_tracks,
+    const libmv_CameraIntrinsicsOptions *libmv_camera_intrinsics_options,
+    libmv_ReconstructionOptions *libmv_reconstruction_options,
     reconstruct_progress_update_cb progress_update_callback,
-    void* callback_customdata) {
-  libmv_Reconstruction* libmv_reconstruction =
-      LIBMV_OBJECT_NEW(libmv_Reconstruction);
+    void *callback_customdata)
+{
+  libmv_Reconstruction *libmv_reconstruction = LIBMV_OBJECT_NEW(libmv_Reconstruction);
 
-  Tracks& tracks = *((Tracks*)libmv_tracks);
-  EuclideanReconstruction& reconstruction =
-      libmv_reconstruction->reconstruction;
+  Tracks &tracks = *((Tracks *)libmv_tracks);
+  EuclideanReconstruction &reconstruction = libmv_reconstruction->reconstruction;
 
-  ReconstructUpdateCallback update_callback =
-      ReconstructUpdateCallback(progress_update_callback, callback_customdata);
+  ReconstructUpdateCallback update_callback = ReconstructUpdateCallback(progress_update_callback,
+                                                                        callback_customdata);
 
   /* Retrieve reconstruction options from C-API to libmv API. */
-  CameraIntrinsics* camera_intrinsics;
-  camera_intrinsics = libmv_reconstruction->intrinsics =
-      libmv_cameraIntrinsicsCreateFromOptions(libmv_camera_intrinsics_options);
+  CameraIntrinsics *camera_intrinsics;
+  camera_intrinsics = libmv_reconstruction->intrinsics = libmv_cameraIntrinsicsCreateFromOptions(
+      libmv_camera_intrinsics_options);
 
   /* Invert the camera intrinsics/ */
   Tracks normalized_tracks;
@@ -250,11 +244,8 @@ libmv_Reconstruction* libmv_solveReconstruction(
 
     update_callback.invoke(0, "Selecting keyframes");
 
-    if (selectTwoKeyframesBasedOnGRICAndVariance(tracks,
-                                                 normalized_tracks,
-                                                 *camera_intrinsics,
-                                                 keyframe1,
-                                                 keyframe2)) {
+    if (selectTwoKeyframesBasedOnGRICAndVariance(
+            tracks, normalized_tracks, *camera_intrinsics, keyframe1, keyframe2)) {
       /* so keyframes in the interface would be updated */
       libmv_reconstruction_options->keyframe1 = keyframe1;
       libmv_reconstruction_options->keyframe2 = keyframe2;
@@ -264,8 +255,8 @@ libmv_Reconstruction* libmv_solveReconstruction(
   /* Actual reconstruction. */
   LG << "frames to init from: " << keyframe1 << " " << keyframe2;
 
-  libmv::vector<Marker> keyframe_markers =
-      normalized_tracks.MarkersForTracksInBothImages(keyframe1, keyframe2);
+  libmv::vector<Marker> keyframe_markers = normalized_tracks.MarkersForTracksInBothImages(
+      keyframe1, keyframe2);
 
   LG << "number of markers for init: " << keyframe_markers.size();
 
@@ -284,8 +275,7 @@ libmv_Reconstruction* libmv_solveReconstruction(
   }
 
   EuclideanBundle(normalized_tracks, &reconstruction);
-  EuclideanCompleteReconstruction(
-      normalized_tracks, &reconstruction, &update_callback);
+  EuclideanCompleteReconstruction(normalized_tracks, &reconstruction, &update_callback);
 
   /* Refinement. */
   if (libmv_reconstruction_options->refine_intrinsics) {
@@ -309,29 +299,28 @@ libmv_Reconstruction* libmv_solveReconstruction(
                        callback_customdata);
 
   libmv_reconstruction->is_valid = true;
-  return (libmv_Reconstruction*)libmv_reconstruction;
+  return (libmv_Reconstruction *)libmv_reconstruction;
 }
 
-libmv_Reconstruction* libmv_solveModal(
-    const libmv_Tracks* libmv_tracks,
-    const libmv_CameraIntrinsicsOptions* libmv_camera_intrinsics_options,
-    const libmv_ReconstructionOptions* libmv_reconstruction_options,
+libmv_Reconstruction *libmv_solveModal(
+    const libmv_Tracks *libmv_tracks,
+    const libmv_CameraIntrinsicsOptions *libmv_camera_intrinsics_options,
+    const libmv_ReconstructionOptions *libmv_reconstruction_options,
     reconstruct_progress_update_cb progress_update_callback,
-    void* callback_customdata) {
-  libmv_Reconstruction* libmv_reconstruction =
-      LIBMV_OBJECT_NEW(libmv_Reconstruction);
+    void *callback_customdata)
+{
+  libmv_Reconstruction *libmv_reconstruction = LIBMV_OBJECT_NEW(libmv_Reconstruction);
 
-  Tracks& tracks = *((Tracks*)libmv_tracks);
-  EuclideanReconstruction& reconstruction =
-      libmv_reconstruction->reconstruction;
+  Tracks &tracks = *((Tracks *)libmv_tracks);
+  EuclideanReconstruction &reconstruction = libmv_reconstruction->reconstruction;
 
-  ReconstructUpdateCallback update_callback =
-      ReconstructUpdateCallback(progress_update_callback, callback_customdata);
+  ReconstructUpdateCallback update_callback = ReconstructUpdateCallback(progress_update_callback,
+                                                                        callback_customdata);
 
   /* Retrieve reconstruction options from C-API to libmv API. */
-  CameraIntrinsics* camera_intrinsics;
-  camera_intrinsics = libmv_reconstruction->intrinsics =
-      libmv_cameraIntrinsicsCreateFromOptions(libmv_camera_intrinsics_options);
+  CameraIntrinsics *camera_intrinsics;
+  camera_intrinsics = libmv_reconstruction->intrinsics = libmv_cameraIntrinsicsCreateFromOptions(
+      libmv_camera_intrinsics_options);
 
   /* Invert the camera intrinsics. */
   Tracks normalized_tracks;
@@ -366,25 +355,26 @@ libmv_Reconstruction* libmv_solveModal(
                        callback_customdata);
 
   libmv_reconstruction->is_valid = true;
-  return (libmv_Reconstruction*)libmv_reconstruction;
+  return (libmv_Reconstruction *)libmv_reconstruction;
 }
 
-int libmv_reconstructionIsValid(libmv_Reconstruction* libmv_reconstruction) {
+int libmv_reconstructionIsValid(libmv_Reconstruction *libmv_reconstruction)
+{
   return libmv_reconstruction->is_valid;
 }
 
-void libmv_reconstructionDestroy(libmv_Reconstruction* libmv_reconstruction) {
+void libmv_reconstructionDestroy(libmv_Reconstruction *libmv_reconstruction)
+{
   LIBMV_OBJECT_DELETE(libmv_reconstruction->intrinsics, CameraIntrinsics);
   LIBMV_OBJECT_DELETE(libmv_reconstruction, libmv_Reconstruction);
 }
 
-int libmv_reprojectionPointForTrack(
-    const libmv_Reconstruction* libmv_reconstruction,
-    int track,
-    double pos[3]) {
-  const EuclideanReconstruction* reconstruction =
-      &libmv_reconstruction->reconstruction;
-  const EuclideanPoint* point = reconstruction->PointForTrack(track);
+int libmv_reprojectionPointForTrack(const libmv_Reconstruction *libmv_reconstruction,
+                                    int track,
+                                    double pos[3])
+{
+  const EuclideanReconstruction *reconstruction = &libmv_reconstruction->reconstruction;
+  const EuclideanPoint *point = reconstruction->PointForTrack(track);
   if (point) {
     pos[0] = point->X[0];
     pos[1] = point->X[2];
@@ -394,23 +384,19 @@ int libmv_reprojectionPointForTrack(
   return 0;
 }
 
-double libmv_reprojectionErrorForTrack(
-    const libmv_Reconstruction* libmv_reconstruction, int track) {
-  const EuclideanReconstruction* reconstruction =
-      &libmv_reconstruction->reconstruction;
-  const CameraIntrinsics* intrinsics = libmv_reconstruction->intrinsics;
-  libmv::vector<Marker> markers =
-      libmv_reconstruction->tracks.MarkersForTrack(track);
+double libmv_reprojectionErrorForTrack(const libmv_Reconstruction *libmv_reconstruction, int track)
+{
+  const EuclideanReconstruction *reconstruction = &libmv_reconstruction->reconstruction;
+  const CameraIntrinsics *intrinsics = libmv_reconstruction->intrinsics;
+  libmv::vector<Marker> markers = libmv_reconstruction->tracks.MarkersForTrack(track);
 
   int num_reprojected = 0;
   double total_error = 0.0;
 
   for (int i = 0; i < markers.size(); ++i) {
     double weight = markers[i].weight;
-    const EuclideanCamera* camera =
-        reconstruction->CameraForImage(markers[i].image);
-    const EuclideanPoint* point =
-        reconstruction->PointForTrack(markers[i].track);
+    const EuclideanCamera *camera = reconstruction->CameraForImage(markers[i].image);
+    const EuclideanPoint *point = reconstruction->PointForTrack(markers[i].track);
 
     if (!camera || !point || weight == 0.0) {
       continue;
@@ -418,8 +404,7 @@ double libmv_reprojectionErrorForTrack(
 
     num_reprojected++;
 
-    Marker reprojected_marker =
-        libmv_projectMarker(*point, *camera, *intrinsics);
+    Marker reprojected_marker = libmv_projectMarker(*point, *camera, *intrinsics);
     double ex = (reprojected_marker.x - markers[i].x) * weight;
     double ey = (reprojected_marker.y - markers[i].y) * weight;
 
@@ -429,14 +414,12 @@ double libmv_reprojectionErrorForTrack(
   return total_error / num_reprojected;
 }
 
-double libmv_reprojectionErrorForImage(
-    const libmv_Reconstruction* libmv_reconstruction, int image) {
-  const EuclideanReconstruction* reconstruction =
-      &libmv_reconstruction->reconstruction;
-  const CameraIntrinsics* intrinsics = libmv_reconstruction->intrinsics;
-  libmv::vector<Marker> markers =
-      libmv_reconstruction->tracks.MarkersInImage(image);
-  const EuclideanCamera* camera = reconstruction->CameraForImage(image);
+double libmv_reprojectionErrorForImage(const libmv_Reconstruction *libmv_reconstruction, int image)
+{
+  const EuclideanReconstruction *reconstruction = &libmv_reconstruction->reconstruction;
+  const CameraIntrinsics *intrinsics = libmv_reconstruction->intrinsics;
+  libmv::vector<Marker> markers = libmv_reconstruction->tracks.MarkersInImage(image);
+  const EuclideanCamera *camera = reconstruction->CameraForImage(image);
   int num_reprojected = 0;
   double total_error = 0.0;
 
@@ -445,8 +428,7 @@ double libmv_reprojectionErrorForImage(
   }
 
   for (int i = 0; i < markers.size(); ++i) {
-    const EuclideanPoint* point =
-        reconstruction->PointForTrack(markers[i].track);
+    const EuclideanPoint *point = reconstruction->PointForTrack(markers[i].track);
 
     if (!point) {
       continue;
@@ -454,8 +436,7 @@ double libmv_reprojectionErrorForImage(
 
     num_reprojected++;
 
-    Marker reprojected_marker =
-        libmv_projectMarker(*point, *camera, *intrinsics);
+    Marker reprojected_marker = libmv_projectMarker(*point, *camera, *intrinsics);
     double ex = (reprojected_marker.x - markers[i].x) * markers[i].weight;
     double ey = (reprojected_marker.y - markers[i].y) * markers[i].weight;
 
@@ -465,13 +446,12 @@ double libmv_reprojectionErrorForImage(
   return total_error / num_reprojected;
 }
 
-int libmv_reprojectionCameraForImage(
-    const libmv_Reconstruction* libmv_reconstruction,
-    int image,
-    double mat[4][4]) {
-  const EuclideanReconstruction* reconstruction =
-      &libmv_reconstruction->reconstruction;
-  const EuclideanCamera* camera = reconstruction->CameraForImage(image);
+int libmv_reprojectionCameraForImage(const libmv_Reconstruction *libmv_reconstruction,
+                                     int image,
+                                     double mat[4][4])
+{
+  const EuclideanReconstruction *reconstruction = &libmv_reconstruction->reconstruction;
+  const EuclideanCamera *camera = reconstruction->CameraForImage(image);
 
   if (camera) {
     for (int j = 0; j < 3; ++j) {
@@ -480,13 +460,15 @@ int libmv_reprojectionCameraForImage(
 
         if (k == 1) {
           l = 2;
-        } else if (k == 2) {
+        }
+        else if (k == 2) {
           l = 1;
         }
 
         if (j == 2) {
           mat[j][l] = -camera->R(j, k);
-        } else {
+        }
+        else {
           mat[j][l] = camera->R(j, k);
         }
       }
@@ -507,12 +489,13 @@ int libmv_reprojectionCameraForImage(
   return 0;
 }
 
-double libmv_reprojectionError(
-    const libmv_Reconstruction* libmv_reconstruction) {
+double libmv_reprojectionError(const libmv_Reconstruction *libmv_reconstruction)
+{
   return libmv_reconstruction->error;
 }
 
-libmv_CameraIntrinsics* libmv_reconstructionExtractIntrinsics(
-    libmv_Reconstruction* libmv_reconstruction) {
-  return (libmv_CameraIntrinsics*)libmv_reconstruction->intrinsics;
+libmv_CameraIntrinsics *libmv_reconstructionExtractIntrinsics(
+    libmv_Reconstruction *libmv_reconstruction)
+{
+  return (libmv_CameraIntrinsics *)libmv_reconstruction->intrinsics;
 }

@@ -56,24 +56,25 @@ class Point {
 class Reconstruction {
  public:
   // All methods copy their input reference or take ownership of the pointer.
-  void AddCameraPose(const CameraPose& pose);
-  int AddCameraIntrinsics(CameraIntrinsics* intrinsics);
-  int AddPoint(const Point& point);
-  int AddModel(Model* model);
+  void AddCameraPose(const CameraPose &pose);
+  int AddCameraIntrinsics(CameraIntrinsics *intrinsics);
+  int AddPoint(const Point &point);
+  int AddModel(Model *model);
 
   // Returns the corresponding pose or point or NULL if missing.
-  CameraPose* CameraPoseForFrame(int clip, int frame);
-  const CameraPose* CameraPoseForFrame(int clip, int frame) const;
-  Point* PointForTrack(int track);
-  const Point* PointForTrack(int track) const;
+  CameraPose *CameraPoseForFrame(int clip, int frame);
+  const CameraPose *CameraPoseForFrame(int clip, int frame) const;
+  Point *PointForTrack(int track);
+  const Point *PointForTrack(int track) const;
 
-  const vector<vector<CameraPose>>& camera_poses() const {
+  const vector<vector<CameraPose>> &camera_poses() const
+  {
     return camera_poses_;
   }
 
  private:
   // Indexed by CameraPose::intrinsics. Owns the intrinsics objects.
-  vector<CameraIntrinsics*> camera_intrinsics_;
+  vector<CameraIntrinsics *> camera_intrinsics_;
 
   // Indexed by Marker::clip then by Marker::frame.
   vector<map<int, CameraPose>> camera_poses_;
@@ -82,7 +83,7 @@ class Reconstruction {
   vector<Point> points_;
 
   // Indexed by Marker::model_id. Owns model objects.
-  vector<Model*> models_;
+  vector<Model *> models_;
 };
 
 }  // namespace mv

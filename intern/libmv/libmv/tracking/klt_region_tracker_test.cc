@@ -18,14 +18,15 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include "libmv/tracking/klt_region_tracker.h"
 #include "libmv/image/image.h"
+#include "libmv/tracking/klt_region_tracker.h"
 #include "testing/testing.h"
 
 namespace libmv {
 namespace {
 
-TEST(KltRegionTracker, Track) {
+TEST(KltRegionTracker, Track)
+{
   Array3Df image1(51, 51);
   image1.Fill(0);
 

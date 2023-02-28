@@ -45,7 +45,6 @@ static int get_centered_text_y(const rcti *rect)
   return BLI_rcti_cent_y(rect) - UI_DPI_FAC * 4;
 }
 
-
 static void draw_background(const rcti *rect)
 {
   uint pos = GPU_vertformat_attr_add(immVertexFormat(), "pos", GPU_COMP_F32, 3, GPU_FETCH_FLOAT);
@@ -103,18 +102,18 @@ static void draw_current_frame(const Scene *scene,
   /* Outline. */
   immUniformThemeColorShadeAlpha(TH_BACK, -25, -100);
   immRectf3D(pos,
-           subframe_x - (line_outline + U.pixelsize),
-           scrub_region_rect->ymax - box_padding,
-           subframe_x + (line_outline + U.pixelsize),
-           0.0f);
+             subframe_x - (line_outline + U.pixelsize),
+             scrub_region_rect->ymax - box_padding,
+             subframe_x + (line_outline + U.pixelsize),
+             0.0f);
 
   /* Line. */
   immUniformThemeColor(TH_CFRAME);
   immRectf3D(pos,
-           subframe_x - U.pixelsize,
-           scrub_region_rect->ymax - box_padding,
-           subframe_x + U.pixelsize,
-           0.0f);
+             subframe_x - U.pixelsize,
+             scrub_region_rect->ymax - box_padding,
+             subframe_x + U.pixelsize,
+             0.0f);
   immUnbindProgram();
   GPU_blend(GPU_BLEND_NONE);
 

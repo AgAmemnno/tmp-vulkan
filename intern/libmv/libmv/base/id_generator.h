@@ -23,11 +23,15 @@
 
 namespace libmv {
 
-template <typename ID>
-class IdGenerator {
+template<typename ID> class IdGenerator {
  public:
-  IdGenerator() : next_(0) {}
-  ID Generate() { return next_++; }
+  IdGenerator() : next_(0)
+  {
+  }
+  ID Generate()
+  {
+    return next_++;
+  }
 
  private:
   ID next_;

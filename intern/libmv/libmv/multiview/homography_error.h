@@ -47,7 +47,8 @@ struct AsymmetricError {
    * \param[in]  x2  A set of 2D points (2xN or 3xN matrix of column vectors).
    * \param[out] dx  A 2xN matrix of column vectors of residuals errors
    */
-  static void Residuals(const Mat& H, const Mat& x1, const Mat& x2, Mat2X* dx) {
+  static void Residuals(const Mat &H, const Mat &x1, const Mat &x2, Mat2X *dx)
+  {
     dx->resize(2, x1.cols());
     Mat3X x2h_est;
     if (x1.rows() == 2)
@@ -73,7 +74,8 @@ struct AsymmetricError {
    * \param[in]  x2 A 2D point (vector of size 2 or 3 (euclidean/homogeneous))
    * \param[out] dx  A vector of size 2 of the residual error
    */
-  static void Residuals(const Mat& H, const Vec& x1, const Vec& x2, Vec2* dx) {
+  static void Residuals(const Mat &H, const Vec &x1, const Vec &x2, Vec2 *dx)
+  {
     Vec3 x2h_est;
     if (x1.rows() == 2)
       x2h_est = H * EuclideanToHomogeneous(static_cast<Vec2>(x1));
@@ -82,8 +84,7 @@ struct AsymmetricError {
     if (x2.rows() == 2)
       *dx = x2 - x2h_est.head<2>() / x2h_est[2];
     else
-      *dx = HomogeneousToEuclidean(static_cast<Vec3>(x2)) -
-            x2h_est.head<2>() / x2h_est[2];
+      *dx = HomogeneousToEuclidean(static_cast<Vec3>(x2)) - x2h_est.head<2>() / x2h_est[2];
   }
   /**
    * Computes the squared norm of the residuals between a set of 2D points x2
@@ -97,7 +98,8 @@ struct AsymmetricError {
    * \param[in]  x2  A set of 2D points (2xN or 3xN matrix of column vectors).
    * \return  The squared norm of the asymmetric residuals errors
    */
-  static double Error(const Mat& H, const Mat& x1, const Mat& x2) {
+  static double Error(const Mat &H, const Mat &x1, const Mat &x2)
+  {
     Mat2X dx;
     Residuals(H, x1, x2, &dx);
     return dx.squaredNorm();
@@ -113,7 +115,8 @@ struct AsymmetricError {
    * \param[in]  x2 A 2D point (vector of size 2 or 3 (euclidean/homogeneous))
    * \return  The squared norm of the asymmetric residual error
    */
-  static double Error(const Mat& H, const Vec& x1, const Vec& x2) {
+  static double Error(const Mat &H, const Vec &x1, const Vec &x2)
+  {
     Vec2 dx;
     Residuals(H, x1, x2, &dx);
     return dx.squaredNorm();
@@ -140,12 +143,12 @@ struct SymmetricError {
    * \param[in]  x2 A 2D point (vector of size 2 or 3 (euclidean/homogeneous))
    * \return  The squared norm of the symmetric residuals errors
    */
-  static double Error(const Mat& H, const Vec& x1, const Vec& x2) {
+  static double Error(const Mat &H, const Vec &x1, const Vec &x2)
+  {
     // TODO(keir): This is awesomely inefficient because it does a 3x3
     // inversion for each evaluation.
     Mat3 Hinv = H.inverse();
-    return AsymmetricError::Error(H, x1, x2) +
-           AsymmetricError::Error(Hinv, x2, x1);
+    return AsymmetricError::Error(H, x1, x2) + AsymmetricError::Error(Hinv, x2, x1);
   }
   // TODO(julien) Add residuals function \see AsymmetricError
 };
@@ -169,7 +172,8 @@ struct AlgebraicError {
    * \param[in]  x2  A set of 2D points (2xN or 3xN matrix of column vectors).
    * \param[out] dx  A 3xN matrix of column vectors of residuals errors
    */
-  static void Residuals(const Mat& H, const Mat& x1, const Mat& x2, Mat3X* dx) {
+  static void Residuals(const Mat &H, const Mat &x1, const Mat &x2, Mat3X *dx)
+  {
     dx->resize(3, x1.cols());
     Vec3 col;
     for (int i = 0; i < x1.cols(); ++i) {
@@ -188,7 +192,8 @@ struct AlgebraicError {
    * \param[in]  x2 A 2D point (vector of size 2 or 3 (euclidean/homogeneous))
    * \param[out] dx  A vector of size 3 of the residual error
    */
-  static void Residuals(const Mat& H, const Vec& x1, const Vec& x2, Vec3* dx) {
+  static void Residuals(const Mat &H, const Vec &x1, const Vec &x2, Vec3 *dx)
+  {
     Vec3 x2h_est;
     if (x1.rows() == 2)
       x2h_est = H * EuclideanToHomogeneous(static_cast<Vec2>(x1));
@@ -212,7 +217,8 @@ struct AlgebraicError {
    * \param[in]  x2 A set of 2D points (2xN or 3xN matrix of column vectors).
    * \return  The squared norm of the asymmetric residuals errors
    */
-  static double Error(const Mat& H, const Mat& x1, const Mat& x2) {
+  static double Error(const Mat &H, const Mat &x1, const Mat &x2)
+  {
     Mat3X dx;
     Residuals(H, x1, x2, &dx);
     return dx.squaredNorm();
@@ -228,7 +234,8 @@ struct AlgebraicError {
    * \param[in]  x2 A 2D point (vector of size 2 or 3 (euclidean/homogeneous))
    * \return  The squared norm of the asymmetric residual error
    */
-  static double Error(const Mat& H, const Vec& x1, const Vec& x2) {
+  static double Error(const Mat &H, const Vec &x1, const Vec &x2)
+  {
     Vec3 dx;
     Residuals(H, x1, x2, &dx);
     return dx.squaredNorm();

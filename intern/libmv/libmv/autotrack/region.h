@@ -46,13 +46,14 @@ struct Region {
   Vec2f min;
   Vec2f max;
 
-  template <typename T>
-  void Offset(const T& offset) {
+  template<typename T> void Offset(const T &offset)
+  {
     min += offset.template cast<float>();
     max += offset.template cast<float>();
   }
 
-  Region Rounded() const {
+  Region Rounded() const
+  {
     Region result;
     result.min(0) = ceil(this->min(0));
     result.min(1) = ceil(this->min(1));

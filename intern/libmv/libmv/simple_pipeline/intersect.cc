@@ -38,12 +38,13 @@ namespace {
 
 class EuclideanIntersectCostFunctor {
  public:
-  EuclideanIntersectCostFunctor(const Marker& marker,
-                                const EuclideanCamera& camera)
-      : marker_(marker), camera_(camera) {}
+  EuclideanIntersectCostFunctor(const Marker &marker, const EuclideanCamera &camera)
+      : marker_(marker), camera_(camera)
+  {
+  }
 
-  template <typename T>
-  bool operator()(const T* X, T* residuals) const {
+  template<typename T> bool operator()(const T *X, T *residuals) const
+  {
     typedef Eigen::Matrix<T, 3, 3> Mat3;
     typedef Eigen::Matrix<T, 3, 1> Vec3;
 
@@ -60,14 +61,14 @@ class EuclideanIntersectCostFunctor {
     return true;
   }
 
-  const Marker& marker_;
-  const EuclideanCamera& camera_;
+  const Marker &marker_;
+  const EuclideanCamera &camera_;
 };
 
 }  // namespace
 
-bool EuclideanIntersect(const vector<Marker>& markers,
-                        EuclideanReconstruction* reconstruction) {
+bool EuclideanIntersect(const vector<Marker> &markers, EuclideanReconstruction *reconstruction)
+{
   if (markers.size() < 2) {
     return false;
   }
@@ -78,7 +79,7 @@ bool EuclideanIntersect(const vector<Marker>& markers,
   vector<Mat34> cameras;
   Mat34 P;
   for (int i = 0; i < markers.size(); ++i) {
-    EuclideanCamera* camera = reconstruction->CameraForImage(markers[i].image);
+    EuclideanCamera *camera = reconstruction->CameraForImage(markers[i].image);
     P_From_KRt(K, camera->R, camera->t, &P);
     cameras.push_back(P);
   }
@@ -103,16 +104,14 @@ bool EuclideanIntersect(const vector<Marker>& markers,
   // Add residual blocks to the problem.
   int num_residuals = 0;
   for (int i = 0; i < markers.size(); ++i) {
-    const Marker& marker = markers[i];
+    const Marker &marker = markers[i];
     if (marker.weight != 0.0) {
-      const EuclideanCamera& camera =
-          *reconstruction->CameraForImage(marker.image);
+      const EuclideanCamera &camera = *reconstruction->CameraForImage(marker.image);
 
       problem.AddResidualBlock(
           new ceres::AutoDiffCostFunction<EuclideanIntersectCostFunctor,
                                           2, /* num_residuals */
-                                          3>(
-              new EuclideanIntersectCostFunctor(marker, camera)),
+                                          3>(new EuclideanIntersectCostFunctor(marker, camera)),
           NULL,
           &X(0));
       num_residuals++;
@@ -152,12 +151,10 @@ bool EuclideanIntersect(const vector<Marker>& markers,
 
   // Try projecting the point; make sure it's in front of everyone.
   for (int i = 0; i < cameras.size(); ++i) {
-    const EuclideanCamera& camera =
-        *reconstruction->CameraForImage(markers[i].image);
+    const EuclideanCamera &camera = *reconstruction->CameraForImage(markers[i].image);
     Vec3 x = camera.R * X + camera.t;
     if (x(2) < 0) {
-      LOG(ERROR) << "POINT BEHIND CAMERA " << markers[i].image << ": "
-                 << x.transpose();
+      LOG(ERROR) << "POINT BEHIND CAMERA " << markers[i].image << ": " << x.transpose();
       return false;
     }
   }
@@ -176,17 +173,18 @@ struct ProjectiveIntersectCostFunction {
   typedef Vec FMatrixType;
   typedef Vec4 XMatrixType;
 
-  ProjectiveIntersectCostFunction(
-      const vector<Marker>& markers,
-      const ProjectiveReconstruction& reconstruction)
-      : markers(markers), reconstruction(reconstruction) {}
+  ProjectiveIntersectCostFunction(const vector<Marker> &markers,
+                                  const ProjectiveReconstruction &reconstruction)
+      : markers(markers), reconstruction(reconstruction)
+  {
+  }
 
-  Vec operator()(const Vec4& X) const {
+  Vec operator()(const Vec4 &X) const
+  {
     Vec residuals(2 * markers.size());
     residuals.setZero();
     for (int i = 0; i < markers.size(); ++i) {
-      const ProjectiveCamera& camera =
-          *reconstruction.CameraForImage(markers[i].image);
+      const ProjectiveCamera &camera = *reconstruction.CameraForImage(markers[i].image);
       Vec3 projected = camera.P * X;
       projected /= projected(2);
       residuals[2 * i + 0] = projected(0) - markers[i].x;
@@ -194,14 +192,14 @@ struct ProjectiveIntersectCostFunction {
     }
     return residuals;
   }
-  const vector<Marker>& markers;
-  const ProjectiveReconstruction& reconstruction;
+  const vector<Marker> &markers;
+  const ProjectiveReconstruction &reconstruction;
 };
 
 }  // namespace
 
-bool ProjectiveIntersect(const vector<Marker>& markers,
-                         ProjectiveReconstruction* reconstruction) {
+bool ProjectiveIntersect(const vector<Marker> &markers, ProjectiveReconstruction *reconstruction)
+{
   if (markers.size() < 2) {
     return false;
   }
@@ -209,7 +207,7 @@ bool ProjectiveIntersect(const vector<Marker>& markers,
   // Get the cameras to use for the intersection.
   vector<Mat34> cameras;
   for (int i = 0; i < markers.size(); ++i) {
-    ProjectiveCamera* camera = reconstruction->CameraForImage(markers[i].image);
+    ProjectiveCamera *camera = reconstruction->CameraForImage(markers[i].image);
     cameras.push_back(camera->P);
   }
 
@@ -236,12 +234,10 @@ bool ProjectiveIntersect(const vector<Marker>& markers,
 
   // Try projecting the point; make sure it's in front of everyone.
   for (int i = 0; i < cameras.size(); ++i) {
-    const ProjectiveCamera& camera =
-        *reconstruction->CameraForImage(markers[i].image);
+    const ProjectiveCamera &camera = *reconstruction->CameraForImage(markers[i].image);
     Vec3 x = camera.P * X;
     if (x(2) < 0) {
-      LOG(ERROR) << "POINT BEHIND CAMERA " << markers[i].image << ": "
-                 << x.transpose();
+      LOG(ERROR) << "POINT BEHIND CAMERA " << markers[i].image << ": " << x.transpose();
     }
   }
 

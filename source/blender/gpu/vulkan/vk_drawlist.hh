@@ -8,12 +8,12 @@
 #pragma once
 
 #include "gpu_drawlist_private.hh"
-#include "vk_context.hh"
 #include "vk_batch.hh"
+#include "vk_context.hh"
 
 namespace blender::gpu {
-typedef signed long long int  GLintptr;
-typedef signed long long int  GLsizeiptr;
+typedef signed long long int GLintptr;
+typedef signed long long int GLsizeiptr;
 
 typedef uint GLuint;
 class VKDrawList : public DrawList {
@@ -42,7 +42,7 @@ class VKDrawList : public DrawList {
   GLuint v_first_, v_count_;
 
   /** VK Indirect Buffer id. Nullptr means MultiDrawIndirect is not supported/enabled. */
-  VKBuffer* buffer_id_ = nullptr;
+  VKBuffer *buffer_id_ = nullptr;
   /** Length of whole the buffer (in byte). */
   GLsizeiptr buffer_size_;
   /** Offset of `data_` inside the whole buffer (in byte). */

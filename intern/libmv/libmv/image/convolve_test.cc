@@ -29,14 +29,16 @@ using namespace libmv;
 
 namespace {
 
-TEST(Convolve, ComputeGaussianKernel) {
+TEST(Convolve, ComputeGaussianKernel)
+{
   Vec kernel, derivative;
   ComputeGaussianKernel(1, &kernel, &derivative);
   EXPECT_EQ(7, kernel.size());
   // TODO(keir): Put in a more thorough test here!
 }
 
-TEST(Convolve, ConvolveGaussian) {
+TEST(Convolve, ConvolveGaussian)
+{
   FloatImage im(10, 10);
   im.Fill(1);
   FloatImage blured;
@@ -44,7 +46,8 @@ TEST(Convolve, ConvolveGaussian) {
   EXPECT_NEAR(im(5, 5), 1, 1e-7);
 }
 
-TEST(Convolve, BoxFilterHorizontal) {
+TEST(Convolve, BoxFilterHorizontal)
+{
   FloatImage im(10, 10), convolved, filtered;
   im.Fill(1);
   BoxFilterHorizontal(im, 3, &filtered);
@@ -55,7 +58,8 @@ TEST(Convolve, BoxFilterHorizontal) {
   EXPECT_TRUE(filtered == convolved);
 }
 
-TEST(Convolve, BoxFilter) {
+TEST(Convolve, BoxFilter)
+{
   FloatImage image(5, 5), filtered;
   // A single 1.0 inside a 5x5 image should expand to a 3x3 square.
   image.Fill(0);
@@ -65,14 +69,16 @@ TEST(Convolve, BoxFilter) {
     for (int i = 0; i < 5; i++) {
       if (i == 0 || i == 4 || j == 0 || j == 4) {
         EXPECT_EQ(0.0, filtered(j, i));
-      } else {
+      }
+      else {
         EXPECT_EQ(1.0, filtered(j, i));
       }
     }
   }
 }
 
-TEST(Convolve, BlurredImageAndDerivativesChannelsFlat) {
+TEST(Convolve, BlurredImageAndDerivativesChannelsFlat)
+{
   FloatImage im(10, 10), blurred_and_derivatives;
   im.Fill(1);
   BlurredImageAndDerivativesChannels(im, 1.0, &blurred_and_derivatives);
@@ -81,7 +87,8 @@ TEST(Convolve, BlurredImageAndDerivativesChannelsFlat) {
   EXPECT_NEAR(blurred_and_derivatives(5, 5, 2), 0.0, 1e-7);
 }
 
-TEST(Convolve, BlurredImageAndDerivativesChannelsHorizontalSlope) {
+TEST(Convolve, BlurredImageAndDerivativesChannelsHorizontalSlope)
+{
   FloatImage image(10, 10), blurred_and_derivatives;
   for (int j = 0; j < 10; ++j) {
     for (int i = 0; i < 10; ++i) {
@@ -94,7 +101,8 @@ TEST(Convolve, BlurredImageAndDerivativesChannelsHorizontalSlope) {
   EXPECT_NEAR(blurred_and_derivatives(5, 5, 2), 0.0, 1e-7);
 }
 
-TEST(Convolve, BlurredImageAndDerivativesChannelsVerticalSlope) {
+TEST(Convolve, BlurredImageAndDerivativesChannelsVerticalSlope)
+{
   FloatImage image(10, 10), blurred_and_derivatives;
   for (int j = 0; j < 10; ++j) {
     for (int i = 0; i < 10; ++i) {

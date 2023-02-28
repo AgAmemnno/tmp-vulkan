@@ -25,11 +25,9 @@ namespace {
 // FIXME: C++ templates limitations makes thing complicated,
 //        but maybe there is a simpler method.
 struct ApplyIntrinsicsFunction {
-  ApplyIntrinsicsFunction(const CameraIntrinsics& intrinsics,
-                          double x,
-                          double y,
-                          double* warp_x,
-                          double* warp_y) {
+  ApplyIntrinsicsFunction(
+      const CameraIntrinsics &intrinsics, double x, double y, double *warp_x, double *warp_y)
+  {
     double normalized_x, normalized_y;
     intrinsics.ImageSpaceToNormalized(x, y, &normalized_x, &normalized_y);
     intrinsics.ApplyIntrinsics(normalized_x, normalized_y, warp_x, warp_y);
@@ -37,15 +35,12 @@ struct ApplyIntrinsicsFunction {
 };
 
 struct InvertIntrinsicsFunction {
-  InvertIntrinsicsFunction(const CameraIntrinsics& intrinsics,
-                           double x,
-                           double y,
-                           double* warp_x,
-                           double* warp_y) {
+  InvertIntrinsicsFunction(
+      const CameraIntrinsics &intrinsics, double x, double y, double *warp_x, double *warp_y)
+  {
     double normalized_x, normalized_y;
     intrinsics.InvertIntrinsics(x, y, &normalized_x, &normalized_y);
-    intrinsics.NormalizedToImageSpace(
-        normalized_x, normalized_y, warp_x, warp_y);
+    intrinsics.NormalizedToImageSpace(normalized_x, normalized_y, warp_x, warp_y);
   }
 };
 
@@ -54,23 +49,22 @@ struct InvertIntrinsicsFunction {
 namespace internal {
 
 // TODO(MatthiasF): downsample lookup
-template <typename WarpFunction>
-void LookupWarpGrid::Compute(const CameraIntrinsics& intrinsics,
+template<typename WarpFunction>
+void LookupWarpGrid::Compute(const CameraIntrinsics &intrinsics,
                              int width,
                              int height,
-                             double overscan) {
+                             double overscan)
+{
   double w = (double)width / (1.0 + overscan);
   double h = (double)height / (1.0 + overscan);
   double aspx = (double)w / intrinsics.image_width();
   double aspy = (double)h / intrinsics.image_height();
 #if defined(_OPENMP)
-#  pragma omp parallel for schedule(static)                                    \
-      num_threads(threads_) if (threads_ > 1 && height > 100)
+#  pragma omp parallel for schedule(static) num_threads(threads_) if (threads_ > 1 && height > 100)
 #endif
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      double src_x = (x - 0.5 * overscan * w) / aspx,
-             src_y = (y - 0.5 * overscan * h) / aspy;
+      double src_x = (x - 0.5 * overscan * w) / aspx, src_y = (y - 0.5 * overscan * h) / aspy;
       double warp_x, warp_y;
       WarpFunction(intrinsics, src_x, src_y, &warp_x, &warp_y);
       warp_x = warp_x * aspx + 0.5 * overscan * w;
@@ -97,20 +91,18 @@ void LookupWarpGrid::Compute(const CameraIntrinsics& intrinsics,
       if (iy >= height - 2)
         iy = height - 2;
 
-      Offset offset = {(short)(ix - x),
-                       (short)(iy - y),
-                       (unsigned char)fx,
-                       (unsigned char)fy};
+      Offset offset = {(short)(ix - x), (short)(iy - y), (unsigned char)fx, (unsigned char)fy};
       offset_[y * width + x] = offset;
     }
   }
 }
 
-template <typename WarpFunction>
-void LookupWarpGrid::Update(const CameraIntrinsics& intrinsics,
+template<typename WarpFunction>
+void LookupWarpGrid::Update(const CameraIntrinsics &intrinsics,
                             int width,
                             int height,
-                            double overscan) {
+                            double overscan)
+{
   if (width_ != width || height_ != height || overscan_ != overscan) {
     Reset();
   }
@@ -126,26 +118,21 @@ void LookupWarpGrid::Update(const CameraIntrinsics& intrinsics,
 }
 
 // TODO(MatthiasF): cubic B-Spline image sampling, bilinear lookup
-template <typename PixelType>
-void LookupWarpGrid::Apply(const PixelType* input_buffer,
-                           int width,
-                           int height,
-                           int channels,
-                           PixelType* output_buffer) {
+template<typename PixelType>
+void LookupWarpGrid::Apply(
+    const PixelType *input_buffer, int width, int height, int channels, PixelType *output_buffer)
+{
 #if defined(_OPENMP)
-#  pragma omp parallel for schedule(static)                                    \
-      num_threads(threads_) if (threads_ > 1 && height > 100)
+#  pragma omp parallel for schedule(static) num_threads(threads_) if (threads_ > 1 && height > 100)
 #endif
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
       Offset offset = offset_[y * width + x];
-      const int pixel_index =
-          ((y + offset.iy) * width + (x + offset.ix)) * channels;
-      const PixelType* s = &input_buffer[pixel_index];
+      const int pixel_index = ((y + offset.iy) * width + (x + offset.ix)) * channels;
+      const PixelType *s = &input_buffer[pixel_index];
       for (int i = 0; i < channels; i++) {
         output_buffer[(y * width + x) * channels + i] =
-            ((s[i] * (256 - offset.fx) + s[channels + i] * offset.fx) *
-                 (256 - offset.fy) +
+            ((s[i] * (256 - offset.fx) + s[channels + i] * offset.fx) * (256 - offset.fy) +
              (s[width * channels + i] * (256 - offset.fx) +
               s[width * channels + channels + i] * offset.fx) *
                  offset.fy) /
@@ -157,33 +144,33 @@ void LookupWarpGrid::Apply(const PixelType* input_buffer,
 
 }  // namespace internal
 
-template <typename PixelType>
-void CameraIntrinsics::DistortBuffer(const PixelType* input_buffer,
+template<typename PixelType>
+void CameraIntrinsics::DistortBuffer(const PixelType *input_buffer,
                                      int width,
                                      int height,
                                      double overscan,
                                      int channels,
-                                     PixelType* output_buffer) {
+                                     PixelType *output_buffer)
+{
   assert(channels >= 1);
   assert(channels <= 4);
   distort_.Update<InvertIntrinsicsFunction>(*this, width, height, overscan);
-  distort_.Apply<PixelType>(
-      input_buffer, width, height, channels, output_buffer);
+  distort_.Apply<PixelType>(input_buffer, width, height, channels, output_buffer);
 }
 
-template <typename PixelType>
-void CameraIntrinsics::UndistortBuffer(const PixelType* input_buffer,
+template<typename PixelType>
+void CameraIntrinsics::UndistortBuffer(const PixelType *input_buffer,
                                        int width,
                                        int height,
                                        double overscan,
                                        int channels,
-                                       PixelType* output_buffer) {
+                                       PixelType *output_buffer)
+{
   assert(channels >= 1);
   assert(channels <= 4);
   undistort_.Update<ApplyIntrinsicsFunction>(*this, width, height, overscan);
 
-  undistort_.Apply<PixelType>(
-      input_buffer, width, height, channels, output_buffer);
+  undistort_.Apply<PixelType>(input_buffer, width, height, channels, output_buffer);
 }
 
 }  // namespace libmv

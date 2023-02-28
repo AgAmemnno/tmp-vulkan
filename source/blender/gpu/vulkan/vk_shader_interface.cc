@@ -18,9 +18,9 @@
 #include "vk_shader_interface_type.hh"
 #include "vk_vertex_buffer.hh"
 
+#include "vk_batch.hh"
 #include "vk_framebuffer.hh"
 #include "vk_shader.hh"
-#include "vk_batch.hh"
 
 #include "BLI_blenlib.h"
 #include "BLI_math_base.h"
@@ -38,9 +38,9 @@
 #include <spirv_glsl.hpp>
 
 #ifdef DEBUG_PRINT_VKSI
-#define print_vksi printf
+#  define print_vksi printf
 #else
-#define print_vksi
+#  define print_vksi
 #endif
 
 namespace blender::gpu {
@@ -99,9 +99,8 @@ void VKDescriptorInputs::finalise()
   vkPVISci.pVertexAttributeDescriptions = attributes.data();
 }
 
-void VKDescriptorInputs::finalise(VKVao& vao,VkCommandBuffer cmd)
+void VKDescriptorInputs::finalise(VKVao &vao, VkCommandBuffer cmd)
 {
-
 
   Vector<bool> Bind;
   Bind.resize(vao.bindings.size());
@@ -112,7 +111,7 @@ void VKDescriptorInputs::finalise(VKVao& vao,VkCommandBuffer cmd)
   bindings.clear();
   attributes.clear();
   VkDeviceSize offsets[1] = {0};
-  for (auto &attr: vao.attributes) {
+  for (auto &attr : vao.attributes) {
     if (attr.location != UINT_MAX) {
       attributes.append(attr);
       if (!Bind[attr.binding]) {
@@ -134,7 +133,6 @@ void VKDescriptorInputs::finalise(VKVao& vao,VkCommandBuffer cmd)
   vkPVISci.pVertexBindingDescriptions = bindings.data();
   vkPVISci.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributes.size());
   vkPVISci.pVertexAttributeDescriptions = attributes.data();
-
 }
 
 VKShaderInterface::VKShaderInterface()
@@ -173,7 +171,6 @@ VKShaderInterface ::~VKShaderInterface()
   destroy();
 };
 
-
 void VKShaderInterface::destroy()
 {
   auto device = blender::gpu::VKContext::get()->device_get();
@@ -206,7 +203,8 @@ void VKShaderInterface::destroy()
 #undef DESTROYER
 }
 
-uint16_t VKShaderInterface::vbo_bind(VKVao& vao, VKVertBuf *vbo,
+uint16_t VKShaderInterface::vbo_bind(VKVao &vao,
+                                     VKVertBuf *vbo,
                                      VkCommandBuffer cmd,
                                      const GPUVertFormat *format,
                                      uint v_first,
@@ -217,25 +215,23 @@ uint16_t VKShaderInterface::vbo_bind(VKVao& vao, VKVertBuf *vbo,
   uint16_t enabled_attrib = 0;
   const uint attr_len = format->attr_len;
 
-
   if (attr_len_ <= 0) {
     return enabled_attrib;
   }
 
   Vector<VkVertexInputBindingDescription> &bindings = vao.bindings;
 
-  Vector<VkVertexInputAttributeDescription>  tmp_attributes;
+  Vector<VkVertexInputAttributeDescription> tmp_attributes;
   VkVertexInputBindingDescription vk_bind = {};
   vk_bind.binding = bindings.size();
 
-
   blender::gpu::VKDescriptorInputs &dinputs = desc_inputs_.last();
- 
+
   BLI_assert(dinputs.is_block);
 
-  uint     stride = format->stride;
-  uint     offset = 0;
-  //GLuint divisor = (use_instancing) ? 1 : 0;
+  uint stride = format->stride;
+  uint offset = 0;
+  // GLuint divisor = (use_instancing) ? 1 : 0;
 
   for (uint a_idx = 0; a_idx < attr_len; a_idx++) {
     const GPUVertAttr *a = &format->attrs[a_idx];
@@ -248,7 +244,8 @@ uint16_t VKShaderInterface::vbo_bind(VKVao& vao, VKVertBuf *vbo,
     }
 
     vk_bind.stride = stride;
-    vk_bind.inputRate = (use_instancing) ? VK_VERTEX_INPUT_RATE_INSTANCE : VK_VERTEX_INPUT_RATE_VERTEX;
+    vk_bind.inputRate = (use_instancing) ? VK_VERTEX_INPUT_RATE_INSTANCE :
+                                           VK_VERTEX_INPUT_RATE_VERTEX;
 
     /* This is in fact an offset in memory. */
     // const GLvoid *pointer    = (const GLubyte *)intptr_t(offset + v_first * stride);
@@ -258,21 +255,20 @@ uint16_t VKShaderInterface::vbo_bind(VKVao& vao, VKVertBuf *vbo,
     for (uint n_idx = 0; n_idx < a->name_len; n_idx++) {
       const char *name = GPU_vertformat_attr_name_get(format, a, n_idx);
       const ShaderInput *input = attr_get(name);
-     
+
       VkVertexInputAttributeDescription vk_attr = {};
       if (name == std::string("inst_obmat")) {
         BLI_assert(a->size == 64);
 
         for (int i = 0; i < 4; i++) {
-          vk_attr.binding  = vk_bind.binding;
+          vk_attr.binding = vk_bind.binding;
           vk_attr.location = 3 + i;
-          vk_attr.format  = type;
-          vk_attr.offset   = offset + 16*i;
+          vk_attr.format = type;
+          vk_attr.offset = offset + 16 * i;
           tmp_attributes.append(vk_attr);
           enabled_attrib |= (1 << vk_attr.location);
         }
         continue;
-
       }
 
       if ((input == nullptr) || (input->location == -1)) {
@@ -281,8 +277,8 @@ uint16_t VKShaderInterface::vbo_bind(VKVao& vao, VKVertBuf *vbo,
       enabled_attrib |= (1 << input->location);
       vk_attr.binding = vk_bind.binding;
       vk_attr.location = input->location;
-      vk_attr.format  = type;
-      vk_attr.offset  = offset;
+      vk_attr.format = type;
+      vk_attr.offset = offset;
       tmp_attributes.append(vk_attr);
       /*TODO  attrib pointer*/
 #if 0
@@ -321,9 +317,9 @@ uint16_t VKShaderInterface::vbo_bind(VKVao& vao, VKVertBuf *vbo,
 
   if (enabled_attrib) {
     /* If the location numbers conflict, the newer one takes precedence.*/
-    for (auto & tattr : tmp_attributes) {
+    for (auto &tattr : tmp_attributes) {
       for (auto &attr : vao.attributes) {
-        if (tattr.location == attr.location){
+        if (tattr.location == attr.location) {
           attr.location = UINT_MAX;
           break;
         }
@@ -336,17 +332,9 @@ uint16_t VKShaderInterface::vbo_bind(VKVao& vao, VKVertBuf *vbo,
     bindings.append(vk_bind);
     BLI_assert(vk_bind.binding == vao.vbos.size());
     vao.vbos.append(vbo);
-
   }
   return enabled_attrib;
 };
-
-
-
-
-
-
-
 
 uint32_t VKShaderInterface::Set_input_name(ShaderInput *input, char *name, uint32_t name_len) const
 {
@@ -371,14 +359,11 @@ GHOST_TSuccess VKShaderInterface::createSetLayout(uint i)
   else {
     descriptorSetLayoutCreateInfo.pBindings = setlayoutbindings_[i].data();
   }
-  VkDevice device  = blender::gpu::VKContext::get()->device_get();
-  VK_CHECK(vkCreateDescriptorSetLayout(device,
-                                       &descriptorSetLayoutCreateInfo,
-                                       NULL,
-                                       &setlayout));
-  
+  VkDevice device = blender::gpu::VKContext::get()->device_get();
+  VK_CHECK(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCreateInfo, NULL, &setlayout));
+
   debug::object_vk_label(device, setlayout, std::string(sc_info_->name_) + "_SetLayout");
-  
+
   return GHOST_kSuccess;
 };
 
@@ -401,9 +386,9 @@ bool VKShaderInterface::finalize(VkPipelineLayout *playout)
 /// </summary>
 GHOST_TSuccess VKShaderInterface::createPool()
 {
-  const uint32_t  MAX_DESC_NUMS = 12;
+  const uint32_t MAX_DESC_NUMS = 12;
   max_descID = MAX_DESC_NUMS;
-  descID_    = 0;
+  descID_ = 0;
   VkDescriptorPoolCreateInfo descriptorPoolInfo{};
   descriptorPoolInfo.maxSets = 0;
 
@@ -431,8 +416,7 @@ GHOST_TSuccess VKShaderInterface::createPool()
   }
 #endif
   VkDevice device = blender::gpu::VKContext::get()->device_get();
-  VK_CHECK(vkCreateDescriptorPool(
-     device, &descriptorPoolInfo, nullptr, &pool_));
+  VK_CHECK(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &pool_));
 
   debug::object_vk_label(device, pool_, std::string(sc_info_->name_) + "_DescriptorPool");
 
@@ -448,15 +432,15 @@ GHOST_TSuccess VKShaderInterface::allocateDescriptorSets(blender::Vector<VkDescr
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 
   VkDescriptorSetLayout &layout = setlayouts_[setlayoutID];
-  VkDevice device  = blender::gpu::VKContext::get()->device_get();
+  VkDevice device = blender::gpu::VKContext::get()->device_get();
   if (count == 1) {
     allocInfo.descriptorSetCount = 1;
     Sets.resize(1);
     allocInfo.pSetLayouts = &layout;
     allocInfo.descriptorPool = pool_;
     VK_CHECK(vkAllocateDescriptorSets(device, &allocInfo, Sets.data()));
-    
-    debug::object_vk_label(device, Sets[0] , std::string(sc_info_->name_) + "_DescriptorSet::0");
+
+    debug::object_vk_label(device, Sets[0], std::string(sc_info_->name_) + "_DescriptorSet::0");
     return GHOST_kSuccess;
   }
 
@@ -473,12 +457,11 @@ GHOST_TSuccess VKShaderInterface::allocateDescriptorSets(blender::Vector<VkDescr
   allocInfo.descriptorPool = pool_;
   allocInfo.descriptorSetCount = count;
   allocInfo.pSetLayouts = layouts.data();
-  VK_CHECK(vkAllocateDescriptorSets(
-     device, &allocInfo, Sets.data()));
-  
+  VK_CHECK(vkAllocateDescriptorSets(device, &allocInfo, Sets.data()));
 
-  for(int i = 0;i<count;i++){   
-    debug::object_vk_label(device, Sets[i] , std::string(sc_info_->name_) + "_DescriptorSet::" +  std::to_string(i));
+  for (int i = 0; i < count; i++) {
+    debug::object_vk_label(
+        device, Sets[i], std::string(sc_info_->name_) + "_DescriptorSet::" + std::to_string(i));
   }
 
   return GHOST_kSuccess;
@@ -626,11 +609,11 @@ bool VKShaderInterface::alloc_inputs(Vector<_max_name_len> max_names, Vector<_le
 
   for (int i = 0; i < max_names.size(); i++) {
     auto &src_max = max_names[i];
-    dst_max.attr = std::max(src_max.attr+1, dst_max.attr);
-    dst_max.ubo = std::max(src_max.ubo+1, dst_max.ubo);
-    dst_max.image = std::max(src_max.image+1, dst_max.image);
-    dst_max.ssbo = std::max(src_max.ssbo+1, dst_max.ssbo);
-    dst_max.push = std::max(src_max.push+1, dst_max.push);
+    dst_max.attr = std::max(src_max.attr + 1, dst_max.attr);
+    dst_max.ubo = std::max(src_max.ubo + 1, dst_max.ubo);
+    dst_max.image = std::max(src_max.image + 1, dst_max.image);
+    dst_max.ssbo = std::max(src_max.ssbo + 1, dst_max.ssbo);
+    dst_max.push = std::max(src_max.push + 1, dst_max.push);
 
     auto &src_len = lens[i];
     dst_len.attr = std::max(src_len.attr, dst_len.attr);
@@ -795,7 +778,6 @@ bool VKShaderInterface::apply(spirv_cross::CompilerBlender *vert,
 
   push_cache_ = (char *)MEM_mallocN(push_range_.size, "push_cache");
   BLI_assert(ofs == len_.attr + len_.ubo + len_.image + len_.push + len_.ssbo);
-
 
   int i = 0;
   for (auto &slb : setlayoutbindings_) {
@@ -1042,7 +1024,7 @@ int CompilerBlender::parse_inputs(blender::gpu::ShaderInput *inputs, int ofs)
           break;
         case 16:
           attr.format = VK_FORMAT_R32G32B32A32_SFLOAT;
-          stride_attr = 16*4;
+          stride_attr = 16 * 4;
           break;
         default:
           BLI_assert(false);
@@ -1262,7 +1244,7 @@ int CompilerBlender::parse_ubo(blender::gpu::ShaderInput *inputs, int ofs)
                              get_storage_class(resource.id) == spv::StorageClassUniformConstant);
       BLI_assert(is_sized_block);
       auto ranges = get_active_buffer_ranges(resource.id);
-      #if 0
+#  if 0
       int i = 0;
       for (auto range : ranges) {
         const std::string name = get_member_name(resource.base_type_id, i++);
@@ -1275,7 +1257,7 @@ int CompilerBlender::parse_ubo(blender::gpu::ShaderInput *inputs, int ofs)
       if (setNum == 1) {
         BLI_assert(i <= 1);
       };
-      #endif
+#  endif
 
 #endif
       N++;

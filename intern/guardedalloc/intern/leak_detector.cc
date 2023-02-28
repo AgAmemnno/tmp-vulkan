@@ -37,8 +37,6 @@ class MemLeakPrinter {
       return;
     }
 
-    
-
     const size_t mem_in_use = MEM_get_memory_in_use();
     printf("Error: Not freed memory blocks: %u, total unfreed memory %f MB\n",
            leaked_blocks,

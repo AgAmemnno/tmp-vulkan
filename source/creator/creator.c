@@ -262,8 +262,6 @@ void gmp_blender_init_allocator()
 
 /** \} */
 
-
-
 #define STACK_TRACE
 #ifdef STACK_TRACE
 
@@ -317,9 +315,7 @@ void MEM_StackInfo(void *ptr, const char *str, uint64_t len)
   }
   DWORD thread_id = GetCurrentThreadId();
   if (thread_main != thread_id) {
-
   }
-
 
   minfo_id = -1;
   for (int i = 0; i < minfo_alloc; i++) {
@@ -383,11 +379,10 @@ void MEM_StackInfo(void *ptr, const char *str, uint64_t len)
 #  endif
 
   mem_unlock_thread();
-
 }
 void MEM_PopInfo(void *ptr)
 {
-  
+
   mem_lock_thread();
 
   uintptr_t p = (uintptr_t)ptr;
@@ -401,21 +396,20 @@ void MEM_PopInfo(void *ptr)
     }
   }
   mem_unlock_thread();
-
 };
 
 void MEM_PrintInfo()
 {
 
-
   int cnt = 0;
   for (int i = 0; i < minfo_alloc; i++) {
     if (!minfo[i].is_free) {
       cnt++;
-      //printf("Memory leak  found ADR %llx   size  %zu  \n  %s    \n",minfo[i].ptr, minfo[i].len, minfo[i].msg);
+      // printf("Memory leak  found ADR %llx   size  %zu  \n  %s    \n",minfo[i].ptr, minfo[i].len,
+      // minfo[i].msg);
     }
   }
-  //printf("Memory  push  %d   pop   %d  leak %d  \n", push_cnt_id, pop_cnt_id,cnt);
+  // printf("Memory  push  %d   pop   %d  leak %d  \n", push_cnt_id, pop_cnt_id,cnt);
   free(minfo);
   minfo_alloc = 0;
   minfo_id = -1;
@@ -427,10 +421,6 @@ void MEM_PrintInfo()
 {
 }
 #endif
-
-
-
-
 
 /* -------------------------------------------------------------------- */
 /** \name Main Function
@@ -666,8 +656,6 @@ int main(int argc,
   /* After #ARG_PASS_SETTINGS arguments, this is so #WM_main_playanim skips #RNA_init. */
   RNA_init();
 
-
-
   RE_engines_init();
   BKE_node_system_init();
   BKE_particle_init_rng();
@@ -690,7 +678,7 @@ int main(int argc,
   BKE_sound_init_once();
 
   BKE_materials_init();
- 
+
 #ifndef WITH_PYTHON_MODULE
   if (G.background == 0) {
     BLI_args_parse(ba, ARG_PASS_SETTINGS_GUI, NULL, NULL);
@@ -700,7 +688,7 @@ int main(int argc,
 
   WM_init(C, argc, (const char **)argv);
 
-  //WM_exit(C);
+  // WM_exit(C);
   /* Need to be after WM init so that userpref are loaded. */
   RE_engines_init_experimental();
 
@@ -734,7 +722,7 @@ int main(int argc,
 
   /* End argument parsing, allow memory leaks to be printed. */
   MEM_use_memleak_detection(true);
-  
+
   /* Paranoid, avoid accidental re-use. */
 #ifndef WITH_PYTHON_MODULE
   ba = NULL;
@@ -758,7 +746,7 @@ int main(int argc,
     if (blendfile_path[0] == '\0') {
       WM_init_splash(C);
     }
-  
+
     WM_main(C);
   }
 #endif /* WITH_PYTHON_MODULE */

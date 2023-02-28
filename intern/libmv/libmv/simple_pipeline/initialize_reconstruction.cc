@@ -32,9 +32,8 @@
 namespace libmv {
 namespace {
 
-void GetImagesInMarkers(const vector<Marker>& markers,
-                        int* image1,
-                        int* image2) {
+void GetImagesInMarkers(const vector<Marker> &markers, int *image1, int *image2)
+{
   if (markers.size() < 2) {
     return;
   }
@@ -51,11 +50,11 @@ void GetImagesInMarkers(const vector<Marker>& markers,
 
 }  // namespace
 
-bool EuclideanReconstructTwoFrames(const vector<Marker>& markers,
-                                   EuclideanReconstruction* reconstruction) {
+bool EuclideanReconstructTwoFrames(const vector<Marker> &markers,
+                                   EuclideanReconstruction *reconstruction)
+{
   if (markers.size() < 16) {
-    LG << "Not enough markers to initialize from two frames: "
-       << markers.size();
+    LG << "Not enough markers to initialize from two frames: " << markers.size();
     return false;
   }
 
@@ -78,8 +77,7 @@ bool EuclideanReconstructTwoFrames(const vector<Marker>& markers,
   Mat3 R;
   Vec3 t;
   Mat3 K = Mat3::Identity();
-  if (!MotionFromEssentialAndCorrespondence(
-          E, K, x1.col(0), K, x2.col(0), &R, &t)) {
+  if (!MotionFromEssentialAndCorrespondence(E, K, x1.col(0), K, x2.col(0), &R, &t)) {
     LG << "Failed to compute R and t from E and K.";
     return false;
   }
@@ -88,18 +86,17 @@ bool EuclideanReconstructTwoFrames(const vector<Marker>& markers,
   reconstruction->InsertCamera(image1, Mat3::Identity(), Vec3::Zero());
   reconstruction->InsertCamera(image2, R, t);
 
-  LG << "From two frame reconstruction got:\nR:\n"
-     << R << "\nt:" << t.transpose();
+  LG << "From two frame reconstruction got:\nR:\n" << R << "\nt:" << t.transpose();
   return true;
 }
 
 namespace {
 
-Mat3 DecodeF(const Vec9& encoded_F) {
+Mat3 DecodeF(const Vec9 &encoded_F)
+{
   // Decode F and force it to be rank 2.
   Map<const Mat3> full_rank_F(encoded_F.data(), 3, 3);
-  Eigen::JacobiSVD<Mat3> svd(full_rank_F,
-                             Eigen::ComputeFullU | Eigen::ComputeFullV);
+  Eigen::JacobiSVD<Mat3> svd(full_rank_F, Eigen::ComputeFullU | Eigen::ComputeFullV);
   Vec3 diagonal = svd.singularValues();
   diagonal(2) = 0;
   Mat3 F = svd.matrixU() * diagonal.asDiagonal() * svd.matrixV().transpose();
@@ -114,18 +111,20 @@ struct FundamentalSampsonCostFunction {
   typedef Vec9 XMatrixType;
 
   // Assumes markers are ordered by track.
-  explicit FundamentalSampsonCostFunction(const vector<Marker>& markers)
-      : markers(markers) {}
+  explicit FundamentalSampsonCostFunction(const vector<Marker> &markers) : markers(markers)
+  {
+  }
 
-  Vec operator()(const Vec9& encoded_F) const {
+  Vec operator()(const Vec9 &encoded_F) const
+  {
     // Decode F and force it to be rank 2.
     Mat3 F = DecodeF(encoded_F);
 
     Vec residuals(markers.size() / 2);
     residuals.setZero();
     for (int i = 0; i < markers.size() / 2; ++i) {
-      const Marker& marker1 = markers[2 * i + 0];
-      const Marker& marker2 = markers[2 * i + 1];
+      const Marker &marker1 = markers[2 * i + 0];
+      const Marker &marker2 = markers[2 * i + 1];
       CHECK_EQ(marker1.track, marker2.track);
       Vec2 x1(marker1.x, marker1.y);
       Vec2 x2(marker2.x, marker2.y);
@@ -134,13 +133,14 @@ struct FundamentalSampsonCostFunction {
     }
     return residuals;
   }
-  const vector<Marker>& markers;
+  const vector<Marker> &markers;
 };
 
 }  // namespace
 
-bool ProjectiveReconstructTwoFrames(const vector<Marker>& markers,
-                                    ProjectiveReconstruction* reconstruction) {
+bool ProjectiveReconstructTwoFrames(const vector<Marker> &markers,
+                                    ProjectiveReconstruction *reconstruction)
+{
   if (markers.size() < 16) {
     return false;
   }

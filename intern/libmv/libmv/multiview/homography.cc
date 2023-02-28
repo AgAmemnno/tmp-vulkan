@@ -43,8 +43,11 @@ namespace libmv {
  * (a-x1*g)*y1     + (b-x1*h)*y2  + c-x1         = |0|
  * (-x2*a+x1*d)*y1 + (-x2*b+x1*e)*y2 + -x2*c+x1*f  |0|
  */
-static bool Homography2DFromCorrespondencesLinearEuc(
-    const Mat& x1, const Mat& x2, Mat3* H, double expected_precision) {
+static bool Homography2DFromCorrespondencesLinearEuc(const Mat &x1,
+                                                     const Mat &x2,
+                                                     Mat3 *H,
+                                                     double expected_precision)
+{
   assert(2 == x1.rows());
   assert(4 <= x1.cols());
   assert(x1.rows() == x2.rows());
@@ -85,7 +88,8 @@ static bool Homography2DFromCorrespondencesLinearEuc(
   Homography2DNormalizedParameterization<double>::To(h, H);
   if ((L * h).isApprox(b, expected_precision)) {
     return true;
-  } else {
+  }
+  else {
     return false;
   }
 }
@@ -100,13 +104,13 @@ static bool Homography2DFromCorrespondencesLinearEuc(
  * X = |a b c d e f g h|^t
  */
 // clang-format on
-bool Homography2DFromCorrespondencesLinear(const Mat& x1,
-                                           const Mat& x2,
-                                           Mat3* H,
-                                           double expected_precision) {
+bool Homography2DFromCorrespondencesLinear(const Mat &x1,
+                                           const Mat &x2,
+                                           Mat3 *H,
+                                           double expected_precision)
+{
   if (x1.rows() == 2) {
-    return Homography2DFromCorrespondencesLinearEuc(
-        x1, x2, H, expected_precision);
+    return Homography2DFromCorrespondencesLinearEuc(x1, x2, H, expected_precision);
   }
   assert(3 == x1.rows());
   assert(4 <= x1.cols());
@@ -150,7 +154,8 @@ bool Homography2DFromCorrespondencesLinear(const Mat& x1,
   if ((L * h).isApprox(b, expected_precision)) {
     Homography2DNormalizedParameterization<double>::To(h, H);
     return true;
-  } else {
+  }
+  else {
     return false;
   }
 }
@@ -158,29 +163,29 @@ bool Homography2DFromCorrespondencesLinear(const Mat& x1,
 // Default settings for homography estimation which should be suitable
 // for a wide range of use cases.
 EstimateHomographyOptions::EstimateHomographyOptions()
-    : use_normalization(true),
-      max_num_iterations(50),
-      expected_average_symmetric_distance(1e-16) {
+    : use_normalization(true), max_num_iterations(50), expected_average_symmetric_distance(1e-16)
+{
 }
 
 namespace {
-void GetNormalizedPoints(const Mat& original_points,
-                         Mat* normalized_points,
-                         Mat3* normalization_matrix) {
+void GetNormalizedPoints(const Mat &original_points,
+                         Mat *normalized_points,
+                         Mat3 *normalization_matrix)
+{
   IsotropicPreconditionerFromPoints(original_points, normalization_matrix);
-  ApplyTransformationToPoints(
-      original_points, *normalization_matrix, normalized_points);
+  ApplyTransformationToPoints(original_points, *normalization_matrix, normalized_points);
 }
 
 // Cost functor which computes symmetric geometric distance
 // used for homography matrix refinement.
 class HomographySymmetricGeometricCostFunctor {
  public:
-  HomographySymmetricGeometricCostFunctor(const Vec2& x, const Vec2& y)
-      : x_(x), y_(y) {}
+  HomographySymmetricGeometricCostFunctor(const Vec2 &x, const Vec2 &y) : x_(x), y_(y)
+  {
+  }
 
-  template <typename T>
-  bool operator()(const T* homography_parameters, T* residuals) const {
+  template<typename T> bool operator()(const T *homography_parameters, T *residuals) const
+  {
     typedef Eigen::Matrix<T, 3, 3> Mat3;
     typedef Eigen::Matrix<T, 3, 1> Vec3;
 
@@ -218,14 +223,16 @@ class HomographySymmetricGeometricCostFunctor {
 // average value.
 class TerminationCheckingCallback : public ceres::IterationCallback {
  public:
-  TerminationCheckingCallback(const Mat& x1,
-                              const Mat& x2,
-                              const EstimateHomographyOptions& options,
-                              Mat3* H)
-      : options_(options), x1_(x1), x2_(x2), H_(H) {}
+  TerminationCheckingCallback(const Mat &x1,
+                              const Mat &x2,
+                              const EstimateHomographyOptions &options,
+                              Mat3 *H)
+      : options_(options), x1_(x1), x2_(x2), H_(H)
+  {
+  }
 
-  virtual ceres::CallbackReturnType operator()(
-      const ceres::IterationSummary& summary) {
+  virtual ceres::CallbackReturnType operator()(const ceres::IterationSummary &summary)
+  {
     // If the step wasn't successful, there's nothing to do.
     if (!summary.step_is_successful) {
       return ceres::SOLVER_CONTINUE;
@@ -234,8 +241,7 @@ class TerminationCheckingCallback : public ceres::IterationCallback {
     // Calculate average of symmetric geometric distance.
     double average_distance = 0.0;
     for (int i = 0; i < x1_.cols(); i++) {
-      average_distance =
-          SymmetricGeometricDistance(*H_, x1_.col(i), x2_.col(i));
+      average_distance = SymmetricGeometricDistance(*H_, x1_.col(i), x2_.col(i));
     }
     average_distance /= x1_.cols();
 
@@ -247,21 +253,21 @@ class TerminationCheckingCallback : public ceres::IterationCallback {
   }
 
  private:
-  const EstimateHomographyOptions& options_;
-  const Mat& x1_;
-  const Mat& x2_;
-  Mat3* H_;
+  const EstimateHomographyOptions &options_;
+  const Mat &x1_;
+  const Mat &x2_;
+  Mat3 *H_;
 };
 }  // namespace
 
 /** 2D Homography transformation estimation in the case that points are in
  * euclidean coordinates.
  */
-bool EstimateHomography2DFromCorrespondences(
-    const Mat& x1,
-    const Mat& x2,
-    const EstimateHomographyOptions& options,
-    Mat3* H) {
+bool EstimateHomography2DFromCorrespondences(const Mat &x1,
+                                             const Mat &x2,
+                                             const EstimateHomographyOptions &options,
+                                             Mat3 *H)
+{
   // TODO(sergey): Support homogenous coordinates, not just euclidean.
 
   assert(2 == x1.rows());
@@ -278,7 +284,8 @@ bool EstimateHomography2DFromCorrespondences(
     LG << "Estimating homography using normalization.";
     GetNormalizedPoints(x1, &x1_normalized, &T1);
     GetNormalizedPoints(x2, &x2_normalized, &T2);
-  } else {
+  }
+  else {
     x1_normalized = x1;
     x2_normalized = x2;
   }
@@ -296,15 +303,13 @@ bool EstimateHomography2DFromCorrespondences(
   // Step 2: Refine matrix using Ceres minimizer.
   ceres::Problem problem;
   for (int i = 0; i < x1.cols(); i++) {
-    HomographySymmetricGeometricCostFunctor*
-        homography_symmetric_geometric_cost_function =
-            new HomographySymmetricGeometricCostFunctor(x1.col(i), x2.col(i));
+    HomographySymmetricGeometricCostFunctor *homography_symmetric_geometric_cost_function =
+        new HomographySymmetricGeometricCostFunctor(x1.col(i), x2.col(i));
 
     problem.AddResidualBlock(
         new ceres::AutoDiffCostFunction<HomographySymmetricGeometricCostFunctor,
                                         4,  // num_residuals
-                                        9>(
-            homography_symmetric_geometric_cost_function),
+                                        9>(homography_symmetric_geometric_cost_function),
         NULL,
         H->data());
   }
@@ -359,10 +364,11 @@ bool EstimateHomography2DFromCorrespondences(
  * X = |a b c d e f g h i j k l m n o|^t
  */
 // clang-format on
-bool Homography3DFromCorrespondencesLinear(const Mat& x1,
-                                           const Mat& x2,
-                                           Mat4* H,
-                                           double expected_precision) {
+bool Homography3DFromCorrespondencesLinear(const Mat &x1,
+                                           const Mat &x2,
+                                           Mat4 *H,
+                                           double expected_precision)
+{
   assert(4 == x1.rows());
   assert(5 <= x1.cols());
   assert(x1.rows() == x2.rows());
@@ -440,14 +446,14 @@ bool Homography3DFromCorrespondencesLinear(const Mat& x1,
   if ((L * h).isApprox(b, expected_precision)) {
     Homography3DNormalizedParameterization<double>::To(h, H);
     return true;
-  } else {
+  }
+  else {
     return false;
   }
 }
 
-double SymmetricGeometricDistance(const Mat3& H,
-                                  const Vec2& x1,
-                                  const Vec2& x2) {
+double SymmetricGeometricDistance(const Mat3 &H, const Vec2 &x1, const Vec2 &x2)
+{
   Vec3 x(x1(0), x1(1), 1.0);
   Vec3 y(x2(0), x2(1), 1.0);
 

@@ -35,11 +35,9 @@ namespace euclidean_resection {
 
 typedef unsigned int uint;
 
-bool EuclideanResection(const Mat2X& x_camera,
-                        const Mat3X& X_world,
-                        Mat3* R,
-                        Vec3* t,
-                        ResectionMethod method) {
+bool EuclideanResection(
+    const Mat2X &x_camera, const Mat3X &X_world, Mat3 *R, Vec3 *t, ResectionMethod method)
+{
   switch (method) {
     case RESECTION_ANSAR_DANIILIDIS:
       EuclideanResectionAnsarDaniilidis(x_camera, X_world, R, t);
@@ -50,31 +48,34 @@ bool EuclideanResection(const Mat2X& x_camera,
     case RESECTION_PPNP:
       return EuclideanResectionPPnP(x_camera, X_world, R, t);
       break;
-    default: LOG(FATAL) << "Unknown resection method.";
+    default:
+      LOG(FATAL) << "Unknown resection method.";
   }
   return false;
 }
 
-bool EuclideanResection(const Mat& x_image,
-                        const Mat3X& X_world,
-                        const Mat3& K,
-                        Mat3* R,
-                        Vec3* t,
-                        ResectionMethod method) {
+bool EuclideanResection(const Mat &x_image,
+                        const Mat3X &X_world,
+                        const Mat3 &K,
+                        Mat3 *R,
+                        Vec3 *t,
+                        ResectionMethod method)
+{
   CHECK(x_image.rows() == 2 || x_image.rows() == 3)
-      << "Invalid size for x_image: " << x_image.rows() << "x"
-      << x_image.cols();
+      << "Invalid size for x_image: " << x_image.rows() << "x" << x_image.cols();
 
   Mat2X x_camera;
   if (x_image.rows() == 2) {
     EuclideanToNormalizedCamera(x_image, K, &x_camera);
-  } else if (x_image.rows() == 3) {
+  }
+  else if (x_image.rows() == 3) {
     HomogeneousToNormalizedCamera(x_image, K, &x_camera);
   }
   return EuclideanResection(x_camera, X_world, R, t, method);
 }
 
-void AbsoluteOrientation(const Mat3X& X, const Mat3X& Xp, Mat3* R, Vec3* t) {
+void AbsoluteOrientation(const Mat3X &X, const Mat3X &Xp, Mat3 *R, Vec3 *t)
+{
   int num_points = X.cols();
   Vec3 C = X.rowwise().sum() / num_points;    // Centroid of X.
   Vec3 Cp = Xp.rowwise().sum() / num_points;  // Centroid of Xp.
@@ -140,7 +141,8 @@ void AbsoluteOrientation(const Mat3X& X, const Mat3X& Xp, Mat3* R, Vec3* t) {
 
 // Convert i and j indices of the original variables into their quadratic
 // permutation single index. It follows that t_ij = t_ji.
-static int IJToPointIndex(int i, int j, int num_points) {
+static int IJToPointIndex(int i, int j, int num_points)
+{
   // Always make sure that j is bigger than i. This handles t_ij = t_ji.
   if (j < i) {
     std::swap(i, j);
@@ -151,7 +153,8 @@ static int IJToPointIndex(int i, int j, int num_points) {
   // All t_ii's are located at the end of the t vector after all t_ij's.
   if (j == i) {
     idx = num_permutation_rows + i;
-  } else {
+  }
+  else {
     int offset = (num_points - i - 1) * (num_points - i) / 2;
     idx = (num_permutation_rows - offset + j - i - 1);
   }
@@ -159,7 +162,8 @@ static int IJToPointIndex(int i, int j, int num_points) {
 };
 
 // Convert i and j indexes of the solution for lambda to their linear indexes.
-static int IJToIndex(int i, int j, int num_lambda) {
+static int IJToIndex(int i, int j, int num_lambda)
+{
   if (j < i) {
     std::swap(i, j);
   }
@@ -170,7 +174,8 @@ static int IJToIndex(int i, int j, int num_lambda) {
   return idx;
 };
 
-static int Sign(double value) {
+static int Sign(double value)
+{
   return (value < 0) ? -1 : 1;
 };
 
@@ -178,7 +183,8 @@ static int Sign(double value) {
 // Lambda to create the constraints in equation (5) in "Linear Pose Estimation
 // from Points or Lines", by Ansar, A. and Daniilidis, PAMI 2003. vol. 25, no.
 // 5.
-static Vec MatrixToConstraint(const Mat& A, int num_k_columns, int num_lambda) {
+static Vec MatrixToConstraint(const Mat &A, int num_k_columns, int num_lambda)
+{
   Vec C(num_k_columns);
   C.setZero();
   int idx = 0;
@@ -195,17 +201,19 @@ static Vec MatrixToConstraint(const Mat& A, int num_k_columns, int num_lambda) {
 }
 
 // Normalizes the columns of vectors.
-static void NormalizeColumnVectors(Mat3X* vectors) {
+static void NormalizeColumnVectors(Mat3X *vectors)
+{
   int num_columns = vectors->cols();
   for (int i = 0; i < num_columns; ++i) {
     vectors->col(i).normalize();
   }
 }
 
-void EuclideanResectionAnsarDaniilidis(const Mat2X& x_camera,
-                                       const Mat3X& X_world,
-                                       Mat3* R,
-                                       Vec3* t) {
+void EuclideanResectionAnsarDaniilidis(const Mat2X &x_camera,
+                                       const Mat3X &X_world,
+                                       Mat3 *R,
+                                       Vec3 *t)
+{
   CHECK(x_camera.cols() == X_world.cols());
   CHECK(x_camera.cols() > 3);
 
@@ -235,8 +243,7 @@ void EuclideanResectionAnsarDaniilidis(const Mat2X& x_camera,
       M(row, num_m_rows + j) = x_camera_unit.col(j).dot(x_camera_unit.col(j));
       Vec3 Xdiff = X_world.col(i) - X_world.col(j);
       double center_to_point_distance = Xdiff.norm();
-      M(row, num_m_columns - 1) =
-          -center_to_point_distance * center_to_point_distance;
+      M(row, num_m_columns - 1) = -center_to_point_distance * center_to_point_distance;
       ij_index(row, 0) = i;
       ij_index(row, 1) = j;
       ++row;
@@ -246,17 +253,14 @@ void EuclideanResectionAnsarDaniilidis(const Mat2X& x_camera,
   }
 
   int num_lambda = num_points + 1;  // Dimension of the null space of M.
-  Mat V = M.jacobiSvd(Eigen::ComputeFullV)
-              .matrixV()
-              .block(0, num_m_rows, num_m_columns, num_lambda);
+  Mat V =
+      M.jacobiSvd(Eigen::ComputeFullV).matrixV().block(0, num_m_rows, num_m_columns, num_lambda);
 
   // TODO(vess): The number of constraint equations in K (num_k_rows) must be
   // (num_points + 1) * (num_points + 2)/2. This creates a performance issue
   // for more than 4 points. It is fine for 4 points at the moment with 18
   // instead of 15 equations.
-  int num_k_rows =
-      num_m_rows +
-      num_points * (num_points * (num_points - 1) / 2 - num_points + 1);
+  int num_k_rows = num_m_rows + num_points * (num_points * (num_points - 1) / 2 - num_points + 1);
   int num_k_columns = num_lambda * (num_lambda + 1) / 2;
   Mat K(num_k_rows, num_k_columns);
   K.setZero();
@@ -274,11 +278,10 @@ void EuclideanResectionAnsarDaniilidis(const Mat2X& x_camera,
         int idx3 = IJToPointIndex(i, j, num_points);
         int idx4 = IJToPointIndex(i, k, num_points);
 
-        K.row(counter_k_row) =
-            MatrixToConstraint(V.row(idx1).transpose() * V.row(idx2) -
-                                   V.row(idx3).transpose() * V.row(idx4),
-                               num_k_columns,
-                               num_lambda);
+        K.row(counter_k_row) = MatrixToConstraint(V.row(idx1).transpose() * V.row(idx2) -
+                                                      V.row(idx3).transpose() * V.row(idx4),
+                                                  num_k_columns,
+                                                  num_lambda);
         ++counter_k_row;
       }
     }
@@ -295,11 +298,10 @@ void EuclideanResectionAnsarDaniilidis(const Mat2X& x_camera,
       int idx3 = IJToPointIndex(i, j, num_points);
       int idx4 = IJToPointIndex(i, k, num_points);
 
-      K.row(counter_k_row) =
-          MatrixToConstraint(V.row(idx1).transpose() * V.row(idx2) -
-                                 V.row(idx3).transpose() * V.row(idx4),
-                             num_k_columns,
-                             num_lambda);
+      K.row(counter_k_row) = MatrixToConstraint(V.row(idx1).transpose() * V.row(idx2) -
+                                                    V.row(idx3).transpose() * V.row(idx4),
+                                                num_k_columns,
+                                                num_lambda);
       ++counter_k_row;
     }
   }
@@ -317,12 +319,10 @@ void EuclideanResectionAnsarDaniilidis(const Mat2X& x_camera,
     }
   }
   // Ensure positiveness of the largest value corresponding to lambda_ii.
-  L_sq =
-      L_sq * Sign(L_sq(IJToIndex(max_L_sq_index, max_L_sq_index, num_lambda)));
+  L_sq = L_sq * Sign(L_sq(IJToIndex(max_L_sq_index, max_L_sq_index, num_lambda)));
 
   Vec L(num_lambda);
-  L(max_L_sq_index) =
-      sqrt(L_sq(IJToIndex(max_L_sq_index, max_L_sq_index, num_lambda)));
+  L(max_L_sq_index) = sqrt(L_sq(IJToIndex(max_L_sq_index, max_L_sq_index, num_lambda)));
 
   for (int i = 0; i < num_lambda; ++i) {
     if (i != max_L_sq_index) {
@@ -351,9 +351,8 @@ void EuclideanResectionAnsarDaniilidis(const Mat2X& x_camera,
 }
 
 // Selects 4 virtual control points using mean and PCA.
-static void SelectControlPoints(const Mat3X& X_world,
-                                Mat* X_centered,
-                                Mat34* X_control_points) {
+static void SelectControlPoints(const Mat3X &X_world, Mat *X_centered, Mat34 *X_control_points)
+{
   size_t num_points = X_world.cols();
 
   // The first virtual control point, C0, is the centroid.
@@ -377,9 +376,10 @@ static void SelectControlPoints(const Mat3X& X_world,
 }
 
 // Computes the barycentric coordinates for all real points
-static void ComputeBarycentricCoordinates(const Mat3X& X_world_centered,
-                                          const Mat34& X_control_points,
-                                          Mat4X* alphas) {
+static void ComputeBarycentricCoordinates(const Mat3X &X_world_centered,
+                                          const Mat34 &X_control_points,
+                                          Mat4X *alphas)
+{
   size_t num_points = X_world_centered.cols();
   Mat3 C2;
   for (size_t c = 1; c < 4; c++) {
@@ -398,11 +398,11 @@ static void ComputeBarycentricCoordinates(const Mat3X& X_world_centered,
 }
 
 // Estimates the coordinates of all real points in the camera coordinate frame
-static void ComputePointsCoordinatesInCameraFrame(
-    const Mat4X& alphas,
-    const Vec4& betas,
-    const Eigen::Matrix<double, 12, 12>& U,
-    Mat3X* X_camera) {
+static void ComputePointsCoordinatesInCameraFrame(const Mat4X &alphas,
+                                                  const Vec4 &betas,
+                                                  const Eigen::Matrix<double, 12, 12> &U,
+                                                  Mat3X *X_camera)
+{
   size_t num_points = alphas.cols();
 
   // Estimates the control points in the camera reference frame.
@@ -435,10 +435,8 @@ static void ComputePointsCoordinatesInCameraFrame(
   }
 }
 
-bool EuclideanResectionEPnP(const Mat2X& x_camera,
-                            const Mat3X& X_world,
-                            Mat3* R,
-                            Vec3* t) {
+bool EuclideanResectionEPnP(const Mat2X &x_camera, const Mat3X &X_world, Mat3 *R, Vec3 *t)
+{
   CHECK(x_camera.cols() == X_world.cols());
   CHECK(x_camera.cols() > 3);
   size_t num_points = X_world.cols();
@@ -563,8 +561,7 @@ bool EuclideanResectionEPnP(const Mat2X& x_camera,
   for (size_t r = 0; r < 6; r++) {
     l_6x4.row(r) << L(r, 0), L(r, 1), L(r, 3), L(r, 6);
   }
-  Eigen::JacobiSVD<Mat> svd_of_l4(l_6x4,
-                                  Eigen::ComputeFullU | Eigen::ComputeFullV);
+  Eigen::JacobiSVD<Mat> svd_of_l4(l_6x4, Eigen::ComputeFullU | Eigen::ComputeFullV);
   Vec4 b4 = svd_of_l4.solve(rho);
   if ((l_6x4 * b4).isApprox(rho, kSuccessThreshold)) {
     if (b4(0) < 0) {
@@ -575,7 +572,8 @@ bool EuclideanResectionEPnP(const Mat2X& x_camera,
     ComputePointsCoordinatesInCameraFrame(alphas, betas, u2, &X_camera);
     AbsoluteOrientation(X_world, X_camera, &Rs[0], &ts[0]);
     rmse(0) = RootMeanSquareError(x_camera, X_world, K, Rs[0], ts[0]);
-  } else {
+  }
+  else {
     LOG(ERROR) << "First approximation of beta not good enough.";
     ts[0].setZero();
     rmse(0) = std::numeric_limits<double>::max();
@@ -587,8 +585,7 @@ bool EuclideanResectionEPnP(const Mat2X& x_camera,
   betas.setZero();
   Eigen::Matrix<double, 6, 3> l_6x3;
   l_6x3 = L.block(0, 0, 6, 3);
-  Eigen::JacobiSVD<Mat> svdOfL3(l_6x3,
-                                Eigen::ComputeFullU | Eigen::ComputeFullV);
+  Eigen::JacobiSVD<Mat> svdOfL3(l_6x3, Eigen::ComputeFullU | Eigen::ComputeFullV);
   Vec3 b3 = svdOfL3.solve(rho);
   VLOG(2) << " rho = " << rho;
   VLOG(2) << " l_6x3 * b3 = " << l_6x3 * b3;
@@ -596,7 +593,8 @@ bool EuclideanResectionEPnP(const Mat2X& x_camera,
     if (b3(0) < 0) {
       betas(0) = std::sqrt(-b3(0));
       betas(1) = (b3(2) < 0) ? std::sqrt(-b3(2)) : 0;
-    } else {
+    }
+    else {
       betas(0) = std::sqrt(b3(0));
       betas(1) = (b3(2) > 0) ? std::sqrt(b3(2)) : 0;
     }
@@ -608,7 +606,8 @@ bool EuclideanResectionEPnP(const Mat2X& x_camera,
     ComputePointsCoordinatesInCameraFrame(alphas, betas, u2, &X_camera);
     AbsoluteOrientation(X_world, X_camera, &Rs[1], &ts[1]);
     rmse(1) = RootMeanSquareError(x_camera, X_world, K, Rs[1], ts[1]);
-  } else {
+  }
+  else {
     LOG(ERROR) << "Second approximation of beta not good enough.";
     ts[1].setZero();
     rmse(1) = std::numeric_limits<double>::max();
@@ -620,22 +619,24 @@ bool EuclideanResectionEPnP(const Mat2X& x_camera,
   betas.setZero();
   Eigen::Matrix<double, 6, 5> l_6x5;
   l_6x5 = L.block(0, 0, 6, 5);
-  Eigen::JacobiSVD<Mat> svdOfL5(l_6x5,
-                                Eigen::ComputeFullU | Eigen::ComputeFullV);
+  Eigen::JacobiSVD<Mat> svdOfL5(l_6x5, Eigen::ComputeFullU | Eigen::ComputeFullV);
   Vec5 b5 = svdOfL5.solve(rho);
   if ((l_6x5 * b5).isApprox(rho, kSuccessThreshold)) {
     if (b5(0) < 0) {
       betas(0) = std::sqrt(-b5(0));
       if (b5(2) < 0) {
         betas(1) = std::sqrt(-b5(2));
-      } else {
+      }
+      else {
         b5(2) = 0;
       }
-    } else {
+    }
+    else {
       betas(0) = std::sqrt(b5(0));
       if (b5(2) > 0) {
         betas(1) = std::sqrt(b5(2));
-      } else {
+      }
+      else {
         b5(2) = 0;
       }
     }
@@ -647,7 +648,8 @@ bool EuclideanResectionEPnP(const Mat2X& x_camera,
     ComputePointsCoordinatesInCameraFrame(alphas, betas, u2, &X_camera);
     AbsoluteOrientation(X_world, X_camera, &Rs[2], &ts[2]);
     rmse(2) = RootMeanSquareError(x_camera, X_world, K, Rs[2], ts[2]);
-  } else {
+  }
+  else {
     LOG(ERROR) << "Third approximation of beta not good enough.";
     ts[2].setZero();
     rmse(2) = std::numeric_limits<double>::max();
@@ -720,10 +722,8 @@ bool EuclideanResectionEPnP(const Mat2X& x_camera,
 // TODO(keir): Re-do all the variable names and add comments matching the paper.
 // This implementation has too much of the terseness of the original. On the
 // other hand, it did work on the first try.
-bool EuclideanResectionPPnP(const Mat2X& x_camera,
-                            const Mat3X& X_world,
-                            Mat3* R,
-                            Vec3* t) {
+bool EuclideanResectionPPnP(const Mat2X &x_camera, const Mat3X &X_world, Mat3 *R, Vec3 *t)
+{
   int n = x_camera.cols();
   Mat Z = Mat::Zero(n, n);
   Vec e = Vec::Ones(n);
@@ -758,9 +758,7 @@ bool EuclideanResectionPPnP(const Mat2X& x_camera,
     Mat PR = P * *R;  // n x 3
     c = (S - Z * PR).transpose() * II;
     Mat Y = S - e * c.transpose();  // n x 3
-    Vec Zmindiag = (PR * Y.transpose())
-                       .diagonal()
-                       .cwiseQuotient(P.rowwise().squaredNorm());
+    Vec Zmindiag = (PR * Y.transpose()).diagonal().cwiseQuotient(P.rowwise().squaredNorm());
     for (int i = 0; i < n; ++i) {
       Zmindiag[i] = std::max(Zmindiag[i], 0.0);
     }

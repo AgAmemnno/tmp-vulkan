@@ -37,9 +37,12 @@ typedef unsigned char ubyte;
 
 // A Feature is the 2D location of a detected feature in an image.
 struct Feature {
-  Feature(float x, float y) : x(x), y(y) {}
-  Feature(float x, float y, float score, float size)
-      : x(x), y(y), score(score), size(size) {}
+  Feature(float x, float y) : x(x), y(y)
+  {
+  }
+  Feature(float x, float y, float score, float size) : x(x), y(y), score(score), size(size)
+  {
+  }
 
   // Position of the feature in pixels from top-left corner.
   // Note: Libmv detector might eventually support subpixel precision.
@@ -90,7 +93,7 @@ struct DetectOptions {
   //
   // This is an image patch denoted in byte array with dimensions of 16px by
   // 16px used to filter features by similarity to this patch.
-  unsigned char* moravec_pattern;
+  unsigned char *moravec_pattern;
 
   // Threshold value of the Harris function to add new featrue
   // to the result.
@@ -101,11 +104,11 @@ struct DetectOptions {
 //
 // Image could have 1-4 channels, it'll be converted to a grayscale
 // by the detector function if needed.
-void Detect(const FloatImage& image,
-            const DetectOptions& options,
-            vector<Feature>* detected_features);
+void Detect(const FloatImage &image,
+            const DetectOptions &options,
+            vector<Feature> *detected_features);
 
-std::ostream& operator<<(std::ostream& os, const Feature& feature);
+std::ostream &operator<<(std::ostream &os, const Feature &feature);
 
 }  // namespace libmv
 

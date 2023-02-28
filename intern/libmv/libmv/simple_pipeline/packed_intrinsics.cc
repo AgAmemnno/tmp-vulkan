@@ -22,40 +22,49 @@
 
 namespace libmv {
 
-PackedIntrinsics::PackedIntrinsics() {
+PackedIntrinsics::PackedIntrinsics()
+{
   parameters_.fill(0.0);
   known_parameters_.fill(false);
 }
 
-void PackedIntrinsics::SetFocalLength(double focal_length) {
+void PackedIntrinsics::SetFocalLength(double focal_length)
+{
   SetParameter(OFFSET_FOCAL_LENGTH, focal_length);
 }
-double PackedIntrinsics::GetFocalLength() const {
+double PackedIntrinsics::GetFocalLength() const
+{
   return GetParameter(OFFSET_FOCAL_LENGTH);
 }
 
-void PackedIntrinsics::SetPrincipalPoint(double x, double y) {
+void PackedIntrinsics::SetPrincipalPoint(double x, double y)
+{
   SetParameter(OFFSET_PRINCIPAL_POINT_X, x);
   SetParameter(OFFSET_PRINCIPAL_POINT_Y, y);
 }
-double PackedIntrinsics::GetPrincipalPointX() const {
+double PackedIntrinsics::GetPrincipalPointX() const
+{
   return GetParameter(OFFSET_PRINCIPAL_POINT_X);
 }
-double PackedIntrinsics::GetPrincipalPointY() const {
+double PackedIntrinsics::GetPrincipalPointY() const
+{
   return GetParameter(OFFSET_PRINCIPAL_POINT_Y);
 }
 
-void PackedIntrinsics::SetParameter(int index, double value) {
+void PackedIntrinsics::SetParameter(int index, double value)
+{
   parameters_.at(index) = value;
   known_parameters_.at(index) = true;
 }
-double PackedIntrinsics::GetParameter(int index) const {
+double PackedIntrinsics::GetParameter(int index) const
+{
   // TODO(sergey): Consider adding a check for whether the parameter is known.
 
   return parameters_.at(index);
 }
 
-bool PackedIntrinsics::IsParameterDefined(int offset) {
+bool PackedIntrinsics::IsParameterDefined(int offset)
+{
   return known_parameters_.at(offset);
 }
 

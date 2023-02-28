@@ -27,7 +27,8 @@
 
 namespace mv {
 
-TEST(Tracks, MaxFrame) {
+TEST(Tracks, MaxFrame)
+{
   Marker marker;
   Tracks tracks;
 

@@ -299,7 +299,7 @@ class GHOST_ContextVK : public GHOST_Context {
   GHOST_TSuccess init_image_layout();
   GHOST_TSuccess finalize_image_layout();
   GHOST_TSuccess fail_image_layout();
-  std::function<void()> destroyer;
+
   VkClearValue clearValues_[2] = {{{0.025f, 0.025f, 0.025f, 1.0f}}, {1.0f, 0}};
   GHOST_TSuccess clear_color(VkCommandBuffer &cmd, const VkClearColorValue *clearValues)
   {
@@ -317,6 +317,8 @@ class GHOST_ContextVK : public GHOST_Context {
                          &ImageSubresourceRange);
     return GHOST_kSuccess;
   }
+
+#if 0
   GHOST_TSuccess begin_frame(VkCommandBuffer &cmd, int i = -1)
   {
 
@@ -367,20 +369,14 @@ class GHOST_ContextVK : public GHOST_Context {
 
   /* Toggle two semaphores to control the blocking submit of the swap chain render pipeline.*/
   VkSemaphore wait_sema_sw_, signal_sema_sw_;
-
   int num_submit_ = 0;
   int num_submit_bl_ = 0;
   VkSemaphore sema_stock_[sema_stock_nums];
+    std::vector<VkCommandBuffer> onetime_commands_;
 
-  void set_layout(VkImageLayout layout)
-  {
-    m_current_layouts[m_currentImage] = layout;
-  }
 
-  VkImageLayout get_layout()
-  {
-    return m_current_layouts[m_currentImage];
-  }
+
+
 
   GHOST_TSuccess end_frame();
 
@@ -397,18 +393,17 @@ class GHOST_ContextVK : public GHOST_Context {
 
   GHOST_TSuccess end_blit_submit(VkCommandBuffer &cmd, std::vector<VkSemaphore> batch_signal);
 
-  VkCommandBuffer getCommandBuffers(int i);
   GHOST_TSuccess begin_submit(int N);
   GHOST_TSuccess end_submit();
-
-  std::vector<VkCommandBuffer> onetime_commands_;
-
-  GHOST_TSuccess initialize_sw_submit();
+    GHOST_TSuccess initialize_sw_submit();
   GHOST_TSuccess finalize_sw_submit();
   int current_wait_sema_ = 0;
   int pipeline_sema_idx_ = 0;
   GHOST_TSuccess submit_nonblocking();
+#endif
 
+
+  VkCommandBuffer getCommandBuffers(int i);
   /**
    * Swaps front and back buffers of a window.
    * \return  A boolean success indicator.
@@ -521,6 +516,7 @@ class GHOST_ContextVK : public GHOST_Context {
   GHOST_TSuccess getVulkanHandles(void *r_instance,
                                   void *r_physical_device,
                                   void *r_device,
+                                  void *r_queue,
                                   uint32_t *r_graphic_queue_familly);
   /**
    * Gets the Vulkan framebuffer related resource handles associated with the Vulkan context.
@@ -554,20 +550,37 @@ class GHOST_ContextVK : public GHOST_Context {
     return GHOST_kFailure;
   };
 
-  GHOST_TSuccess beginCustom(int i, VkCommandBuffer &cmd);
 
-  GHOST_TSuccess acquireCustom(int *r_frameID=nullptr, int *r_imgID=nullptr, void *r_image=nullptr,void* r_layout=nullptr);
-  GHOST_TSuccess waitCustom();
-  GHOST_TSuccess beginCustom(int i = -1);
-
-  GHOST_TSuccess submitCustom();
+  GHOST_TSuccess acquireCustom(int *r_frameID=nullptr, int *r_imgID=nullptr, void *r_image=nullptr,void* r_layout=nullptr, void* r_format=nullptr ,void* r_semaphore= nullptr);
   GHOST_TSuccess presentCustom();
+
 
   void getCrrentCommandBuffer(VkCommandBuffer &cmd)
   {
     cmd = getCommandBuffers(m_currentCommand);
   }
 
+  #if 0
+    GHOST_TSuccess beginCustom(int i, VkCommandBuffer &cmd);
+
+    GHOST_TSuccess waitCustom();
+  GHOST_TSuccess beginCustom(int i = -1);
+
+  GHOST_TSuccess submitCustom();
+    void set_fb_cb(std::function<void(void)> &func)
+  {
+    fb_cb = func;
+  }
+
+  void set_fb_sb_cb(std::function<void(void)> &func)
+  {
+    fb_sb_cb = func;
+  }
+  void set_fb_sb2_cb(std::function<void(void)> &func)
+  {
+    fb_sb2_cb = func;
+  }
+  std::function<void(void)> fb_cb, fb_sb_cb, fb_sb2_cb;
   int primary_index_ = 0;
   int secondary_index_ = 0;
   template<typename T> GHOST_TSuccess requestCommandBuffer(T &cmd, bool secondary = false)
@@ -616,27 +629,15 @@ class GHOST_ContextVK : public GHOST_Context {
 
     return GHOST_kSuccess;
   }
+  #endif
+
   void flush();
-
-  void set_fb_cb(std::function<void(void)> &func)
-  {
-    fb_cb = func;
-  }
-
-  void set_fb_sb_cb(std::function<void(void)> &func)
-  {
-    fb_sb_cb = func;
-  }
-  void set_fb_sb2_cb(std::function<void(void)> &func)
-  {
-    fb_sb2_cb = func;
-  }
-  std::function<void(void)> fb_cb, fb_sb_cb, fb_sb2_cb;
+  #if 0
   bool is_inside_frame()
   {
     return m_swapchain_acquires;
   }
-
+  #endif
  private:
 #ifdef _WIN32
   HWND m_hwnd;
@@ -676,14 +677,12 @@ class GHOST_ContextVK : public GHOST_Context {
   bool m_swapchain_acquires;
   VkFormat m_image_format;
   VkFormat m_depth_format;
-  std::vector<VkImageLayout> m_current_layouts;
+
   std::vector<VkImageView> m_swapchain_image_views;
 
   // std::vector < VKFrameBuffer >    m_swapchain_framebuffers;
   std::vector<VkCommandBuffer> m_command_buffers;
 
-  std::vector<VkCommandBuffer> m_seco_command_buffers;
-  std::vector<VkCommandBuffer> m_prim_command_buffers;
   VkRenderPass m_render_pass;
   VkExtent2D m_render_extent;
   std::vector<VkSemaphore> m_image_available_semaphores;
@@ -698,18 +697,20 @@ class GHOST_ContextVK : public GHOST_Context {
   uint32_t m_currentImage = 0;
   /** Used to unique framebuffer ids to return when swapchain is recreated. */
   uint32_t m_swapchain_id = 0;
+  # if 0
   bool is_initialized = false;
   bool is_init_sw_ = false;
   bool is_final_sw_ = false;
+  #endif
   const char *getPlatformSpecificSurfaceExtension() const;
-  GHOST_TSuccess pickPhysicalDevice(std::vector<const char *> required_exts);
+
 
   GHOST_TSuccess createSwapchain(void);
   GHOST_TSuccess destroySwapchain(void);
   GHOST_TSuccess createCommandBuffers(void);
   GHOST_TSuccess recordCommandBuffers(void);
 
-  GHOST_TSuccess pickPhysicalDevice2(std::vector<ExtensionEntry> &required_exts);
+  GHOST_TSuccess pickPhysicalDevice(std::vector<ExtensionEntry> &required_exts);
 
   std::vector<void *> featureStructs;
   std::vector<const char *> enabledDeviceExts;
@@ -735,9 +736,12 @@ void GHOST_ImageTransition(
     VkImageLayout srcLayout = VK_IMAGE_LAYOUT_MAX_ENUM,
     int basemip = 0,
     int miplevel = -1);  // The ways that the app will be able to access the image.
-};
+  };
 };  // namespace blender
 
+
+#if 0
 void clear_draw_test(GHOST_ContextVK *context_);
+#endif
 
 #pragma warning(pop)

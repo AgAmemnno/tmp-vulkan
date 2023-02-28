@@ -411,12 +411,12 @@ void VKStagingBufferManager::submit()
   VkSubmitInfo submitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
   submitInfo.commandBufferCount = 1;
   submitInfo.pCommandBuffers = &current_cmd_;
-  VK_CHECK(vkQueueSubmit(context_.queue_get(queue_type_), 1, &submitInfo, VK_NULL_HANDLE));
+  VK_CHECK(vkQueueSubmit(context_.queue_get(), 1, &submitInfo, VK_NULL_HANDLE));
 };
 
 void VKStagingBufferManager::wait()
 {
-  VK_CHECK(vkQueueWaitIdle(context_.queue_get(queue_type_)));
+  VK_CHECK(vkQueueWaitIdle(context_.queue_get()));
 }
 
 void VKStagingBufferManager::destroy()

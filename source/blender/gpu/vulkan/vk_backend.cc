@@ -173,12 +173,14 @@ void VKBackend::platform_init(VKContext *ctx)
   VkInstance instance;
   VkPhysicalDevice physical_device;
   VkDevice device;
+  VkQueue queue;
   uint32_t r_graphic_queue_familly;
 
   GHOST_GetVulkanHandles(GHOST_ContextHandle(ctx->ghost_context_),
                          &instance,
                          &physical_device,
                          &device,
+                         &queue,        
                          &r_graphic_queue_familly);
 
   auto &properties = vulkan::properties;
@@ -319,12 +321,13 @@ void VKBackend::capabilities_init(VKContext *ctx)
   VkInstance instance;
   VkPhysicalDevice physical_device;
   VkDevice device;
+  VkQueue queue;
   uint32_t r_graphic_queue_familly;
 
   GHOST_GetVulkanHandles(GHOST_ContextHandle(ctx->ghost_context_),
                          &instance,
                          &physical_device,
-                         &device,
+                         &device,&queue,
                          &r_graphic_queue_familly);
 
   VkPhysicalDeviceFeatures device_features = {};

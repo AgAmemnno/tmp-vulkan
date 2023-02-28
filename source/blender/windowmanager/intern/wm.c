@@ -631,8 +631,12 @@ void WM_main(bContext *C)
   /* Single refresh before handling events.
    * This ensures we don't run operators before the depsgraph has been evaluated. */
   wm_event_do_refresh_wm_and_depsgraph(C);
-
-  while (1) {
+  int CNT = 10;
+  while (CNT--) {
+    if (CNT == 1) {
+      printf("Input next loop >>");
+      scanf("%d", &CNT);
+    }
 
     /* Get events from ghost, handle window events, add to window queues. */
     wm_window_process_events(C);
@@ -646,4 +650,6 @@ void WM_main(bContext *C)
     /* Execute cached changes draw. */
     wm_draw_update(C);
   }
+
+  WM_exit(C);
 }

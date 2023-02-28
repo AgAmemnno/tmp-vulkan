@@ -1293,6 +1293,11 @@ void VKAttachment::create_framebuffer()
 
     VK_CHECK2(vkCreateFramebuffer(device, &fb_create_info, nullptr, &framebuffer_[i]));
     debug::object_vk_label(device, framebuffer_[i], std::string(fb_->name_get()) + "_Framebuffer");
+    printf("FrameBuffer Create    %llx     %s     renderpass  %llx  view   %llx \n",
+           (uintptr_t)fb_,
+           (std::string(fb_->name_get()) + "_Framebuffer").c_str(),
+           (uintptr_t)renderpass_,
+           (uintptr_t)(&view_[0]));
     i++;
   };
 

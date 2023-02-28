@@ -286,6 +286,7 @@ void VKFrameBuffer::bind(bool enabled_srgb)
     /*Do we need to regenerate the pipeline?*/
   }
 
+
   if (dirty_attachments_) {
     this->update_attachments();
     this->viewport_reset();
@@ -1657,7 +1658,13 @@ void VKFrameBuffer::blit_to(
 
   /* Ensure previous buffer is restored. */
   context_->active_fb = dst;
+    printf(
+      "Offscreen Clear   %llx    render times %d      %s \n ", (uintptr_t)this, offscreen_render_times_,name_get());
+
   offscreen_render_times_ = 0;
+  is_dirty_render_ = false;
+  signal_index_ = 0;
+
 };
 
 VkCommandBuffer VKFrameBuffer::render_begin(VkCommandBuffer cmd,
@@ -1702,11 +1709,7 @@ VkCommandBuffer VKFrameBuffer::render_begin(VkCommandBuffer cmd,
       else {
         if (vk_cmd == VK_NULL_HANDLE) {
           vk_cmd  =  context_->request_command_buffer();
-        }
-        else {
-          vkResetCommandBuffer(vk_cmd, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
-        }
-
+        } 
         prim = true;
       };
     }
@@ -1714,6 +1717,7 @@ VkCommandBuffer VKFrameBuffer::render_begin(VkCommandBuffer cmd,
       vk_cmd = context_->request_command_buffer();
     };
 
+    vkResetCommandBuffer(vk_cmd, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
     VkCommandBufferBeginInfo begin_info{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     /*XXX: Secondary Command
     VkCommandBufferInheritanceInfo inheritance = {
@@ -1751,9 +1755,10 @@ VkCommandBuffer VKFrameBuffer::render_begin(VkCommandBuffer cmd,
     BLI_assert(is_render_begin_ == false);
     if (is_swapchain_) {
       /*NOTE: Check if we need to transition to the renderpass's initial layout.*/
-      context_->fail_transition();
+      context_->vk_submitter_.fail_image_layout();
     }
     else {
+      rebuild = true;
       vk_attachments_.bind(rebuild);
     }
 
@@ -1788,6 +1793,7 @@ VkCommandBuffer VKFrameBuffer::render_begin(VkCommandBuffer cmd,
       vkDestroyPipeline(context_->device_get(), pipe, vk_allocation_callbacks);
     };
     cache_pipes.clear();
+
   };
 
   if (blit) {
@@ -1799,6 +1805,7 @@ VkCommandBuffer VKFrameBuffer::render_begin(VkCommandBuffer cmd,
   }
 
   return vk_cmd;
+
 };
 void VKFrameBuffer::render_end()
 {
@@ -1822,8 +1829,7 @@ void VKFrameBuffer::render_end()
 
   if (!is_dirty_render_) {
     if (is_swapchain_) {
-      context_->fail_transition();
-      
+      context_->vk_submitter_.fail_image_layout();
     }
   }
 
@@ -1850,6 +1856,10 @@ void VKFrameBuffer::render_end()
         context_->end_offscreen_submit(vk_cmd, VK_NULL_HANDLE, submit_signal_[signal_index_]);
       }
       offscreen_render_times_++;
+      printf("Offscreen  Submit   %llx    render times %d    %s \n ",
+             (uintptr_t)this,
+             offscreen_render_times_,
+             name_get());
     }
   }
 

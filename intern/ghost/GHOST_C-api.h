@@ -1201,6 +1201,7 @@ void GHOST_GetVulkanHandles(GHOST_ContextHandle context,
                             void *r_instance,
                             void *r_physical_device,
                             void *r_device,
+                            void *r_queue,
                             uint32_t *r_graphic_queue_familly);
 
 /**
@@ -1222,13 +1223,16 @@ extern void GHOST_VulkanDebugUtilsRegister(void *r_instance);
 extern void GHOST_VulkanDebugUtilsUnregister();
 #ifdef VULKAN_H_
 
-void GHOST_VulkanAcquireFrame(GHOST_ContextHandle context,
+GHOST_TSuccess GHOST_VulkanAcquireFrame(GHOST_ContextHandle context,
                               int *r_frameID,
                               int *r_imgID,
                               void *r_image,
-                              void* r_layout
+                              void *r_layout,
+                              void *r_img_format,
+                              void *r_semaphore
   );
-void GHOST_VulkanPresentFrame(GHOST_ContextHandle context);
+
+GHOST_TSuccess GHOST_VulkanPresentFrame(GHOST_ContextHandle context);
 
 extern void GHOST_ImageTransition(
     VkCommandBuffer cmd,
@@ -1241,6 +1245,8 @@ extern void GHOST_ImageTransition(
     VkImageLayout srcLayout = VK_IMAGE_LAYOUT_MAX_ENUM,
     int basemip = 0,
     int miplevel = -1);  // The ways that the app will be able to access the image.
+
+extern void GHOST_VulkanSwapchainTransition();  // The ways that the app will be able to access the image.
 extern void GHOST_VulkanCreateSwapchainRenderPass();
 #endif
 #  define GHOST_VkCheck(r) \

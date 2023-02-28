@@ -204,18 +204,84 @@ typedef VKBuffer VKVAOty_impl;
 typedef VKVAOty_impl *VKVAOty;
 typedef VKVAOty *VecVKVAOty;
 
-class VKContext : public Context {
+
+
+class VKSubmitter {
+  friend class VKContext;
+  const uint32_t MAX_FRAMES_IN_FLIGHT = 2;
  private:
+  
+  static const int sema_stock_nums = 2;
+  /* Toggle two semaphores to control the blocking submit of the swap chain render pipeline.*/
+  VkSemaphore wait_sema_sw_, signal_sema_sw_,fin_sema_sw_;
+  int num_submit_ = 0;
+  int num_submit_bl_ = 0;
+  VkSemaphore sema_stock_[sema_stock_nums];
+  int current_wait_sema_ = 0;
+  int pipeline_sema_idx_ = 0;
+  bool is_initialized = false;
+  bool is_init_sw_ = false;
+  bool is_final_sw_  = false;
+  VKContext *ctx_  = nullptr;
+  VkCommandBuffer cmd_ = VK_NULL_HANDLE;
+  std::vector<VkCommandBuffer> onetime_commands_;
+  bool is_inside_ = false;
+ public:
+  VKSubmitter(VKContext *ctx);
+  bool is_inside_frame();
+  ~VKSubmitter();
+  void clear();
+  
+  GHOST_TSuccess SubmitVolatileFence(VkDevice device,
+                                     VkQueue queue,
+                                     VkSubmitInfo &submit_info,
+                                     bool nofence = false);
+
+  VkImageLayout init_image_layout();
+  VkImageLayout fail_image_layout();
+  VkImageLayout finalize_image_layout();
+
+
+  GHOST_TSuccess initialize_sw_submit();
+  GHOST_TSuccess finalize_sw_submit();
+  void begin_submit_simple(VkCommandBuffer &cmd, bool ofscreen);
+  void end_submit_simple();
+
+  GHOST_TSuccess begin_blit_submit(VkCommandBuffer &cmd);
+
+  GHOST_TSuccess end_blit_submit(VkCommandBuffer &cmd, std::vector<VkSemaphore> batch_signal);
+
+  int begin_onetime_submit(VkCommandBuffer cmd);
+  void toggle_sema(VkSemaphore &s1, VkSemaphore &s2);
+  GHOST_TSuccess end_onetime_submit(int registerID);
+  GHOST_TSuccess begin_offscreen_submit(VkCommandBuffer &cmd);
+
+  GHOST_TSuccess end_offscreen_submit(VkCommandBuffer &cmd, VkSemaphore wait, VkSemaphore signal);
+
+  void createSemaphore();
+  void destroySemaphore();
+};
+
+class VKContext : public Context {
+  friend class VKSubmitter;
+  friend class VKFrameBuffer;
+ public:
   /** Copies of the handles owned by the GHOST context. */
   VkInstance instance_ = VK_NULL_HANDLE;
   VkPhysicalDevice physical_device_ = VK_NULL_HANDLE;
   VkDevice device_ = VK_NULL_HANDLE;
+  VkQueue queue_ = VK_NULL_HANDLE;
   uint32_t graphic_queue_familly_ = 0;
   int current_frame_index_ = 0;
   int current_img_index_ = 0;
   VkImageLayout current_swapchain_img_layout_;
+  VkFormat          current_swapchain_img_format_;
   VkImage current_swapchain_img_ = VK_NULL_HANDLE;
+  bool is_inside_frame_ = false;
 
+ protected:
+  VKSubmitter vk_submitter_;
+ private:
   /** Allocator used for texture and buffers and other resources. */
   // VmaAllocator mem_allocator_ = VK_NULL_HANDLE;
 
@@ -274,6 +340,7 @@ class VKContext : public Context {
   void init(void *ghost_window, void *ghost_context);
 
   void clear_color(VkCommandBuffer cmd, const VkClearColorValue *clearValues);
+  void clear_sw();
 
   /* CommandBuffer managers.   */
   //
@@ -316,7 +383,7 @@ class VKContext : public Context {
   {
     return device_;
   };
-  VkQueue queue_get(uint32_t type_);
+  VkQueue queue_get();
   void fbo_free(VkFramebuffer fbo_id);
   void vao_free(VKVAOty buf);
   static void buf_free(VKBuffer *buf);
@@ -349,6 +416,7 @@ class VKContext : public Context {
   VkCommandPool vk_command_pool_=VK_NULL_HANDLE; 
   Vector<VkCommandBuffer> vk_cmd_primaries_;
   VkImageLayout                           vk_sw_layouts[2];
+
   VkCommandBuffer request_command_buffer();
 
   /** \} */
@@ -403,7 +471,7 @@ class VKContext : public Context {
   GPUVertFormat dummy_vertformat_;
   GPUVertBuf *dummy_verts_ = nullptr;
   VKTexture *get_dummy_texture(eGPUTextureType type);
-  void bottom_transition();
+
   void fail_transition();
   VmaAllocator mem_allocator_ = VK_NULL_HANDLE;
   VmaAllocatorCreateInfo mem_allocator_info = {};
@@ -423,3 +491,4 @@ class VKContext : public Context {
 };
 
 }  // namespace blender::gpu
+

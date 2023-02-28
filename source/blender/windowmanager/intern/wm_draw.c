@@ -1131,14 +1131,6 @@ static void wm_draw_window_onscreen(bContext *C, wmWindow *win, int view)
 static void wm_draw_window(bContext *C, wmWindow *win)
 {
   /*Loop over this passage for analysis.*/
-  int CNT = 10;
-  while (CNT--) {
-
-    if (CNT == 1) {
-      printf("Input next loop >>");
-      scanf("%d", &CNT);
-    }
-
     GPU_context_begin_frame(win->gpuctx);
 
     bScreen *screen = WM_window_get_active_screen(win);
@@ -1214,10 +1206,9 @@ static void wm_draw_window(bContext *C, wmWindow *win)
     screen->do_draw = false;
 
     GPU_context_end_frame(win->gpuctx);
-  }
+  
 
-  GPU_context_main_unlock();
-  WM_exit(C);
+
 }
 
 /**

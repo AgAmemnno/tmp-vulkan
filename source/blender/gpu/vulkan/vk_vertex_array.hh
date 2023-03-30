@@ -39,6 +39,33 @@ struct VKVao {
     attributes.clear();
     vbos.clear();
   }
+   // Copy assignment operator.
+   VKVao& operator=(const VKVao& other)
+   {
+      if (this != &other)
+      {
+         is_valid = other.is_valid;
+         info   = other.info;
+         bindings.resize(other.bindings.size());
+         int i = 0;
+         for(auto e : other.bindings){
+            bindings[i++] = e;
+         }
+          i = 0;
+          attributes.resize(other.attributes.size());
+         for(auto e : other.attributes){
+            attributes[i++] =  e;
+         }
+           i = 0;
+           vbos.resize(other.vbos.size());
+         for(auto e : other.vbos){
+            vbos[i++] =  e;
+         }
+        
+
+      }
+      return *this;
+   }
 };
 };  // namespace gpu
 };  // namespace blender

@@ -820,7 +820,7 @@ add_dependencies(bf_blenkernel bf_dna)
 add_dependencies(bf_blenkernel bf_rna)
 
 
-if(WITH_GTESTS)
+if(WITH_GTESTS2)
   set(TEST_SRC
     intern/action_test.cc
     intern/armature_test.cc

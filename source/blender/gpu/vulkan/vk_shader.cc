@@ -2052,7 +2052,11 @@ VkPipeline VKShader::CreatePipeline(VKFrameBuffer *fb)
   VK_CHECK2(vkCreateGraphicsPipelines(
       device, ctx->get_pipeline_cache(), 1, &ci, vk_allocation_callbacks, &pipe));
   
-  debug::object_vk_label(device, pipe , std::string(vkinterface->sc_info_->name_) + "_Pipe"); 
+  if(vkinterface->sc_info_->name_.size()>0){
+    debug::object_vk_label(device, pipe , std::string(vkinterface->sc_info_->name_) + "_Pipe"); 
+  }else{
+    debug::object_vk_label(device, pipe , "PipeLine_NONAME"); 
+  }
 
   return pipe;
 };

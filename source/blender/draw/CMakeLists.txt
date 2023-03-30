@@ -795,7 +795,7 @@ blender_add_lib(bf_draw "${SRC}" "${INC}" "${INC_SYS}" "${LIB}")
 add_dependencies(bf_draw bf_dna)
 
 
-if(WITH_GTESTS)
+if(WITH_GTESTS2)
   if(WITH_OPENGL_DRAW_TESTS)
     set(TEST_SRC
       tests/draw_pass_test.cc

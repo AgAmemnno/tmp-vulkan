@@ -711,7 +711,7 @@ int main(int argc,
 #endif
 
   CTX_py_init_set(C, true);
-  WM_keyconfig_init(C);
+  //WM_keyconfig_init(C);
 
 #ifdef WITH_FREESTYLE
   /* Initialize Freestyle. */

@@ -179,7 +179,7 @@ void VKFrameBuffer::update_attachments()
     debug::object_vk_label(device,sema , std::string(name_get()));
   }
   VkCommandBuffer cmd = VK_NULL_HANDLE;
-  
+
 
   /* Currently the texture for the framebuffer is for mips==1. */
   int mip = 0;
@@ -304,7 +304,7 @@ static void clearImage(VkCommandBuffer cmd,
                          nullptr,
                          1,
                          &imageMemoryBarrier);
-   
+
   }
 
   VkImageSubresourceRange ImageSubresourceRange;
@@ -355,7 +355,7 @@ static void clearImage(VkCommandBuffer cmd,
                          nullptr,
                          1,
                          &imageMemoryBarrier);
-   
+
   }
 
 };
@@ -370,7 +370,7 @@ static void clearImage(VkCommandBuffer cmd,
     if (loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR) {  // VK_ATTACHMENT_LOAD_OP_LOAD
       BLI_assert(buffers & GPU_COLOR_BIT);
       if (is_render_begin_) {
-        
+
         render_end();
         context_->end_frame();
         context_->begin_frame();
@@ -390,13 +390,13 @@ static void clearImage(VkCommandBuffer cmd,
       return;
     };
     if (is_render_begin_) {
-     
+
       render_end();
       context_->end_frame();
       context_->begin_frame();
     }
 
-    
+
     VkCommandBuffer cmd = VK_NULL_HANDLE;
 
     context_->begin_submit_simple(cmd ,!is_swapchain_);
@@ -427,7 +427,7 @@ void VKFrameBuffer::clear(eGPUFrameBufferBits buffers,
 {
 
   VkClearValue clearValues[2];
-  //VkImageAspectFlags asp_mask = to_vk(buffers); 
+  //VkImageAspectFlags asp_mask = to_vk(buffers);
 
   auto loadOp = vk_attachments_.get_LoadOp();
   if (loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR) {  // VK_ATTACHMENT_LOAD_OP_LOAD
@@ -450,9 +450,9 @@ void VKFrameBuffer::clear(eGPUFrameBufferBits buffers,
   BLI_assert(loadOp == VK_ATTACHMENT_LOAD_OP_LOAD);
   BLI_assert(!is_render_begin_);
 
-  
+
     VkCommandBuffer cmd = VK_NULL_HANDLE;
-   
+
 
     context_->begin_submit_simple(cmd, !is_swapchain_);
 
@@ -500,7 +500,7 @@ void VKFrameBuffer::clear(eGPUFrameBufferBits buffers,
     context_->end_submit_simple();
 
 
- 
+
 
   /*
    context_->state_manager->apply_state();
@@ -616,7 +616,7 @@ void VKFrameBuffer::readColorAttachment(VKTexture *tex, void *&data, VkDeviceMem
   // Create memory to back up the image
   VkMemoryRequirements memRequirements;
   VkMemoryAllocateInfo memAllocInfo = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
- 
+
   vkGetImageMemoryRequirements(device, dstImage, &memRequirements);
   memAllocInfo.allocationSize = memRequirements.size;
   // Memory must be host visible to copy from
@@ -1101,7 +1101,7 @@ void saveTexture(std::string &filename, VKFrameBuffer *fb, const GPUTexture *tex
   VkDeviceMemory dstImageMemory = VK_NULL_HANDLE;
   VKTexture *vk_tex = (VKTexture *)tex;
   int area[4] = {0, 0, vk_tex->width_get(), vk_tex->height_get()};
-  
+
       VkDevice device = VKContext::get()->device_get();
 
   auto usage = GPU_texture_usage(tex);
@@ -1446,7 +1446,7 @@ void VKFrameBuffer::blit(uint read_slot,
 void VKFrameBuffer::blit_to(
     eGPUFrameBufferBits planes, int src_slot, FrameBuffer *dst_, int dst_slot, int x, int y)
 {
-  
+
   VKFrameBuffer *src = this;
   VKFrameBuffer *dst = static_cast<VKFrameBuffer *>(dst_);
 
@@ -1479,7 +1479,7 @@ void VKFrameBuffer::blit_to(
 
   context_->state_manager->apply_state();
 
-  
+
 
   // VkImageAspectFlags mask = to_vk(planes);
   VkImage dstImage = dst->get_swapchain_image();
@@ -1635,7 +1635,7 @@ void VKFrameBuffer::blit_to(
   }
 #endif
 
- 
+
   /* Ensure previous buffer is restored. */
   context_->active_fb = dst;
   offscreen_render_times_ = 0;
@@ -1696,7 +1696,7 @@ VkCommandBuffer VKFrameBuffer::render_begin(VkCommandBuffer cmd,
     };
 
     VkCommandBufferBeginInfo begin_info{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-    /*TODO :: Secondary Command 
+    /*TODO :: Secondary Command
     VkCommandBufferInheritanceInfo inheritance = {
     VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO
     }; inheritance.renderPass = vk_attachments_.renderpass_; inheritance.framebuffer =
@@ -1796,7 +1796,7 @@ void VKFrameBuffer::render_end()
   if (is_command_begin_) {
     debug::popMarker(vk_cmd);
     VK_CHECK2(vkEndCommandBuffer(vk_cmd));
-    
+
 
     is_command_begin_ = false;
     submit = true;

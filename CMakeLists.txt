@@ -1314,11 +1314,9 @@ if(WITH_PYTHON_MODULE)
   endif()
 endif()
 
-
 # -----------------------------------------------------------------------------
 # Configure `GLog/GFlags`
-
-if(WITH_LIBMV OR WITH_GTESTS OR (WITH_CYCLES AND WITH_CYCLES_LOGGING))
+if(WITH_GTESTS2 OR WITH_LIBMV OR WITH_GTESTS OR(WITH_CYCLES AND WITH_CYCLES_LOGGING))
   if(WITH_SYSTEM_GFLAGS)
     find_package(Gflags)
     if(NOT GFLAGS_FOUND)

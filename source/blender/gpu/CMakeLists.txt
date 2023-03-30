@@ -297,35 +297,36 @@ set(LIB
 )
 
 if(WITH_VULKAN_BACKEND)
-    
+
     add_definitions(-DWITH_VULKAN_BACKEND)
     if(WITH_VULKAN_GUARDEDALLOC)
       add_definitions(-DWITH_VULKAN_GUARDEDALLOC)
     endif()
 
-    set(INC ${INC}   ${IMATH_INCLUDE_DIR})
+
     set(INC ${INC}    ../../../extern/spirv_cross/src)
 
 
     list(APPEND INC
     ../../../extern/vulkan_memory_allocator/
     )
-    list(APPEND INC_SYS
-      ${VULKAN_INCLUDE_DIRS}
-      ${SHADERC_INCLUDE_DIRS}
-      ${IMATH_LIBRARIES}
-    )
+  list(APPEND INC_SYS
+    ${VULKAN_INCLUDE_DIRS}
+    ${SHADERC_INCLUDE_DIRS}
+    ${IMATH_INCLUDE_DIR}
+  )
     list(APPEND SRC
       ${VULKAN_SRC}
     )
-    
-    list(APPEND LIB
+
+  list(APPEND LIB
     ${VULKAN_LIBRARIES}
     ${SHADERC_LIBRARIES}
+    ${IMATH_LIBRARIES}
     extern_vulkan_memory_allocator
     extern_spirv_cross
     extern_spirv_cross_glsl
-    )
+  )
     message(STATUS  " >>>>>>>>>>>>>>WITH_VULKAN_GUARDEDALLOC  ${WITH_VULKAN_GUARDEDALLOC} >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>${VULKAN_LIBRARIES} ${SHADERC_LIBRARIES}   WITH_VULKAN_BACKEND  ON")
 endif()
 
@@ -551,7 +552,7 @@ set(MSL_SRC
   metal/mtl_shader_shared.h
 )
 
-if(WITH_GTESTS)
+if(WITH_GTESTS2)
   if(WITH_OPENGL_DRAW_TESTS)
     list(APPEND GLSL_SRC ${GLSL_SRC_TEST})
   endif()
@@ -692,7 +693,7 @@ set(SRC_SHADER_CREATE_INFOS_MTL
   metal/kernels/gpu_shader_fullscreen_blit_info.hh
 )
 
-if(WITH_GTESTS)
+if(WITH_GTESTS2)
   if(WITH_OPENGL_DRAW_TESTS)
     list(APPEND SRC_SHADER_CREATE_INFOS ${SRC_SHADER_CREATE_INFOS_TEST})
   endif()
@@ -798,7 +799,7 @@ if(WITH_GPU_BUILDTIME_SHADER_BUILDER)
 endif()
 
 
-if(WITH_GTESTS)
+if(WITH_GTESTS2)
   if(WITH_OPENGL_DRAW_TESTS)
     set(TEST_SRC
       tests/gpu_testing.cc

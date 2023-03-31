@@ -307,4 +307,102 @@ VkComponentMapping to_vk_component_mapping(const eGPUTextureFormat /*format*/)
   return component_mapping;
 }
 
+template<typename T> void copy_color(T dst[4], const T *src)
+{
+  dst[0] = src[0];
+  dst[1] = src[1];
+  dst[2] = src[2];
+  dst[3] = src[3];
+}
+
+VkClearColorValue to_vk_clear_color_value(const eGPUDataFormat format, const void *data)
+{
+  VkClearColorValue result = {0.0f};
+  switch (format) {
+    case GPU_DATA_FLOAT: {
+      const float *float_data = static_cast<const float *>(data);
+      copy_color<float>(result.float32, float_data);
+      break;
+    }
+
+    case GPU_DATA_INT: {
+      const int32_t *int_data = static_cast<const int32_t *>(data);
+      copy_color<int32_t>(result.int32, int_data);
+      break;
+    }
+
+    case GPU_DATA_UINT: {
+      const uint32_t *uint_data = static_cast<const uint32_t *>(data);
+      copy_color<uint32_t>(result.uint32, uint_data);
+      break;
+    }
+
+    case GPU_DATA_HALF_FLOAT:
+    case GPU_DATA_UBYTE:
+    case GPU_DATA_UINT_24_8:
+    case GPU_DATA_10_11_11_REV:
+    case GPU_DATA_2_10_10_10_REV: {
+      BLI_assert_unreachable();
+      break;
+    }
+  }
+  return result;
+}
+
+const char *to_string(VkImageLayout layout)
+{
+
+#define FORMAT_IMAGE_LAYOUT(X) \
+  case X: { \
+    return "" #X; \
+  }
+
+  switch (layout) {
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_UNDEFINED)
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_GENERAL)
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL)
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_PREINITIALIZED)
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL)
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL)
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL)
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL)
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL)
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+#ifdef VK_ENABLE_BETA_EXTENSIONS
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_VIDEO_DECODE_DST_KHR)
+#endif
+#ifdef VK_ENABLE_BETA_EXTENSIONS
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_VIDEO_DECODE_SRC_KHR)
+#endif
+#ifdef VK_ENABLE_BETA_EXTENSIONS
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_VIDEO_DECODE_DPB_KHR)
+#endif
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR)
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT)
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR)
+#ifdef VK_ENABLE_BETA_EXTENSIONS
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_VIDEO_ENCODE_DST_KHR)
+#endif
+#ifdef VK_ENABLE_BETA_EXTENSIONS
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_VIDEO_ENCODE_SRC_KHR)
+#endif
+#ifdef VK_ENABLE_BETA_EXTENSIONS
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_VIDEO_ENCODE_DPB_KHR)
+#endif
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR)
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR)
+    FORMAT_IMAGE_LAYOUT(VK_IMAGE_LAYOUT_MAX_ENUM)
+
+    default:
+      return "Unknown Error";
+  }
+
+#undef FORMAT_IMAGE_LAYOUT
+}
 }  // namespace blender::gpu

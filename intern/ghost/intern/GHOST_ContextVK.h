@@ -99,6 +99,8 @@ class GHOST_ContextVK : public GHOST_Context {
    */
   GHOST_TSuccess initializeDrawingContext();
 
+  GHOST_TSuccess initializeDevice(VkDevice &device, VkQueue &queue, uint32_t &queue_family);
+
   /**
    * Removes references to native handles from this context and then returns
    * \return GHOST_kSuccess if it is OK for the parent to release the handles and
@@ -123,7 +125,9 @@ class GHOST_ContextVK : public GHOST_Context {
    * \return  A boolean success indicator.
    */
   GHOST_TSuccess getVulkanBackbuffer(
-      void *image, void *framebuffer, void *render_pass, void *extent, uint32_t *fb_id);
+      void *image, void *framebuffer, void *render_pass, void *extent, uint32_t *fb_id, int index);
+
+  GHOST_TSuccess getVulkanSemaphore(void *r_wait, void *r_finish, uint32_t *id);
 
   /**
    * Sets the swap interval for `swapBuffers`.
@@ -188,6 +192,13 @@ class GHOST_ContextVK : public GHOST_Context {
   std::vector<VkSemaphore> m_render_finished_semaphores;
   std::vector<VkFence> m_in_flight_fences;
   std::vector<VkFence> m_in_flight_images;
+  std::vector<bool> m_in_flight;
+
+  std::vector<const char *> m_layers_enabled;
+  std::vector<const char *> m_extensions_device;
+
+  bool m_use_window_surface;
+
   /** frame modulo swapchain_len. Used as index for sync objects. */
   int m_currentFrame = 0;
   /** Image index in the swapchain. Used as index for render objects. */

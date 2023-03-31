@@ -1287,7 +1287,8 @@ void GHOST_GetVulkanBackbuffer(GHOST_WindowHandle windowhandle,
                                void *r_framebuffer,
                                void *r_render_pass,
                                void *r_extent,
-                               uint32_t *r_fb_id);
+                               uint32_t *r_fb_id,
+                               int index);
 
 #endif
 

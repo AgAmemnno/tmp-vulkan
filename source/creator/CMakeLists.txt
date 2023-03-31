@@ -1219,7 +1219,7 @@ elseif(WIN32)
     FILES ${LIBDIR}/sndfile/lib/libsndfile-1.dll
     ALL
   )
-
+  message(STATUS ">>>>>>>>>>>>>>>>>>>>>.${LIBDIR}/shaderc/bin/shaderc_shared.dll. ")
   windows_install_shared_manifest(
     FILES ${LIBDIR}/shaderc/bin/shaderc_shared.dll
     RELEASE

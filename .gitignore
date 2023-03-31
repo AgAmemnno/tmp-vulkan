@@ -72,3 +72,5 @@ waveletNoiseTile.bin
 CMakeSettings.json
 CMakePresets.json
 CMakeUserPresets.json
+
+/extern/Vulkan-ValidationLayers

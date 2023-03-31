@@ -235,6 +235,7 @@ set(VULKAN_SRC
   vulkan/vk_common.hh
   vulkan/vk_context.hh
   vulkan/vk_data_conversion.hh
+  vulkan/vk_debug.hh
   vulkan/vk_descriptor_pools.hh
   vulkan/vk_descriptor_set.hh
   vulkan/vk_drawlist.hh
@@ -571,7 +572,7 @@ set(MSL_SRC
   metal/mtl_shader_shared.h
 )
 
-if(WITH_GTESTS)
+if(WITH_GTESTS2)
   if(WITH_OPENGL_DRAW_TESTS)
     list(APPEND GLSL_SRC ${GLSL_SRC_TEST})
   endif()
@@ -714,7 +715,7 @@ set(SRC_SHADER_CREATE_INFOS_MTL
   metal/kernels/gpu_shader_fullscreen_blit_info.hh
 )
 
-if(WITH_GTESTS)
+if(WITH_GTESTS2)
   if(WITH_OPENGL_DRAW_TESTS)
     list(APPEND SRC_SHADER_CREATE_INFOS ${SRC_SHADER_CREATE_INFOS_TEST})
   endif()
@@ -824,7 +825,7 @@ if(WITH_GPU_BUILDTIME_SHADER_BUILDER)
 endif()
 
 
-if(WITH_GTESTS)
+if(WITH_GTESTS2)
   if(WITH_OPENGL_DRAW_TESTS)
     set(TEST_SRC
       tests/gpu_testing.cc

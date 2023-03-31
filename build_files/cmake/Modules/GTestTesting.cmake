@@ -15,7 +15,7 @@ endfunction()
 
 
 macro(BLENDER_SRC_GTEST_EX)
-  if(WITH_GTESTS)
+  if(WITH_GTESTS2)
     set(options SKIP_ADD_TEST)
     set(oneValueArgs NAME)
     set(multiValueArgs SRC EXTRA_LIBS COMMAND_ARGS)

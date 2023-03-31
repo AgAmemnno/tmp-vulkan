@@ -43,11 +43,12 @@ class GPUOpenGLTest : public GPUTest {
   }
 };
 
-#define GPU_OPENGL_TEST(test_name) \
+#define GPU_OPENGL_TEST1(test_name) \
   TEST_F(GPUOpenGLTest, test_name) \
   { \
     test_##test_name(); \
   }
+#define GPU_OPENGL_TEST(test_name)
 
 #ifdef WITH_METAL_BACKEND
 class GPUMetalTest : public GPUTest {

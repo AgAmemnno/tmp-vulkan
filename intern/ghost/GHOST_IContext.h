@@ -117,7 +117,8 @@ class GHOST_IContext {
                                              void *r_framebuffer,
                                              void *r_render_pass,
                                              void *r_extent,
-                                             uint32_t *r_fb_id) = 0;
+                                             uint32_t *r_fb_id,
+                                             int index) = 0;
 
   virtual GHOST_TSuccess swapBuffers() = 0;
 

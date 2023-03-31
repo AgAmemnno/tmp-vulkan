@@ -148,10 +148,12 @@ VertBuf *VKBackend::vertbuf_alloc()
 
 void VKBackend::render_begin()
 {
+  VKContext::get()->validate_frame();
 }
 
 void VKBackend::render_end()
 {
+  /*finalize Queue*/
 }
 
 void VKBackend::render_step()

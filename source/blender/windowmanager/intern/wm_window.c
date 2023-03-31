@@ -721,7 +721,11 @@ static void wm_window_ghostwindow_add(wmWindowManager *wm,
     /* needed here, because it's used before it reads userdef */
     WM_window_set_dpi(win);
 
+    GPU_render_end();
+
     wm_window_swap_buffers(win);
+
+    GPU_render_begin();
 
     /* Clear double buffer to avoids flickering of new windows on certain drivers. (See #97600) */
     GPU_clear_color(0.55f, 0.55f, 0.55f, 1.0f);

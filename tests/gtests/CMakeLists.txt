@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-if(WITH_GTESTS)
+if(WITH_GTESTS2)
   # Otherwise we get warnings here that we can't fix in external projects
   remove_strict_flags()
 

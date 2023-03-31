@@ -13,6 +13,7 @@
 #include "vk_descriptor_pools.hh"
 
 namespace blender::gpu {
+class VKFrameBuffer;
 
 class VKContext : public Context {
  private:
@@ -33,6 +34,12 @@ class VKContext : public Context {
 
   void *ghost_context_;
 
+  Vector<SafeImage> vk_swap_chain_images_;
+
+  bool vk_in_frame_;
+
+  uint32_t vk_fb_id_ = 0;
+
  public:
   VKContext(void *ghost_window, void *ghost_context);
   virtual ~VKContext();
@@ -44,6 +51,7 @@ class VKContext : public Context {
 
   void flush() override;
   void finish() override;
+  void flush(bool toggle, bool fin, bool activate);
 
   void memory_statistics_get(int *total_mem, int *free_mem) override;
 
@@ -54,6 +62,19 @@ class VKContext : public Context {
   void *debug_capture_scope_create(const char *name) override;
   bool debug_capture_scope_begin(void *scope) override;
   void debug_capture_scope_end(void *scope) override;
+
+  bool has_active_framebuffer() const;
+  void activate_framebuffer(VKFrameBuffer &framebuffer);
+  void deactivate_framebuffer();
+  VKFrameBuffer *active_framebuffer_get() const;
+
+  void swapchains();
+
+  bool validate_frame();
+
+  bool validate_image();
+
+  void bind_graphics_pipeline();
 
   static VKContext *get(void)
   {
@@ -99,6 +120,15 @@ class VKContext : public Context {
   {
     return mem_allocator_;
   }
+
+  SafeImage &sc_image_get(int i = -1)
+  {
+    i = (i == -1) ? (vk_fb_id_ & 1) : i;
+    SafeImage &im = vk_swap_chain_images_[i];
+    return im;
+  }
+
+  uint8_t semaphore_get(VkSemaphore &wait, VkSemaphore &finish);
 
  private:
   void init_physical_device_limits();

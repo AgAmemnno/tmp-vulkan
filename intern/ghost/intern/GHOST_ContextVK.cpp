@@ -23,6 +23,7 @@
 #include <cstdio>
 #include <cstring>
 #include <iostream>
+#include <sstream>
 
 /* Set to 0 to allow devices that do not have the required features.
  * This allows development on OSX until we really needs these features. */
@@ -78,6 +79,21 @@ static const char *vulkan_error_as_string(VkResult result)
     default:
       return "Unknown Error";
   }
+}
+
+enum class VkLayer : uint8_t { KHRONOS_validation };
+
+static bool vklayer_config_exist(const char *vk_extension_config)
+{
+  const char *ev_val = getenv("VK_LAYER_PATH");
+  if (ev_val == nullptr) {
+    return false;
+  }
+  std::stringstream filename;
+  filename << ev_val;
+  filename << "/" << vk_extension_config;
+  struct stat buffer;
+  return (stat(filename.str().c_str(), &buffer) == 0);
 }
 
 #define __STR(A) "" #A
@@ -210,7 +226,109 @@ GHOST_TSuccess GHOST_ContextVK::swapBuffers()
     return GHOST_kFailure;
   }
 
-  vkWaitForFences(m_device, 1, &m_in_flight_fences[m_currentFrame], VK_TRUE, UINT64_MAX);
+  uint32_t cmd_id = m_currentImage;
+  VkResult result;
+
+  if (m_currentImage < MAX_FRAMES_IN_FLIGHT) {
+
+#if 0
+          /* Check if a previous frame is using this image (i.e. there is its fence to wait on) */
+          if (m_in_flight[m_currentFrame]) {
+          int Try =10;
+          do{
+            result = vkWaitForFences(m_device, 1, &m_in_flight_fences[m_currentFrame],VK_TRUE, 1000);
+          }while(result == VK_TIMEOUT && (Try-- >0));
+          assert(result == VK_SUCCESS);
+          m_in_flight[m_currentImage] = false;
+        }
+        VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT};
+        VkSubmitInfo submit_info = {};
+        submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submit_info.waitSemaphoreCount = 1;
+        submit_info.pWaitSemaphores = &m_image_available_semaphores[m_currentFrame];
+        submit_info.pWaitDstStageMask = wait_stages;
+        submit_info.commandBufferCount = 1;
+        submit_info.pCommandBuffers = &m_command_buffers[cmd_id];
+        submit_info.signalSemaphoreCount = 1;
+        submit_info.pSignalSemaphores = &m_render_finished_semaphores[m_currentFrame];
+
+        vkResetFences(m_device, 1, &m_in_flight_fences[m_currentFrame]);
+
+        VK_CHECK(vkQueueSubmit(m_graphic_queue, 1, &submit_info, m_in_flight_fences[m_currentFrame]));
+
+        VK_CHECK(vkQueueWaitIdle(m_graphic_queue));
+#endif
+
+    VkPresentInfoKHR present_info = {};
+    present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    present_info.waitSemaphoreCount = 1;
+    present_info.pWaitSemaphores = &m_render_finished_semaphores[m_currentFrame];
+    present_info.swapchainCount = 1;
+    present_info.pSwapchains = &m_swapchain;
+    present_info.pImageIndices = &m_currentImage;
+    present_info.pResults = NULL;
+
+    result = vkQueuePresentKHR(m_present_queue, &present_info);
+    printf(">>>>>>>>>>>>>  Present Image %d  Frame %d  FinishSemaphore %llx \n",
+           m_currentImage,
+           m_currentFrame,
+           (uint64_t)m_render_finished_semaphores[m_currentFrame]);
+
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+      /* Swap-chain is out of date. Recreate swap-chain and skip this frame. */
+      destroySwapchain();
+      createSwapchain();
+      return GHOST_kSuccess;
+    }
+    else if (result != VK_SUCCESS) {
+      fprintf(stderr,
+              "Error: Failed to present swap chain image : %s\n",
+              vulkan_error_as_string(result));
+      return GHOST_kFailure;
+    }
+  }
+
+  m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+
+  result = vkAcquireNextImageKHR(m_device,
+                                 m_swapchain,
+                                 UINT64_MAX,
+                                 m_image_available_semaphores[m_currentFrame],
+                                 VK_NULL_HANDLE,
+                                 &m_currentImage);
+
+  if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+    /* Swap-chain is out of date. Recreate swap-chain and skip this frame. */
+    destroySwapchain();
+    createSwapchain();
+    return GHOST_kSuccess;
+  }
+  else if (result != VK_SUCCESS) {
+    fprintf(stderr,
+            "Error: Failed to acquire swap chain image : %s\n",
+            vulkan_error_as_string(result));
+    return GHOST_kFailure;
+  }
+
+  printf(">>>>>>>>>>>>>  Aquire ImageIndex %d  Image %llx Frame %d  Semaphore %llx \n",
+         m_currentImage,
+         (uint64_t)m_swapchain_images[m_currentImage],
+         m_currentFrame,
+         (uint64_t)m_image_available_semaphores[m_currentFrame]);
+
+  return GHOST_kSuccess;
+}
+
+#if 0
+GHOST_TSuccess GHOST_ContextVK::swapBuffers()
+{
+  if (m_swapchain == VK_NULL_HANDLE) {
+    return GHOST_kFailure;
+  }
+
+  uint32_t cmd_id = m_currentImage;
+
+  //vkWaitForFences(m_device, 1, &m_in_flight_fences[m_currentFrame], VK_TRUE, UINT64_MAX);
 
   VkResult result = vkAcquireNextImageKHR(m_device,
                                           m_swapchain,
@@ -246,7 +364,7 @@ GHOST_TSuccess GHOST_ContextVK::swapBuffers()
   submit_info.pWaitSemaphores = &m_image_available_semaphores[m_currentFrame];
   submit_info.pWaitDstStageMask = wait_stages;
   submit_info.commandBufferCount = 1;
-  submit_info.pCommandBuffers = &m_command_buffers[m_currentImage];
+  submit_info.pCommandBuffers = &m_command_buffers[cmd_id];
   submit_info.signalSemaphoreCount = 1;
   submit_info.pSignalSemaphores = &m_render_finished_semaphores[m_currentFrame];
 
@@ -287,18 +405,22 @@ GHOST_TSuccess GHOST_ContextVK::swapBuffers()
 
   return GHOST_kSuccess;
 }
+#endif
 
 GHOST_TSuccess GHOST_ContextVK::getVulkanBackbuffer(
-    void *image, void *framebuffer, void *render_pass, void *extent, uint32_t *fb_id)
+    void *image, void *framebuffer, void *render_pass, void *extent, uint32_t *fb_id, int index)
 {
   if (m_swapchain == VK_NULL_HANDLE) {
     return GHOST_kFailure;
   }
-  *((VkImage *)image) = m_swapchain_images[m_currentImage];
-  *((VkFramebuffer *)framebuffer) = m_swapchain_framebuffers[m_currentImage];
+  *((VkImage *)image) = m_swapchain_images[index];
+  *((VkFramebuffer *)framebuffer) = m_swapchain_framebuffers[index];
   *((VkRenderPass *)render_pass) = m_render_pass;
   *((VkExtent2D *)extent) = m_render_extent;
-  *fb_id = m_swapchain_id * 10 + m_currentFrame;
+  uint32_t id_bits = m_currentImage;
+  id_bits |= m_currentFrame << 1;
+  id_bits |= m_swapchain_id << 2;
+  *fb_id = id_bits;
 
   return GHOST_kSuccess;
 }
@@ -330,6 +452,24 @@ GHOST_TSuccess GHOST_ContextVK::getVulkanCommandBuffer(void *r_command_buffer)
   else {
     *((VkCommandBuffer *)r_command_buffer) = m_command_buffers[m_currentImage];
   }
+
+  return GHOST_kSuccess;
+}
+
+GHOST_TSuccess GHOST_ContextVK::getVulkanSemaphore(void *r_wait, void *r_finish, uint32_t *id)
+{
+  if (m_swapchain == VK_NULL_HANDLE) {
+    return GHOST_kFailure;
+  }
+
+  *((VkSemaphore *)r_wait) = m_image_available_semaphores[m_currentFrame];
+
+  *((VkSemaphore *)r_finish) = m_render_finished_semaphores[m_currentFrame];
+
+  uint32_t id_bits = m_currentImage;
+  id_bits |= m_currentFrame << 1;
+  id_bits |= m_swapchain_id << 2;
+  *id = id_bits;
 
   return GHOST_kSuccess;
 }
@@ -401,16 +541,38 @@ static bool checkLayerSupport(vector<VkLayerProperties> &layers_available, const
 
 static void enableLayer(vector<VkLayerProperties> &layers_available,
                         vector<const char *> &layers_enabled,
-                        const char *layer_name,
-                        const bool debug)
+                        const VkLayer layer,
+                        const bool display_warning)
 {
-  if (checkLayerSupport(layers_available, layer_name)) {
-    layers_enabled.push_back(layer_name);
+#define PUSH_VKLAYER(name, name2) \
+  if (vklayer_config_exist("VkLayer_" #name ".json") && \
+      checkLayerSupport(layers_available, "VK_LAYER_" #name2)) { \
+    layers_enabled.push_back("VK_LAYER_" #name2); \
+    enabled = true; \
+  } \
+  else { \
+    warnings << "VK_LAYER_" #name2; \
   }
-  else if (debug) {
-    fprintf(
-        stderr, "Warning: Layer requested, but not supported by the platform. [%s]\n", layer_name);
+
+  bool enabled = false;
+  std::stringstream warnings;
+
+  switch (layer) {
+    case VkLayer::KHRONOS_validation:
+      PUSH_VKLAYER(khronos_validation, KHRONOS_validation);
+  };
+
+  if (enabled) {
+    return;
   }
+
+  if (display_warning) {
+    fprintf(stderr,
+            "Warning: Layer requested, but not supported by the platform. [%s] \n",
+            warnings.str().c_str());
+  }
+
+#undef PUSH_VKLAYER
 }
 
 static bool device_extensions_support(VkPhysicalDevice device, vector<const char *> required_exts)
@@ -581,11 +743,12 @@ static GHOST_TSuccess create_render_pass(VkDevice device,
   VkAttachmentDescription colorAttachment = {};
   colorAttachment.format = format;
   colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-  colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;  // VK_ATTACHMENT_LOAD_OP_CLEAR;
   colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
   colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
   colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-  colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  colorAttachment.initialLayout =
+      VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;  // VK_IMAGE_LAYOUT_GENERAL;//;//VK_IMAGE_LAYOUT_UNDEFINED;
   colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
   VkAttachmentReference colorAttachmentRef = {};
@@ -814,6 +977,12 @@ GHOST_TSuccess GHOST_ContextVK::createSwapchain()
   }
 
   createGraphicsCommandBuffers();
+  m_currentImage = UINT_MAX;
+  m_in_flight.resize(MAX_FRAMES_IN_FLIGHT);
+  for (int i = 0; i < 2; i++) {
+    m_in_flight[i] = false;
+  };
+  swapBuffers();
 
   return GHOST_kSuccess;
 }
@@ -842,7 +1011,7 @@ const char *GHOST_ContextVK::getPlatformSpecificSurfaceExtension() const
 GHOST_TSuccess GHOST_ContextVK::initializeDrawingContext()
 {
 #ifdef _WIN32
-  const bool use_window_surface = (m_hwnd != NULL);
+  m_use_window_surface = (m_hwnd != NULL);
 #elif defined(__APPLE__)
   const bool use_window_surface = (m_metal_layer != NULL);
 #else /* UNIX/Linux */
@@ -861,25 +1030,25 @@ GHOST_TSuccess GHOST_ContextVK::initializeDrawingContext()
 
   auto layers_available = getLayersAvailable();
   auto extensions_available = getExtensionsAvailable();
-
-  vector<const char *> layers_enabled;
-  if (m_debug) {
-    enableLayer(layers_available, layers_enabled, "VK_LAYER_KHRONOS_validation", m_debug);
-  }
-
-  vector<const char *> extensions_device;
   vector<const char *> extensions_enabled;
 
-  if (use_window_surface) {
+  if (m_debug) {
+    enableLayer(layers_available, m_layers_enabled, VkLayer::KHRONOS_validation, m_debug);
+    requireExtension(extensions_available, extensions_enabled, VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+  }
+
+  if (m_use_window_surface) {
     const char *native_surface_extension_name = getPlatformSpecificSurfaceExtension();
 
     requireExtension(extensions_available, extensions_enabled, "VK_KHR_surface");
     requireExtension(extensions_available, extensions_enabled, native_surface_extension_name);
 
-    extensions_device.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    m_extensions_device.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
   }
-  extensions_device.push_back("VK_KHR_dedicated_allocation");
-  extensions_device.push_back("VK_KHR_get_memory_requirements2");
+
+  m_extensions_device.push_back("VK_KHR_dedicated_allocation");
+  m_extensions_device.push_back("VK_KHR_get_memory_requirements2");
+
   /* Enable MoltenVK required instance extensions. */
 #ifdef VK_MVK_MOLTENVK_EXTENSION_NAME
   requireExtension(
@@ -897,14 +1066,14 @@ GHOST_TSuccess GHOST_ContextVK::initializeDrawingContext()
   VkInstanceCreateInfo create_info = {};
   create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
   create_info.pApplicationInfo = &app_info;
-  create_info.enabledLayerCount = static_cast<uint32_t>(layers_enabled.size());
-  create_info.ppEnabledLayerNames = layers_enabled.data();
+  create_info.enabledLayerCount = static_cast<uint32_t>(m_layers_enabled.size());
+  create_info.ppEnabledLayerNames = m_layers_enabled.data();
   create_info.enabledExtensionCount = static_cast<uint32_t>(extensions_enabled.size());
   create_info.ppEnabledExtensionNames = extensions_enabled.data();
 
   VK_CHECK(vkCreateInstance(&create_info, NULL, &m_instance));
 
-  if (use_window_surface) {
+  if (m_use_window_surface) {
 #ifdef _WIN32
     VkWin32SurfaceCreateInfoKHR surface_create_info = {};
     surface_create_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
@@ -943,9 +1112,17 @@ GHOST_TSuccess GHOST_ContextVK::initializeDrawingContext()
 #endif
   }
 
-  if (!pickPhysicalDevice(extensions_device)) {
+  if (!pickPhysicalDevice(m_extensions_device)) {
     return GHOST_kFailure;
   }
+
+  return GHOST_kSuccess;
+}
+
+GHOST_TSuccess GHOST_ContextVK::initializeDevice(VkDevice &device,
+                                                 VkQueue &queue,
+                                                 uint32_t &queue_family)
+{
 
 #ifdef VK_MVK_MOLTENVK_EXTENSION_NAME
   /* According to the Vulkan specs, when `VK_KHR_portability_subset` is available it should be
@@ -973,7 +1150,7 @@ GHOST_TSuccess GHOST_ContextVK::initializeDrawingContext()
     queue_create_infos.push_back(graphic_queue_create_info);
   }
 
-  if (use_window_surface) {
+  if (m_use_window_surface) {
     /* A present queue is required only if we render to a window. */
     if (!getPresetQueueFamily(m_physical_device, m_surface, &m_queue_family_present)) {
       return GHOST_kFailure;
@@ -1005,10 +1182,10 @@ GHOST_TSuccess GHOST_ContextVK::initializeDrawingContext()
   device_create_info.pQueueCreateInfos = queue_create_infos.data();
   /* layers_enabled are the same as instance extensions.
    * This is only needed for 1.0 implementations. */
-  device_create_info.enabledLayerCount = static_cast<uint32_t>(layers_enabled.size());
-  device_create_info.ppEnabledLayerNames = layers_enabled.data();
-  device_create_info.enabledExtensionCount = static_cast<uint32_t>(extensions_device.size());
-  device_create_info.ppEnabledExtensionNames = extensions_device.data();
+  device_create_info.enabledLayerCount = static_cast<uint32_t>(m_layers_enabled.size());
+  device_create_info.ppEnabledLayerNames = m_layers_enabled.data();
+  device_create_info.enabledExtensionCount = static_cast<uint32_t>(m_extensions_device.size());
+  device_create_info.ppEnabledExtensionNames = m_extensions_device.data();
   device_create_info.pEnabledFeatures = &device_features;
 
   VK_CHECK(vkCreateDevice(m_physical_device, &device_create_info, NULL, &m_device));
@@ -1016,13 +1193,18 @@ GHOST_TSuccess GHOST_ContextVK::initializeDrawingContext()
   vkGetDeviceQueue(m_device, m_queue_family_graphic, 0, &m_graphic_queue);
 
   createCommandPools();
-  if (use_window_surface) {
+  if (m_use_window_surface) {
     vkGetDeviceQueue(m_device, m_queue_family_present, 0, &m_present_queue);
     createSwapchain();
   }
   else {
     createGraphicsCommandBuffer();
   }
+
+  device = m_device;
+  queue = m_graphic_queue;
+  queue_family = m_queue_family_graphic;
+
   return GHOST_kSuccess;
 }
 

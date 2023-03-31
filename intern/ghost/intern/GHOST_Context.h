@@ -218,7 +218,8 @@ class GHOST_Context : public GHOST_IContext {
                                              void * /*r_framebuffer*/,
                                              void * /*r_render_pass*/,
                                              void * /*r_extent*/,
-                                             uint32_t * /*fb_id*/) override
+                                             uint32_t * /*fb_id*/,
+                                             int /*index*/) override
   {
     return GHOST_kFailure;
   }

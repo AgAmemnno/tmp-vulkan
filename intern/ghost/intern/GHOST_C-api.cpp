@@ -1234,10 +1234,11 @@ void GHOST_GetVulkanBackbuffer(GHOST_WindowHandle windowhandle,
                                void *framebuffer,
                                void *render_pass,
                                void *extent,
-                               uint32_t *fb_id)
+                               uint32_t *fb_id,
+                               int index)
 {
   GHOST_IWindow *window = (GHOST_IWindow *)windowhandle;
-  window->getVulkanBackbuffer(image, framebuffer, render_pass, extent, fb_id);
+  window->getVulkanBackbuffer(image, framebuffer, render_pass, extent, fb_id, index);
 }
 
 #endif /* WITH_VULKAN_BACKEND */

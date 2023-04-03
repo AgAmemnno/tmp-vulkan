@@ -92,6 +92,9 @@ if(WITH_COMPOSITOR_CPU)
   add_subdirectory(smaa_areatex)
 endif()
 
+message(STATUS "WITH_VULKAN_BACKEND  ${WITH_VULKAN_BACKEND} ==================================================  ")
+
 if(WITH_VULKAN_BACKEND)
   add_subdirectory(vulkan_memory_allocator)
+  add_subdirectory(Vulkan-ValidationLayers)
 endif()

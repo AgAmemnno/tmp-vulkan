@@ -36,7 +36,7 @@ class Renderdoc {
  private:
   /**
    * Check if renderdoc has been loaded.
-   * 
+   *
    * When not loaded it tries to load the API, but only tries to do it once.
    */
   bool check_loaded();

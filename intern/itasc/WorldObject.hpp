@@ -9,22 +9,24 @@
 #define WORLDOBJECT_HPP_
 
 #include "UncontrolledObject.hpp"
-namespace iTaSC{
+namespace iTaSC {
 
-class WorldObject: public UncontrolledObject {
-public:
-    WorldObject();
-    virtual ~WorldObject();
+class WorldObject : public UncontrolledObject {
+ public:
+  WorldObject();
+  virtual ~WorldObject();
 
-	virtual void updateCoordinates(const Timestamp& timestamp) {};
-	virtual void updateKinematics(const Timestamp& timestamp) {};
-	virtual void pushCache(const Timestamp& timestamp) {};
-	virtual void initCache(Cache *_cache) {};
-protected:
-	virtual void updateJacobian() {}
+  virtual void updateCoordinates(const Timestamp &timestamp){};
+  virtual void updateKinematics(const Timestamp &timestamp){};
+  virtual void pushCache(const Timestamp &timestamp){};
+  virtual void initCache(Cache *_cache){};
 
+ protected:
+  virtual void updateJacobian()
+  {
+  }
 };
 
-}
+}  // namespace iTaSC
 
 #endif /* WORLDOBJECT_H_ */

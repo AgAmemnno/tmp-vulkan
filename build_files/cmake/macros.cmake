@@ -454,7 +454,7 @@ function(blender_add_test_lib
     ${CMAKE_SOURCE_DIR}/extern/gtest/include
     ${CMAKE_SOURCE_DIR}/extern/gmock/include
   )
-
+  message(STATUS "ADD testlib   ${name}  ${library_deps}    ")
   blender_add_lib__impl(${name} "${sources}" "${includes}" "${includes_sys}" "${library_deps}")
 
   target_compile_definitions(${name} PRIVATE ${GFLAGS_DEFINES})

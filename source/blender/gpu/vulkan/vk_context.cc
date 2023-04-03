@@ -10,6 +10,7 @@
 
 #include "vk_backend.hh"
 #include "vk_framebuffer.hh"
+#include "vk_immediate.hh"
 #include "vk_memory.hh"
 #include "vk_shader.hh"
 #include "vk_state_manager.hh"
@@ -41,7 +42,8 @@ VKContext::VKContext(void *ghost_window, void *ghost_context)
   ((GHOST_ContextVK *)(ghost_context_))->initializeDevice(vk_device_, vk_queue_, vk_queue_family_);
 
   init_physical_device_limits();
-
+  /*Issue Memory Leak */
+  #if 0 
   /* Initialize the memory allocator. */
   VmaAllocatorCreateInfo info = {};
   /* Should use same vulkan version as GHOST (1.2), but set to 1.0 as 1.2 requires
@@ -53,23 +55,25 @@ VKContext::VKContext(void *ghost_window, void *ghost_context)
   info.instance = vk_instance_;
   info.pAllocationCallbacks = vk_allocation_callbacks;
   vmaCreateAllocator(&info, &mem_allocator_);
+  #endif
   descriptor_pools_.init(vk_device_);
-
-  state_manager = new VKStateManager();
 
   VKBackend::capabilities_init(*this);
 
+  state_manager = new VKStateManager(this);
+  imm = new VKImmediate(this);
+
   /* For off-screen contexts. Default frame-buffer is empty. */
   back_left = new VKFrameBuffer("back_left");
-
+  active_fb = back_left;
   vk_swap_chain_images_.resize(vk_im_prop.nums);
   vk_in_frame_ = false;
 }
 
 VKContext::~VKContext()
 {
-  vmaDestroyAllocator(mem_allocator_);
-  debug::destroy_vk_callbacks();
+  VKBackend::desable_gpuctx(this);
+
 }
 
 void VKContext::init_physical_device_limits()
@@ -96,6 +100,7 @@ void VKContext::activate()
                               &extent,
                               &fb_id,
                               0);
+    active_fb = nullptr;
     delete back_left;
     back_left = new VKFrameBuffer("swapchain-0", vk_framebuffer, render_pass, extent);
     ((VKFrameBuffer *)back_left)->set_image_id(0);
@@ -116,13 +121,18 @@ void VKContext::activate()
     if (current_im == 1) {
       std::swap(back_left, front_left);
     }
+    
+    printf("FRAMEBUFER Reallocate  >>>>>>>>>>>>>>>>>>>> back %llx (%s) front %llx (%s) \n",(uint64_t)back_left,back_left->name_get(),(uint64_t)front_left,front_left->name_get());
 
+    active_fb = back_left;
     back_left->bind(false);
   }
+  immActivate();
 }
 
 void VKContext::deactivate()
 {
+  immDeactivate();
 }
 
 void VKContext::begin_frame()
@@ -151,7 +161,8 @@ void VKContext::end_frame()
   if (has_active_framebuffer()) {
     deactivate_framebuffer();
   }
-  command_buffer_.end_recording();
+  command_buffer_.end_recording(true);
+
   vk_in_frame_ = false;
 }
 
@@ -231,7 +242,7 @@ bool VKContext::validate_image()
 
     im.current_layout_set(VK_IMAGE_LAYOUT_UNDEFINED);
 
-    command_buffer_.image_transition(im, VkTransitionState::VK_UNDEF2PRESE, false);
+    command_buffer_.image_transition(&im, VkTransitionState::VK_BEFORE_PRESENT, false);
 
     flush(true, false, true);
   }
@@ -246,6 +257,7 @@ bool VKContext::validate_frame()
 
   uint8_t fb_id = semaphore_get(wait, fin);
   uint8_t current_frame = (fb_id >> 1) & 1;
+  bool active_cache = (active_fb == back_left);
 
   vk_fb_id_ = fb_id;
   VkSemaphore sema_fin = command_buffer_.get_fin_semaphore();
@@ -253,9 +265,12 @@ bool VKContext::validate_frame()
 
   if (sema_fin == VK_NULL_HANDLE) {
     if (sema_frame == current_frame) {
-      return false;
+      GHOST_SwapWindowBuffers((GHOST_WindowHandle)ghost_window_);
+      fb_id = semaphore_get(wait, fin);
+      current_frame = (fb_id >> 1) & 1;
+      BLI_assert(sema_frame != current_frame);
     }
-    command_buffer_.set_wait_semaphore(wait);
+    command_buffer_.set_remote_semaphore(wait);
     command_buffer_.set_fin_semaphore(fin);
     command_buffer_.set_sema_frame(current_frame);
   }
@@ -266,14 +281,23 @@ bool VKContext::validate_frame()
     BLI_assert_unreachable();
   }
 
-  uint8_t current_im = (fb_id)&1;
-  uint8_t backleft_id = ((VKFrameBuffer *)back_left)->get_image_id();
+  uint8_t backleft_id  = ((VKFrameBuffer *)back_left)->get_image_id();
+  uint8_t current_im  = (fb_id) & 1;
+
   if (current_im != backleft_id) {
     std::swap(back_left, front_left);
+    if (active_cache) {
+      active_fb = back_left;
+    }
   }
 
+  if (!active_fb) {
+    active_fb = back_left;
+  }
+ printf("FRAMEBUFER Validate  >>>>>>>>>>>>>>>>>>>> back %llx (%s) front %llx (%s) \n",(uint64_t)back_left,back_left->name_get(),(uint64_t)front_left,front_left->name_get());
+
   BLI_assert(((VKFrameBuffer *)back_left)->get_image_id() == current_im);
-  active_fb = back_left;
+
   return true;
 };
 
@@ -325,6 +349,7 @@ uint8_t VKContext::semaphore_get(VkSemaphore &wait, VkSemaphore &finish)
       id >> 2);
   return static_cast<uint8_t>(id);
 }
+
 /* -------------------------------------------------------------------- */
 /** \name Framebuffer
  * \{ */
@@ -336,14 +361,31 @@ void VKContext::activate_framebuffer(VKFrameBuffer &framebuffer)
   }
 
   BLI_assert(active_fb == nullptr);
+  active_fb = &framebuffer;
 
   if (!vk_in_frame_) {
     begin_frame();
   }
 
-  BLI_assert(command_buffer_.begin_render_pass(framebuffer, vk_swap_chain_images_[vk_fb_id_ & 1]));
 
-  active_fb = &framebuffer;
+  if(command_buffer_.ensure_render_pass()){
+      active_fb = &framebuffer;
+      return;
+  };
+
+  VKFrameBuffer* new_fb = reinterpret_cast<VKFrameBuffer*>(active_fb);
+
+  if (new_fb->is_immutable()) {
+    BLI_assert(
+        command_buffer_.begin_render_pass(*new_fb, vk_swap_chain_images_[vk_fb_id_ & 1]));
+  }
+  else {
+    VKTexture &tex = (*(VKTexture *)new_fb->color_tex(0));
+    BLI_assert(command_buffer_.begin_render_pass(*new_fb, tex));
+  }
+
+  active_fb = new_fb;
+
 }
 
 VKFrameBuffer *VKContext::active_framebuffer_get() const
@@ -364,6 +406,11 @@ void VKContext::deactivate_framebuffer()
     command_buffer_.end_render_pass(*framebuffer);
   }
   active_fb = nullptr;
+}
+
+void VKContext::swapbuffers()
+{
+  GHOST_SwapWindowBuffers((GHOST_WindowHandle)ghost_window_);
 }
 
 /** \} */

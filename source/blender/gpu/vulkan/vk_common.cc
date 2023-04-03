@@ -5,6 +5,8 @@
  * \ingroup gpu
  */
 
+#include "GPU_context.h"
+
 #include "vk_common.hh"
 
 namespace blender::gpu {
@@ -405,4 +407,35 @@ const char *to_string(VkImageLayout layout)
 
 #undef FORMAT_IMAGE_LAYOUT
 }
+
+VkPrimitiveTopology to_vk(const GPUPrimType prim_type)
+{
+
+  switch (prim_type) {
+    case GPU_PRIM_POINTS:
+      return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+    case GPU_PRIM_LINES:
+      return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+    case GPU_PRIM_LINES_ADJ:
+      return VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY;
+    case GPU_PRIM_LINE_LOOP:
+      return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+    case GPU_PRIM_LINE_STRIP:
+      return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+    case GPU_PRIM_LINE_STRIP_ADJ:
+      return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY;
+    case GPU_PRIM_TRIS:
+      return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    case GPU_PRIM_TRIS_ADJ:
+      return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY;
+    case GPU_PRIM_TRI_FAN:
+      return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
+    case GPU_PRIM_TRI_STRIP:
+      return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+    case GPU_PRIM_NONE:
+      return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
+  };
+  return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
+}
+
 }  // namespace blender::gpu

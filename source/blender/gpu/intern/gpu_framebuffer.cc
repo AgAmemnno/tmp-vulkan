@@ -453,6 +453,7 @@ void GPU_framebuffer_multi_clear(GPUFrameBuffer *gpu_fb, const float (*clear_col
 
 void GPU_clear_color(float red, float green, float blue, float alpha)
 {
+
   float clear_col[4] = {red, green, blue, alpha};
   Context::get()->active_fb->clear(GPU_COLOR_BIT, clear_col, 0.0f, 0x0);
 }

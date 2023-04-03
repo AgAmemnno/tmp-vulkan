@@ -9,6 +9,7 @@
 
 #include "vk_common.hh"
 #include "vk_debug.hh"
+#include "vk_framebuffer.hh"
 #include "vk_resource_tracker.hh"
 
 #include "BLI_utility_mixins.hh"
@@ -16,11 +17,21 @@
 namespace blender::gpu {
 
 enum class VkTransitionState {
+  VK_BEFORE_RENDER_PASS,
+  VK_BEFORE_PRESENT,
+  VK_ENSURE_TEXTURE,
+  VK_TRANSITION_STATE_ALL
+};
+
+enum class VkTransitionStateRaw {
   VK_UNDEF2PRESE,
   VK_UNDEF2COLOR,
   VK_PRESE2COLOR,
+  VK_PRESE2GENER,
   VK_COLOR2PRESE,
-  VK_TRANSITION_STATE_ALL
+  VK_UNDEF2GENER,
+  VK_GENER2COLOR,
+  VK_TRANSITION_STATE_RAW_ALL
 };
 
 typedef struct sc_im_prop {
@@ -78,17 +89,19 @@ class ImageLayoutState {
 
  public:
   template<typename T>
-  bool init_image_layout(VKCommandBuffer &cmd, T &safeim, VkImageLayout dst_layout)
+  bool init_image_layout(VKCommandBuffer &cmd, T *safeim, VkImageLayout dst_layout)
   {
 
-    VkImageLayout src_layout = safeim.current_layout_get();
+    VkImageLayout src_layout = safeim->current_layout_get();
 
     if (src_layout == dst_layout) {
       return false;
     }
 
-    BLI_assert(ELEM(
-        dst_layout, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL));
+    BLI_assert(ELEM(dst_layout,
+                    VK_IMAGE_LAYOUT_GENERAL,
+                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL));
     BLI_assert(src_layout == VK_IMAGE_LAYOUT_UNDEFINED);
 
     const bool present = (dst_layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
@@ -105,27 +118,31 @@ class ImageLayoutState {
     VkImageAspectFlags aspect = get_aspect_flag(src_layout, dst_layout);
 
     VkImageMemoryBarrier barrier = makeImageMemoryBarrier(
-        safeim.vk_image_handle(), src_acs, dst_acs, src_layout, dst_layout, aspect, 0, 1);
+        safeim->vk_image_handle(), src_acs, dst_acs, src_layout, dst_layout, aspect, 0, 1);
 
     cmd.pipeline_barrier(srcPipe, dstPipe, {barrier});
 
-    safeim.current_layout_set(dst_layout);
+    safeim->current_layout_set(dst_layout);
 
     return true;
   };
 
-  template<typename T> bool pre_reder_image_layout(VKCommandBuffer &cmd, T &safeim)
+  template<typename T>
+  bool pre_reder_image_layout(VKCommandBuffer &cmd, T *safeim, VkImageLayout dst_layout)
   {
 
-    VkImageLayout src_layout = safeim.current_layout_get();
-    VkImageLayout dst_layout =
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;  // VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;//VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    VkImageLayout src_layout = safeim->current_layout_get();
+
     if (src_layout == dst_layout) {
       return false;
     }
-    BLI_assert(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR == src_layout);
 
-    VkAccessFlagBits src_acs = VK_ACCESS_MEMORY_READ_BIT;
+    BLI_assert(ELEM(src_layout, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_GENERAL));
+
+    VkAccessFlagBits src_acs = (src_layout == VK_IMAGE_LAYOUT_GENERAL) ?
+                                   (VkAccessFlagBits)(VK_ACCESS_MEMORY_READ_BIT |
+                                                      VK_ACCESS_MEMORY_WRITE_BIT) :
+                                   VK_ACCESS_MEMORY_READ_BIT;
     VkAccessFlagBits dst_acs = (VkAccessFlagBits)(VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
                                                   VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
 
@@ -135,19 +152,19 @@ class ImageLayoutState {
     VkImageAspectFlags aspect = get_aspect_flag(src_layout, dst_layout);
 
     VkImageMemoryBarrier barrier = makeImageMemoryBarrier(
-        safeim.vk_image_handle(), src_acs, dst_acs, src_layout, dst_layout, aspect, 0, 1);
+        safeim->vk_image_handle(), src_acs, dst_acs, src_layout, dst_layout, aspect, 0, 1);
 
     cmd.pipeline_barrier(srcPipe, dstPipe, {barrier});
 
-    safeim.current_layout_set(dst_layout);
+    safeim->current_layout_set(dst_layout);
 
     return true;
   };
 
-  template<typename T> bool pre_sent_image_layout(VKCommandBuffer &cmd, T &safeim)
+  template<typename T> bool pre_sent_image_layout(VKCommandBuffer &cmd, T *safeim)
   {
 
-    VkImageLayout src_layout = safeim.current_layout_get();
+    VkImageLayout src_layout = safeim->current_layout_get();
     VkImageLayout dst_layout =
         VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;  // VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;//VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     if (src_layout == dst_layout) {
@@ -165,95 +182,15 @@ class ImageLayoutState {
     VkImageAspectFlags aspect = get_aspect_flag(src_layout, dst_layout);
 
     VkImageMemoryBarrier barrier = makeImageMemoryBarrier(
-        safeim.vk_image_handle(), src_acs, dst_acs, src_layout, dst_layout, aspect, 0, 1);
+        safeim->vk_image_handle(), src_acs, dst_acs, src_layout, dst_layout, aspect, 0, 1);
 
     cmd.pipeline_barrier(srcPipe, dstPipe, {barrier});
 
-    safeim.current_layout_set(dst_layout);
+    safeim->current_layout_set(dst_layout);
 
     return true;
   };
-#if 0
-  GHOST_TSuccess GHOST_ContextVK::fail_image_layout() {
 
-    VkCommandBuffer cmd = VK_NULL_HANDLE;
-    if (m_current_layouts[m_currentImage] != VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
-      BLI_assert(m_current_layouts[m_currentImage] ==
-                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-      return GHOST_kSuccess;
-    }
-
-    begin_submit_simple(cmd);
-
-    blender::vulkan::GHOST_ImageTransition(
-        cmd, m_swapchain_images[m_currentImage], getImageFormat(),
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM,
-        VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-
-    end_submit_simple();
-    m_current_layouts[m_currentImage] = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    return GHOST_kSuccess;
-  };
-  GHOST_TSuccess GHOST_ContextVK::finalize_image_layout() {
-
-    VkCommandBuffer cmd = VK_NULL_HANDLE;
-    if (m_current_layouts[m_currentImage] == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
-      return GHOST_kSuccess;
-    }
-    if (m_current_layouts[m_currentImage] !=
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
-      BLI_assert(false);
-      return GHOST_kFailure;
-    }
-
-    begin_submit_simple(cmd);
-
-    blender::vulkan::GHOST_ImageTransition(
-        cmd, m_swapchain_images[m_currentImage], getImageFormat(),
-        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-        VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM,
-        VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-
-    end_submit_simple();
-
-    m_current_layouts[m_currentImage] = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-    return GHOST_kSuccess;
-  };
-  void insert_image_memory_barrier(VkCommandBuffer command_buffer, VkImage image,
-                                 VkAccessFlags src_access_mask,
-                                 VkAccessFlags dst_access_mask,
-                                 VkImageLayout old_layout,
-                                 VkImageLayout new_layout,
-                                 VkPipelineStageFlags src_stage_mask,
-                                 VkPipelineStageFlags dst_stage_mask,
-                                 VkImageSubresourceRange subresource_range) {
-
-  VkImageMemoryBarrier barrier{};
-  barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.srcAccessMask = src_access_mask;
-  barrier.dstAccessMask = dst_access_mask;
-  barrier.oldLayout = old_layout;
-  barrier.newLayout = new_layout;
-  barrier.image = image;
-  barrier.subresourceRange = subresource_range;
-
-  vkCmdPipelineBarrier(command_buffer, src_stage_mask, dst_stage_mask, 0, 0,
-                       nullptr, 0, nullptr, 1, &barrier);
-  };
-};
-#endif
 };  // blender::gpu
 
 }  //  namespace blender::gpu
@@ -283,21 +220,21 @@ class VKCommandBuffer : NonCopyable, NonMovable {
   uint32_t vk_fb_id_;
   bool in_toggle_ = false;
   bool in_submit_ = false;
+  bool in_rp_submit_ = false;
 
   VkSemaphore sema_fin_;
   VkSemaphore sema_toggle_[2];
-  int sema_own_ = -1;
+  const int sema_own_ = 1;
+  int        sema_signal_ = -1;
   uint8_t sema_frame_ = 0;
 
  public:
-  VkSemaphore &get_wait_semaphore()
-  {
-    return sema_toggle_[(sema_own_ + 1) % 2];
-  }
 
-  void set_wait_semaphore(VkSemaphore &se)
+
+  void set_remote_semaphore(VkSemaphore &se)
   {
     sema_toggle_[(sema_own_ + 1) % 2] = se;
+    sema_signal_ = sema_own_;
   }
 
   VkSemaphore &get_fin_semaphore()
@@ -325,16 +262,61 @@ class VKCommandBuffer : NonCopyable, NonMovable {
     sema_frame_ = 3;
     in_flight_ = false;
     sema_fin_ = sema_toggle_[0] = sema_toggle_[1] = VK_NULL_HANDLE;
+    begin_cmd_ = begin_rp_ = false;
   };
   virtual ~VKCommandBuffer();
   bool init(const VkDevice vk_device, const VkQueue vk_queue, VkCommandBuffer vk_command_buffer);
   bool begin_recording();
-  void end_recording();
+  void end_recording(bool imm_submit = false);
   void bind(const VKPipeline &vk_pipeline, VkPipelineBindPoint bind_point);
   void bind(const VKDescriptorSet &descriptor_set,
             const VkPipelineLayout vk_pipeline_layout,
             VkPipelineBindPoint bind_point);
-  bool begin_render_pass(const VKFrameBuffer &framebuffer, SafeImage &sfim);
+
+  bool ensure_render_pass(){
+    if (begin_rp_) {
+      return true;
+    }
+    if(in_submit_){
+      submit(true,false);
+    }
+    if (!in_toggle_) {
+      if (!begin_recording()) {
+        return false;
+      };
+    }
+    return false;
+  }
+  template<typename T> bool begin_render_pass(const VKFrameBuffer &framebuffer, T &sfim)
+  {
+    #if 0
+    if (begin_rp_) {
+      return true;
+    }
+    if(in_submit_){
+      submit(true,false);
+    }
+    if (!in_toggle_) {
+      if (!begin_recording()) {
+        return false;
+      };
+    }
+    #endif
+    image_transition(&sfim,
+                     VkTransitionState::VK_BEFORE_RENDER_PASS,
+                     true,
+                     framebuffer.vk_render_pass_init_layout_get());
+
+    VkRenderPassBeginInfo render_pass_begin_info = {};
+    render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    render_pass_begin_info.renderPass = framebuffer.vk_render_pass_get();
+    render_pass_begin_info.framebuffer = framebuffer.vk_framebuffer_get();
+    render_pass_begin_info.renderArea = framebuffer.vk_render_area_get();
+    vkCmdBeginRenderPass(vk_command_buffer_, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+    begin_rp_ = true;
+
+    return true;
+  }
   void end_render_pass(const VKFrameBuffer &framebuffer);
 
   /**
@@ -349,6 +331,8 @@ class VKCommandBuffer : NonCopyable, NonMovable {
   /** Copy the contents of a texture MIP level to the dst buffer. */
   void copy(VKBuffer &dst_buffer, VKTexture &src_texture, Span<VkBufferImageCopy> regions);
   void copy(VKTexture &dst_texture, VKBuffer &src_buffer, Span<VkBufferImageCopy> regions);
+  void copy(VKBuffer &dst_buffer, VKBuffer &src_buffer, Span<VkBufferCopy> regions);
+
   void pipeline_barrier(VkPipelineStageFlags source_stages,
                         VkPipelineStageFlags destination_stages);
   void pipeline_barrier(Span<VkImageMemoryBarrier> image_memory_barriers);
@@ -359,48 +343,10 @@ class VKCommandBuffer : NonCopyable, NonMovable {
   void in_flight_receive();
 
   template<typename T>
-  bool image_transition(T &sfim, VkTransitionState eTrans, bool recorded = false)
-  {
-
-    bool trans = false;
-    VkImageLayout src_layout = sfim.current_layout_get();
-    switch (eTrans) {
-      case VkTransitionState::VK_UNDEF2PRESE:
-        trans = layout_state_.init_image_layout(*this, sfim, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-        break;
-      case VkTransitionState::VK_UNDEF2COLOR:
-        trans = layout_state_.init_image_layout(
-            *this, sfim, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-        break;
-      case VkTransitionState::VK_PRESE2COLOR:
-        trans = layout_state_.pre_reder_image_layout(*this, sfim);
-        break;
-      case VkTransitionState::VK_COLOR2PRESE:
-        trans = layout_state_.pre_sent_image_layout(*this, sfim);
-        break;
-      case VkTransitionState::VK_TRANSITION_STATE_ALL:
-      default:
-        BLI_assert_unreachable();
-        break;
-    }
-
-    if (trans) {
-      VkImageLayout dst_layout = sfim.current_layout_get();
-      debug::raise_vk_info(
-          "VKContext::ImageTracker::transition   IMAGE[%llx]  pipelineBarrier \n         %s ==> "
-          "%s\n",
-          (uint64_t)sfim.vk_image_handle(),
-          to_string(src_layout),
-          to_string(dst_layout));
-    }
-
-    if (trans && recorded) {
-
-      submit();
-    }
-
-    return trans;
-  };
+  bool image_transition(T *sfim,
+                        VkTransitionState eTrans,
+                        bool recorded = false,
+                        VkImageLayout dst_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
   /**
    * Clear color image resource.
@@ -418,6 +364,10 @@ class VKCommandBuffer : NonCopyable, NonMovable {
 
   void draw(int v_first, int v_count, int i_first, int i_count);
 
+  void bind_vertex_buffers(uint32_t firstBinding, uint32_t bindingCount, const VkBuffer *pBuffers);
+
+  void viewport(VkViewport &viewport);
+  void scissor(VkRect2D &scissor);
   /**
    * Stop recording commands, encode + send the recordings to Vulkan, wait for the until the
    * commands have been executed and start the command buffer to accept recordings again.

@@ -17,45 +17,44 @@ const char *to_string(VkObjectType type);
 
 namespace debug {
 struct VKDebuggingTools {
-/* Function pointer definitions .*/
+  /* Function pointer definitions .*/
 
-PFN_vkCreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT_r = nullptr;
-PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT_r = nullptr;
-PFN_vkSubmitDebugUtilsMessageEXT vkSubmitDebugUtilsMessageEXT_r = nullptr;
-PFN_vkCmdBeginDebugUtilsLabelEXT vkCmdBeginDebugUtilsLabelEXT_r = nullptr;
-PFN_vkCmdEndDebugUtilsLabelEXT vkCmdEndDebugUtilsLabelEXT_r = nullptr;
-PFN_vkCmdInsertDebugUtilsLabelEXT vkCmdInsertDebugUtilsLabelEXT_r = nullptr;
-PFN_vkQueueBeginDebugUtilsLabelEXT vkQueueBeginDebugUtilsLabelEXT_r = nullptr;
-PFN_vkQueueEndDebugUtilsLabelEXT vkQueueEndDebugUtilsLabelEXT_r = nullptr;
-PFN_vkQueueInsertDebugUtilsLabelEXT vkQueueInsertDebugUtilsLabelEXT_r = nullptr;
-PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectNameEXT_r = nullptr;
-PFN_vkSetDebugUtilsObjectTagEXT vkSetDebugUtilsObjectTagEXT_r = nullptr;
+  PFN_vkCreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT_r = nullptr;
+  PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT_r = nullptr;
+  PFN_vkSubmitDebugUtilsMessageEXT vkSubmitDebugUtilsMessageEXT_r = nullptr;
+  PFN_vkCmdBeginDebugUtilsLabelEXT vkCmdBeginDebugUtilsLabelEXT_r = nullptr;
+  PFN_vkCmdEndDebugUtilsLabelEXT vkCmdEndDebugUtilsLabelEXT_r = nullptr;
+  PFN_vkCmdInsertDebugUtilsLabelEXT vkCmdInsertDebugUtilsLabelEXT_r = nullptr;
+  PFN_vkQueueBeginDebugUtilsLabelEXT vkQueueBeginDebugUtilsLabelEXT_r = nullptr;
+  PFN_vkQueueEndDebugUtilsLabelEXT vkQueueEndDebugUtilsLabelEXT_r = nullptr;
+  PFN_vkQueueInsertDebugUtilsLabelEXT vkQueueInsertDebugUtilsLabelEXT_r = nullptr;
+  PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectNameEXT_r = nullptr;
+  PFN_vkSetDebugUtilsObjectTagEXT vkSetDebugUtilsObjectTagEXT_r = nullptr;
 
-bool enabled = false;
-/*One -on -one for instance.*/
-VkInstance instance = VK_NULL_HANDLE;
-VkDevice device = VK_NULL_HANDLE;
-VkDebugUtilsMessengerEXT dbgMessenger = nullptr;
-Set<int32_t> dbgIgnoreMessages;
-std::mutex lists_mutex_;
+  bool enabled = false;
+  /*One -on -one for instance.*/
+  VkInstance instance = VK_NULL_HANDLE;
+  VkDevice device = VK_NULL_HANDLE;
+  VkDebugUtilsMessengerEXT dbgMessenger = nullptr;
+  Set<int32_t> dbgIgnoreMessages;
+  std::mutex lists_mutex_;
 
-VKDebuggingTools();
-void clear();
-void add_ignore(int32_t id);
-void remove_ignore(int32_t id);
+  VKDebuggingTools();
+  void clear();
+  void add_ignore(int32_t id);
+  void remove_ignore(int32_t id);
 };
 extern VKDebuggingTools tools;
 
 void raise_vk_error(const char *info);
 void check_vk_resources(const char *info);
 
-template <typename ... Args>
-void raise_vk_info(const std::string& fmt, Args ... args )
+template<typename... Args> void raise_vk_info(const std::string &fmt, Args... args)
 {
-    if (tools.enabled) {
-    size_t len = std::snprintf( nullptr, 0, fmt.c_str(), args ... );
+  if (tools.enabled) {
+    size_t len = std::snprintf(nullptr, 0, fmt.c_str(), args...);
     std::vector<char> info(len + 1);
-    std::snprintf(&info[0], len + 1, fmt.c_str(), args ... );
+    std::snprintf(&info[0], len + 1, fmt.c_str(), args...);
 
     static VkDebugUtilsMessengerCallbackDataEXT cbdata;
     cbdata.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CALLBACK_DATA_EXT;
@@ -67,11 +66,10 @@ void raise_vk_info(const std::string& fmt, Args ... args )
     cbdata.pObjects = nullptr;
     cbdata.pMessage = info.data();
     tools.vkSubmitDebugUtilsMessageEXT_r(tools.instance,
-                                   VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT,
-                                   VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
-                                   &cbdata);
+                                         VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT,
+                                         VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
+                                         &cbdata);
   }
-
 }
 
 /**

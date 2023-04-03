@@ -25,6 +25,8 @@
 #include <iostream>
 #include <sstream>
 
+#include <mutex>
+
 /* Set to 0 to allow devices that do not have the required features.
  * This allows development on OSX until we really needs these features. */
 #define STRICT_REQUIREMENTS 1
@@ -116,8 +118,429 @@ static bool vklayer_config_exist(const char *vk_extension_config)
     printf(__VA_ARGS__); \
   }
 
+class SingletonDevice {
+ public:
+  SingletonDevice() : vk_instance_(VK_NULL_HANDLE), vk_physical_device_(VK_NULL_HANDLE){};
+
+  ~SingletonDevice()
+  {
+    if (vk_device_ != VK_NULL_HANDLE) {
+      vkDestroyDevice(vk_device_, NULL);
+      vk_device_ = VK_NULL_HANDLE;
+    }
+  };
+
+  bool is_valid(VkInstance instance, VkPhysicalDevice pdevice)
+  {
+    if (vk_instance_ == VK_NULL_HANDLE) {
+      vk_instance_ = instance;
+    }
+    if (vk_physical_device_ == VK_NULL_HANDLE) {
+      vk_physical_device_ = pdevice;
+    }
+
+    assert(vk_physical_device_ == pdevice);
+    assert(vk_instance_ == instance);
+    return vk_device_ != VK_NULL_HANDLE;
+  }
+
+  void increment(VkDevice &device,
+                 VkQueue &present_queue,
+                 VkQueue &graphic_queue,
+                 uint32_t &queue_family_present,
+                 uint32_t &queue_family_graphic)
+  {
+    std::lock_guard<std::mutex> lock(mtx_);
+    assert(vk_device_ != VK_NULL_HANDLE);
+    device = vk_device_;
+    present_queue = vk_present_queue_;
+    graphic_queue = vk_graphic_queue_;
+    queue_family_present = vk_queue_family_present_;
+    queue_family_graphic = vk_queue_family_graphic_;
+    ref_cnt_++;
+  }
+
+  void decrement(VkDevice device)
+  {
+
+    if (ref_cnt_ <= 0) {
+      assert(vk_device_ == VK_NULL_HANDLE);
+      return;
+    }
+
+    assert(device == vk_device_);
+
+    std::lock_guard<std::mutex> lock(mtx_);
+
+    ref_cnt_--;
+    if (ref_cnt_ == 0) {
+      if (vk_device_ != VK_NULL_HANDLE) {
+        vkDestroyDevice(vk_device_, NULL);
+        vk_device_ = VK_NULL_HANDLE;
+      }
+    }
+  }
+
+  static GHOST_TSuccess getGraphicQueueFamily(VkPhysicalDevice device, uint32_t *r_queue_index)
+  {
+    uint32_t queue_family_count = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, NULL);
+
+    vector<VkQueueFamilyProperties> queue_families(queue_family_count);
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_families.data());
+
+    *r_queue_index = 0;
+    for (const auto &queue_family : queue_families) {
+      /* Every vulkan implementation by spec must have one queue family that support both graphics
+       * and compute pipelines. We select this one; compute only queue family hints at async
+       * compute implementations. */
+      if ((queue_family.queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
+          (queue_family.queueFlags & VK_QUEUE_COMPUTE_BIT)) {
+        return GHOST_kSuccess;
+      }
+      (*r_queue_index)++;
+    }
+
+    fprintf(stderr, "Couldn't find any Graphic queue family on selected device\n");
+    return GHOST_kFailure;
+  }
+
+  static GHOST_TSuccess getPresetQueueFamily(VkPhysicalDevice device,
+                                             VkSurfaceKHR surface,
+                                             uint32_t *r_queue_index)
+  {
+    uint32_t queue_family_count = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, NULL);
+
+    vector<VkQueueFamilyProperties> queue_families(queue_family_count);
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_families.data());
+
+    *r_queue_index = 0;
+    for (int i = 0; i < queue_family_count; i++) {
+      VkBool32 present_support = false;
+      vkGetPhysicalDeviceSurfaceSupportKHR(device, *r_queue_index, surface, &present_support);
+
+      if (present_support) {
+        return GHOST_kSuccess;
+      }
+      (*r_queue_index)++;
+    }
+
+    fprintf(stderr, "Couldn't find any Present queue family on selected device\n");
+    return GHOST_kFailure;
+  }
+
+  GHOST_TSuccess create(bool m_use_window_surface,
+                        VkSurfaceKHR m_surface,
+                        std::vector<const char *> &m_layers_enabled,
+                        std::vector<const char *> &m_extensions_device)
+  {
+#ifdef VK_MVK_MOLTENVK_EXTENSION_NAME
+    /* According to the Vulkan specs, when `VK_KHR_portability_subset` is available it should be
+     * enabled. See
+     * https://vulkan.lunarg.com/doc/view/1.2.198.1/mac/1.2-extensions/vkspec.html#VUID-VkDeviceCreateInfo-pProperties-04451*/
+    if (device_extensions_support(m_physical_device, {VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME})) {
+      extensions_device.push_back(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
+    }
+#endif
+
+    vector<VkDeviceQueueCreateInfo> queue_create_infos;
+
+    {
+      /* A graphic queue is required to draw anything. */
+      if (!getGraphicQueueFamily(vk_physical_device_, &vk_queue_family_graphic_)) {
+        return GHOST_kFailure;
+      }
+
+      float queue_priorities[] = {1.0f};
+      VkDeviceQueueCreateInfo graphic_queue_create_info = {};
+      graphic_queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+      graphic_queue_create_info.queueFamilyIndex = vk_queue_family_graphic_;
+      graphic_queue_create_info.queueCount = 1;
+      graphic_queue_create_info.pQueuePriorities = queue_priorities;
+      queue_create_infos.push_back(graphic_queue_create_info);
+    }
+
+    if (m_use_window_surface) {
+      /* A present queue is required only if we render to a window. */
+      if (!getPresetQueueFamily(vk_physical_device_, m_surface, &vk_queue_family_present_)) {
+        return GHOST_kFailure;
+      }
+
+      float queue_priorities[] = {1.0f};
+      VkDeviceQueueCreateInfo present_queue_create_info = {};
+      present_queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+      present_queue_create_info.queueFamilyIndex = vk_queue_family_present_;
+      present_queue_create_info.queueCount = 1;
+      present_queue_create_info.pQueuePriorities = queue_priorities;
+
+      /* Each queue must be unique. */
+      if (vk_queue_family_graphic_ != vk_queue_family_present_) {
+        queue_create_infos.push_back(present_queue_create_info);
+      }
+    }
+
+    VkPhysicalDeviceFeatures device_features = {};
+#if STRICT_REQUIREMENTS
+    device_features.geometryShader = VK_TRUE;
+    device_features.dualSrcBlend = VK_TRUE;
+    device_features.logicOp = VK_TRUE;
+#endif
+
+    VkDeviceCreateInfo device_create_info = {};
+    device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    device_create_info.queueCreateInfoCount = static_cast<uint32_t>(queue_create_infos.size());
+    device_create_info.pQueueCreateInfos = queue_create_infos.data();
+    /* layers_enabled are the same as instance extensions.
+     * This is only needed for 1.0 implementations. */
+    device_create_info.enabledLayerCount = static_cast<uint32_t>(m_layers_enabled.size());
+    device_create_info.ppEnabledLayerNames = m_layers_enabled.data();
+    device_create_info.enabledExtensionCount = static_cast<uint32_t>(m_extensions_device.size());
+    device_create_info.ppEnabledExtensionNames = m_extensions_device.data();
+    device_create_info.pEnabledFeatures = &device_features;
+
+    VK_CHECK(vkCreateDevice(vk_physical_device_, &device_create_info, NULL, &vk_device_));
+
+    vkGetDeviceQueue(vk_device_, vk_queue_family_graphic_, 0, &vk_graphic_queue_);
+
+    if (m_use_window_surface) {
+      vkGetDeviceQueue(vk_device_, vk_queue_family_present_, 0, &vk_present_queue_);
+    }
+
+    return GHOST_kSuccess;
+  }
+
+ private:
+  std::mutex mtx_;
+  uint32_t ref_cnt_;
+  VkInstance vk_instance_;
+  VkPhysicalDevice vk_physical_device_;
+  VkDevice vk_device_;
+  uint32_t vk_queue_family_graphic_;
+  uint32_t vk_queue_family_present_;
+  VkQueue vk_present_queue_, vk_graphic_queue_;
+};
+
+class SingletonInstance {
+ public:
+  SingletonInstance() : vk_instance_(VK_NULL_HANDLE){};
+  ~SingletonInstance()
+  {
+    if (vk_instance_ != VK_NULL_HANDLE) {
+      vkDestroyInstance(vk_instance_, NULL);
+      vk_instance_ = VK_NULL_HANDLE;
+    }
+  };
+
+  const char *getPlatformSpecificSurfaceExtension() const
+  {
+#ifdef _WIN32
+    return VK_KHR_WIN32_SURFACE_EXTENSION_NAME;
+#elif defined(__APPLE__)
+    return VK_EXT_METAL_SURFACE_EXTENSION_NAME;
+#else /* UNIX/Linux */
+    switch (m_platform) {
+      case GHOST_kVulkanPlatformX11:
+        return VK_KHR_XLIB_SURFACE_EXTENSION_NAME;
+        break;
+#  ifdef WITH_GHOST_WAYLAND
+      case GHOST_kVulkanPlatformWayland:
+        return VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME;
+        break;
+#  endif
+    }
+#endif
+    return NULL;
+  }
+  static vector<VkLayerProperties> getLayersAvailable()
+  {
+    uint32_t layer_count = 0;
+    vkEnumerateInstanceLayerProperties(&layer_count, NULL);
+
+    vector<VkLayerProperties> layers(layer_count);
+    vkEnumerateInstanceLayerProperties(&layer_count, layers.data());
+
+    return layers;
+  }
+  static vector<VkExtensionProperties> getExtensionsAvailable()
+  {
+    uint32_t extension_count = 0;
+    vkEnumerateInstanceExtensionProperties(NULL, &extension_count, NULL);
+
+    vector<VkExtensionProperties> extensions(extension_count);
+    vkEnumerateInstanceExtensionProperties(NULL, &extension_count, extensions.data());
+
+    return extensions;
+  }
+  static bool checkExtensionSupport(vector<VkExtensionProperties> &extensions_available,
+                                    const char *extension_name)
+  {
+    for (const auto &extension : extensions_available) {
+      if (strcmp(extension_name, extension.extensionName) == 0) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static void requireExtension(vector<VkExtensionProperties> &extensions_available,
+                               vector<const char *> &extensions_enabled,
+                               const char *extension_name)
+  {
+    if (checkExtensionSupport(extensions_available, extension_name)) {
+      extensions_enabled.push_back(extension_name);
+    }
+    else {
+      fprintf(stderr, "Error: %s not found.\n", extension_name);
+    }
+  }
+
+  static bool checkLayerSupport(vector<VkLayerProperties> &layers_available,
+                                const char *layer_name)
+  {
+    for (const auto &layer : layers_available) {
+      if (strcmp(layer_name, layer.layerName) == 0) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static void enableLayer(vector<VkLayerProperties> &layers_available,
+                          vector<const char *> &layers_enabled,
+                          const VkLayer layer,
+                          const bool display_warning)
+  {
+#define PUSH_VKLAYER(name, name2) \
+  if (vklayer_config_exist("VkLayer_" #name ".json") && \
+      checkLayerSupport(layers_available, "VK_LAYER_" #name2)) { \
+    layers_enabled.push_back("VK_LAYER_" #name2); \
+    enabled = true; \
+  } \
+  else { \
+    warnings << "VK_LAYER_" #name2; \
+  }
+
+    bool enabled = false;
+    std::stringstream warnings;
+
+    switch (layer) {
+      case VkLayer::KHRONOS_validation:
+        PUSH_VKLAYER(khronos_validation, KHRONOS_validation);
+    };
+
+    if (enabled) {
+      return;
+    }
+
+    if (display_warning) {
+      fprintf(stderr,
+              "Warning: Layer requested, but not supported by the platform. [%s] \n",
+              warnings.str().c_str());
+    }
+
+#undef PUSH_VKLAYER
+  }
+
+  bool is_valid()
+  {
+    return vk_instance_ != VK_NULL_HANDLE;
+  }
+  void increment(VkInstance &instance)
+  {
+    std::lock_guard<std::mutex> lock(mtx_);
+    assert(vk_instance_ != VK_NULL_HANDLE);
+    instance = vk_instance_;
+    ref_cnt_++;
+  }
+  void decrement(VkInstance instance)
+  {
+    ref_cnt_--;
+    if (ref_cnt_ < 0) {
+      assert(vk_instance_ == VK_NULL_HANDLE);
+      return;
+    }
+
+    assert(instance == vk_instance_);
+
+    std::lock_guard<std::mutex> lock(mtx_);
+
+   
+    if (ref_cnt_ == 0) {
+      if (vk_instance_ != VK_NULL_HANDLE) {
+        vkDestroyInstance(vk_instance_, NULL);
+        vk_instance_ = VK_NULL_HANDLE;
+      }
+    }
+  }
+
+  GHOST_TSuccess create(bool m_use_window_surface,
+                        bool m_debug,
+                        const int m_context_major_version,
+                        const int m_context_minor_version,
+                        std::vector<const char *> &m_layers_enabled,
+                        std::vector<const char *> &m_extensions_device)
+  {
+
+    auto layers_available = getLayersAvailable();
+    auto extensions_available = getExtensionsAvailable();
+    vector<const char *> extensions_enabled;
+
+    if (m_debug) {
+      enableLayer(layers_available, m_layers_enabled, VkLayer::KHRONOS_validation, m_debug);
+      requireExtension(
+          extensions_available, extensions_enabled, VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    }
+
+    if (m_use_window_surface) {
+      const char *native_surface_extension_name = getPlatformSpecificSurfaceExtension();
+
+      requireExtension(extensions_available, extensions_enabled, "VK_KHR_surface");
+      requireExtension(extensions_available, extensions_enabled, native_surface_extension_name);
+
+      m_extensions_device.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    }
+
+    m_extensions_device.push_back("VK_KHR_dedicated_allocation");
+    m_extensions_device.push_back("VK_KHR_get_memory_requirements2");
+
+    /* Enable MoltenVK required instance extensions. */
+#ifdef VK_MVK_MOLTENVK_EXTENSION_NAME
+    requireExtension(
+        extensions_available, extensions_enabled, "VK_KHR_get_physical_device_properties2");
+#endif
+
+    VkApplicationInfo app_info = {};
+    app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    app_info.pApplicationName = "Blender";
+    app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+    app_info.pEngineName = "Blender";
+    app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+    app_info.apiVersion = VK_MAKE_VERSION(m_context_major_version, m_context_minor_version, 0);
+
+    VkInstanceCreateInfo create_info = {};
+    create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    create_info.pApplicationInfo = &app_info;
+    create_info.enabledLayerCount = static_cast<uint32_t>(m_layers_enabled.size());
+    create_info.ppEnabledLayerNames = m_layers_enabled.data();
+    create_info.enabledExtensionCount = static_cast<uint32_t>(extensions_enabled.size());
+    create_info.ppEnabledExtensionNames = extensions_enabled.data();
+
+    VK_CHECK(vkCreateInstance(&create_info, NULL, &vk_instance_));
+
+    return GHOST_kSuccess;
+  }
+
+ private:
+  std::mutex mtx_;
+  uint32_t ref_cnt_;
+  VkInstance vk_instance_;
+};
+
 /* Triple buffering. */
 const int MAX_FRAMES_IN_FLIGHT = 2;
+static SingletonInstance sVKInstance;
+static SingletonDevice sVKDevice;
 
 GHOST_ContextVK::GHOST_ContextVK(bool stereoVisual,
 #ifdef _WIN32
@@ -174,15 +597,14 @@ GHOST_ContextVK::~GHOST_ContextVK()
   if (m_command_pool != VK_NULL_HANDLE) {
     vkDestroyCommandPool(m_device, m_command_pool, NULL);
   }
-  if (m_device != VK_NULL_HANDLE) {
-    vkDestroyDevice(m_device, NULL);
-  }
+
+  sVKDevice.decrement(m_device);
+
   if (m_surface != VK_NULL_HANDLE) {
     vkDestroySurfaceKHR(m_instance, m_surface, NULL);
   }
-  if (m_instance != VK_NULL_HANDLE) {
-    vkDestroyInstance(m_instance, NULL);
-  }
+
+  sVKInstance.decrement(m_instance);
 }
 
 GHOST_TSuccess GHOST_ContextVK::destroySwapchain()
@@ -194,26 +616,48 @@ GHOST_TSuccess GHOST_ContextVK::destroySwapchain()
   m_in_flight_images.resize(0);
 
   for (auto semaphore : m_image_available_semaphores) {
-    vkDestroySemaphore(m_device, semaphore, NULL);
+    if(semaphore!=VK_NULL_HANDLE){
+      vkDestroySemaphore(m_device, semaphore, NULL);
+    }
   }
+  m_image_available_semaphores.clear();
+
   for (auto semaphore : m_render_finished_semaphores) {
-    vkDestroySemaphore(m_device, semaphore, NULL);
+    if(semaphore!=VK_NULL_HANDLE){
+      vkDestroySemaphore(m_device, semaphore, NULL);
+    }
   }
+  m_render_finished_semaphores.clear();
+
   for (auto fence : m_in_flight_fences) {
-    vkDestroyFence(m_device, fence, NULL);
+    if(fence !=VK_NULL_HANDLE){
+      vkDestroyFence(m_device, fence, NULL);
+    }
   }
+  m_in_flight_fences.clear();
+
   for (auto framebuffer : m_swapchain_framebuffers) {
-    vkDestroyFramebuffer(m_device, framebuffer, NULL);
+    if(framebuffer != VK_NULL_HANDLE){
+      vkDestroyFramebuffer(m_device, framebuffer, NULL);
+    }
   }
+  m_swapchain_framebuffers.clear();
+
   if (m_render_pass != VK_NULL_HANDLE) {
     vkDestroyRenderPass(m_device, m_render_pass, NULL);
   }
   for (auto command_buffer : m_command_buffers) {
     vkFreeCommandBuffers(m_device, m_command_pool, 1, &command_buffer);
   }
+  m_command_buffers.clear();
+
   for (auto imageView : m_swapchain_image_views) {
-    vkDestroyImageView(m_device, imageView, NULL);
+    if(imageView != VK_NULL_HANDLE){
+      vkDestroyImageView(m_device, imageView, NULL);
+    }
   }
+  m_swapchain_image_views.clear();
+
   if (m_swapchain != VK_NULL_HANDLE) {
     vkDestroySwapchainKHR(m_device, m_swapchain, NULL);
   }
@@ -310,11 +754,12 @@ GHOST_TSuccess GHOST_ContextVK::swapBuffers()
     return GHOST_kFailure;
   }
 
-  printf(">>>>>>>>>>>>>  Aquire ImageIndex %d  Image %llx Frame %d  Semaphore %llx \n",
+  printf(">>>>>>>>>>>>>  Aquire ImageIndex %d  Image %llx Frame %d  Semaphore wait[%llx]  finish[%llx] \n",
          m_currentImage,
          (uint64_t)m_swapchain_images[m_currentImage],
          m_currentFrame,
-         (uint64_t)m_image_available_semaphores[m_currentFrame]);
+         (uint64_t)m_image_available_semaphores[m_currentFrame],
+         (uint64_t)m_render_finished_semaphores[m_currentFrame]);
 
   return GHOST_kSuccess;
 }
@@ -484,97 +929,6 @@ GHOST_TSuccess GHOST_ContextVK::releaseDrawingContext()
   return GHOST_kSuccess;
 }
 
-static vector<VkExtensionProperties> getExtensionsAvailable()
-{
-  uint32_t extension_count = 0;
-  vkEnumerateInstanceExtensionProperties(NULL, &extension_count, NULL);
-
-  vector<VkExtensionProperties> extensions(extension_count);
-  vkEnumerateInstanceExtensionProperties(NULL, &extension_count, extensions.data());
-
-  return extensions;
-}
-
-static bool checkExtensionSupport(vector<VkExtensionProperties> &extensions_available,
-                                  const char *extension_name)
-{
-  for (const auto &extension : extensions_available) {
-    if (strcmp(extension_name, extension.extensionName) == 0) {
-      return true;
-    }
-  }
-  return false;
-}
-
-static void requireExtension(vector<VkExtensionProperties> &extensions_available,
-                             vector<const char *> &extensions_enabled,
-                             const char *extension_name)
-{
-  if (checkExtensionSupport(extensions_available, extension_name)) {
-    extensions_enabled.push_back(extension_name);
-  }
-  else {
-    fprintf(stderr, "Error: %s not found.\n", extension_name);
-  }
-}
-
-static vector<VkLayerProperties> getLayersAvailable()
-{
-  uint32_t layer_count = 0;
-  vkEnumerateInstanceLayerProperties(&layer_count, NULL);
-
-  vector<VkLayerProperties> layers(layer_count);
-  vkEnumerateInstanceLayerProperties(&layer_count, layers.data());
-
-  return layers;
-}
-
-static bool checkLayerSupport(vector<VkLayerProperties> &layers_available, const char *layer_name)
-{
-  for (const auto &layer : layers_available) {
-    if (strcmp(layer_name, layer.layerName) == 0) {
-      return true;
-    }
-  }
-  return false;
-}
-
-static void enableLayer(vector<VkLayerProperties> &layers_available,
-                        vector<const char *> &layers_enabled,
-                        const VkLayer layer,
-                        const bool display_warning)
-{
-#define PUSH_VKLAYER(name, name2) \
-  if (vklayer_config_exist("VkLayer_" #name ".json") && \
-      checkLayerSupport(layers_available, "VK_LAYER_" #name2)) { \
-    layers_enabled.push_back("VK_LAYER_" #name2); \
-    enabled = true; \
-  } \
-  else { \
-    warnings << "VK_LAYER_" #name2; \
-  }
-
-  bool enabled = false;
-  std::stringstream warnings;
-
-  switch (layer) {
-    case VkLayer::KHRONOS_validation:
-      PUSH_VKLAYER(khronos_validation, KHRONOS_validation);
-  };
-
-  if (enabled) {
-    return;
-  }
-
-  if (display_warning) {
-    fprintf(stderr,
-            "Warning: Layer requested, but not supported by the platform. [%s] \n",
-            warnings.str().c_str());
-  }
-
-#undef PUSH_VKLAYER
-}
-
 static bool device_extensions_support(VkPhysicalDevice device, vector<const char *> required_exts)
 {
   uint32_t ext_count;
@@ -685,55 +1039,6 @@ GHOST_TSuccess GHOST_ContextVK::pickPhysicalDevice(vector<const char *> required
   }
 
   return GHOST_kSuccess;
-}
-
-static GHOST_TSuccess getGraphicQueueFamily(VkPhysicalDevice device, uint32_t *r_queue_index)
-{
-  uint32_t queue_family_count = 0;
-  vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, NULL);
-
-  vector<VkQueueFamilyProperties> queue_families(queue_family_count);
-  vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_families.data());
-
-  *r_queue_index = 0;
-  for (const auto &queue_family : queue_families) {
-    /* Every vulkan implementation by spec must have one queue family that support both graphics
-     * and compute pipelines. We select this one; compute only queue family hints at async compute
-     * implementations. */
-    if ((queue_family.queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
-        (queue_family.queueFlags & VK_QUEUE_COMPUTE_BIT)) {
-      return GHOST_kSuccess;
-    }
-    (*r_queue_index)++;
-  }
-
-  fprintf(stderr, "Couldn't find any Graphic queue family on selected device\n");
-  return GHOST_kFailure;
-}
-
-static GHOST_TSuccess getPresetQueueFamily(VkPhysicalDevice device,
-                                           VkSurfaceKHR surface,
-                                           uint32_t *r_queue_index)
-{
-  uint32_t queue_family_count = 0;
-  vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, NULL);
-
-  vector<VkQueueFamilyProperties> queue_families(queue_family_count);
-  vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_families.data());
-
-  *r_queue_index = 0;
-  for (int i = 0; i < queue_family_count; i++) {
-    VkBool32 present_support = false;
-    vkGetPhysicalDeviceSurfaceSupportKHR(device, *r_queue_index, surface, &present_support);
-
-    if (present_support) {
-      return GHOST_kSuccess;
-    }
-    (*r_queue_index)++;
-  }
-
-  fprintf(stderr, "Couldn't find any Present queue family on selected device\n");
-  return GHOST_kFailure;
 }
 
 static GHOST_TSuccess create_render_pass(VkDevice device,
@@ -987,29 +1292,9 @@ GHOST_TSuccess GHOST_ContextVK::createSwapchain()
   return GHOST_kSuccess;
 }
 
-const char *GHOST_ContextVK::getPlatformSpecificSurfaceExtension() const
-{
-#ifdef _WIN32
-  return VK_KHR_WIN32_SURFACE_EXTENSION_NAME;
-#elif defined(__APPLE__)
-  return VK_EXT_METAL_SURFACE_EXTENSION_NAME;
-#else /* UNIX/Linux */
-  switch (m_platform) {
-    case GHOST_kVulkanPlatformX11:
-      return VK_KHR_XLIB_SURFACE_EXTENSION_NAME;
-      break;
-#  ifdef WITH_GHOST_WAYLAND
-    case GHOST_kVulkanPlatformWayland:
-      return VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME;
-      break;
-#  endif
-  }
-#endif
-  return NULL;
-}
-
 GHOST_TSuccess GHOST_ContextVK::initializeDrawingContext()
 {
+
 #ifdef _WIN32
   m_use_window_surface = (m_hwnd != NULL);
 #elif defined(__APPLE__)
@@ -1028,50 +1313,16 @@ GHOST_TSuccess GHOST_ContextVK::initializeDrawingContext()
   }
 #endif
 
-  auto layers_available = getLayersAvailable();
-  auto extensions_available = getExtensionsAvailable();
-  vector<const char *> extensions_enabled;
-
-  if (m_debug) {
-    enableLayer(layers_available, m_layers_enabled, VkLayer::KHRONOS_validation, m_debug);
-    requireExtension(extensions_available, extensions_enabled, VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+  if (!sVKInstance.is_valid()) {
+    sVKInstance.create(m_use_window_surface,
+                       m_debug,
+                       m_context_major_version,
+                       m_context_minor_version,
+                       m_layers_enabled,
+                       m_extensions_device);
   }
 
-  if (m_use_window_surface) {
-    const char *native_surface_extension_name = getPlatformSpecificSurfaceExtension();
-
-    requireExtension(extensions_available, extensions_enabled, "VK_KHR_surface");
-    requireExtension(extensions_available, extensions_enabled, native_surface_extension_name);
-
-    m_extensions_device.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-  }
-
-  m_extensions_device.push_back("VK_KHR_dedicated_allocation");
-  m_extensions_device.push_back("VK_KHR_get_memory_requirements2");
-
-  /* Enable MoltenVK required instance extensions. */
-#ifdef VK_MVK_MOLTENVK_EXTENSION_NAME
-  requireExtension(
-      extensions_available, extensions_enabled, "VK_KHR_get_physical_device_properties2");
-#endif
-
-  VkApplicationInfo app_info = {};
-  app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-  app_info.pApplicationName = "Blender";
-  app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-  app_info.pEngineName = "Blender";
-  app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-  app_info.apiVersion = VK_MAKE_VERSION(m_context_major_version, m_context_minor_version, 0);
-
-  VkInstanceCreateInfo create_info = {};
-  create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-  create_info.pApplicationInfo = &app_info;
-  create_info.enabledLayerCount = static_cast<uint32_t>(m_layers_enabled.size());
-  create_info.ppEnabledLayerNames = m_layers_enabled.data();
-  create_info.enabledExtensionCount = static_cast<uint32_t>(extensions_enabled.size());
-  create_info.ppEnabledExtensionNames = extensions_enabled.data();
-
-  VK_CHECK(vkCreateInstance(&create_info, NULL, &m_instance));
+  sVKInstance.increment(m_instance);
 
   if (m_use_window_surface) {
 #ifdef _WIN32
@@ -1111,7 +1362,6 @@ GHOST_TSuccess GHOST_ContextVK::initializeDrawingContext()
 
 #endif
   }
-
   if (!pickPhysicalDevice(m_extensions_device)) {
     return GHOST_kFailure;
   }
@@ -1133,68 +1383,15 @@ GHOST_TSuccess GHOST_ContextVK::initializeDevice(VkDevice &device,
   }
 #endif
 
-  vector<VkDeviceQueueCreateInfo> queue_create_infos;
-
-  {
-    /* A graphic queue is required to draw anything. */
-    if (!getGraphicQueueFamily(m_physical_device, &m_queue_family_graphic)) {
-      return GHOST_kFailure;
-    }
-
-    float queue_priorities[] = {1.0f};
-    VkDeviceQueueCreateInfo graphic_queue_create_info = {};
-    graphic_queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    graphic_queue_create_info.queueFamilyIndex = m_queue_family_graphic;
-    graphic_queue_create_info.queueCount = 1;
-    graphic_queue_create_info.pQueuePriorities = queue_priorities;
-    queue_create_infos.push_back(graphic_queue_create_info);
+  if (!sVKDevice.is_valid(m_instance, m_physical_device)) {
+    sVKDevice.create(m_use_window_surface, m_surface, m_layers_enabled, m_extensions_device);
   }
 
-  if (m_use_window_surface) {
-    /* A present queue is required only if we render to a window. */
-    if (!getPresetQueueFamily(m_physical_device, m_surface, &m_queue_family_present)) {
-      return GHOST_kFailure;
-    }
-
-    float queue_priorities[] = {1.0f};
-    VkDeviceQueueCreateInfo present_queue_create_info = {};
-    present_queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    present_queue_create_info.queueFamilyIndex = m_queue_family_present;
-    present_queue_create_info.queueCount = 1;
-    present_queue_create_info.pQueuePriorities = queue_priorities;
-
-    /* Each queue must be unique. */
-    if (m_queue_family_graphic != m_queue_family_present) {
-      queue_create_infos.push_back(present_queue_create_info);
-    }
-  }
-
-  VkPhysicalDeviceFeatures device_features = {};
-#if STRICT_REQUIREMENTS
-  device_features.geometryShader = VK_TRUE;
-  device_features.dualSrcBlend = VK_TRUE;
-  device_features.logicOp = VK_TRUE;
-#endif
-
-  VkDeviceCreateInfo device_create_info = {};
-  device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-  device_create_info.queueCreateInfoCount = static_cast<uint32_t>(queue_create_infos.size());
-  device_create_info.pQueueCreateInfos = queue_create_infos.data();
-  /* layers_enabled are the same as instance extensions.
-   * This is only needed for 1.0 implementations. */
-  device_create_info.enabledLayerCount = static_cast<uint32_t>(m_layers_enabled.size());
-  device_create_info.ppEnabledLayerNames = m_layers_enabled.data();
-  device_create_info.enabledExtensionCount = static_cast<uint32_t>(m_extensions_device.size());
-  device_create_info.ppEnabledExtensionNames = m_extensions_device.data();
-  device_create_info.pEnabledFeatures = &device_features;
-
-  VK_CHECK(vkCreateDevice(m_physical_device, &device_create_info, NULL, &m_device));
-
-  vkGetDeviceQueue(m_device, m_queue_family_graphic, 0, &m_graphic_queue);
+  sVKDevice.increment(
+      m_device, m_present_queue, m_graphic_queue, m_queue_family_present, m_queue_family_graphic);
 
   createCommandPools();
   if (m_use_window_surface) {
-    vkGetDeviceQueue(m_device, m_queue_family_present, 0, &m_present_queue);
     createSwapchain();
   }
   else {

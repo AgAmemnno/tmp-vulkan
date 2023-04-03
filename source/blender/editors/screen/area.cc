@@ -80,43 +80,45 @@ static void region_draw_emboss(const ARegion *region, const rcti *scirct, int si
   /* Set transparent line. */
   GPU_blend(GPU_BLEND_ALPHA);
 
-  float color[4] = {0.0f, 0.0f, 0.0f, 0.25f};
-  UI_GetThemeColor3fv(TH_EDITOR_OUTLINE, color);
+  float color[4] = {1.0f, 0.0f, 0.0f, 0.25f};
+  // UI_GetThemeColor3fv(TH_EDITOR_OUTLINE, color);
 
-  GPUVertFormat *format = immVertexFormat();
-  uint pos = GPU_vertformat_attr_add(format, "pos", GPU_COMP_F32, 2, GPU_FETCH_FLOAT);
-  immBindBuiltinProgram(GPU_SHADER_3D_UNIFORM_COLOR);
-  immUniformColor4fv(color);
+  int cnt = 10;
+  while (cnt-- > 0) {
+    GPUVertFormat *format = immVertexFormat();
+    uint pos = GPU_vertformat_attr_add(format, "pos", GPU_COMP_F32, 2, GPU_FETCH_FLOAT);
+    immBindBuiltinProgram(GPU_SHADER_3D_UNIFORM_COLOR);
+    immUniformColor4fv(color);
 
-  immBeginAtMost(GPU_PRIM_LINES, 8);
+    immBeginAtMost(GPU_PRIM_LINES, 8);
 
-  /* right */
-  if (sides & REGION_EMBOSS_RIGHT) {
-    immVertex2f(pos, rect.xmax, rect.ymax);
-    immVertex2f(pos, rect.xmax, rect.ymin);
+    /* right */
+    if (sides & REGION_EMBOSS_RIGHT) {
+      immVertex2f(pos, rect.xmax, rect.ymax);
+      immVertex2f(pos, rect.xmax, rect.ymin);
+    }
+
+    /* bottom */
+    if (sides & REGION_EMBOSS_BOTTOM) {
+      immVertex2f(pos, rect.xmax, rect.ymin);
+      immVertex2f(pos, rect.xmin, rect.ymin);
+    }
+
+    /* left */
+    if (sides & REGION_EMBOSS_LEFT) {
+      immVertex2f(pos, rect.xmin, rect.ymin);
+      immVertex2f(pos, rect.xmin, rect.ymax);
+    }
+
+    /* top */
+    if (sides & REGION_EMBOSS_TOP) {
+      immVertex2f(pos, rect.xmin, rect.ymax);
+      immVertex2f(pos, rect.xmax, rect.ymax);
+    }
+
+    immEnd();
+    immUnbindProgram();
   }
-
-  /* bottom */
-  if (sides & REGION_EMBOSS_BOTTOM) {
-    immVertex2f(pos, rect.xmax, rect.ymin);
-    immVertex2f(pos, rect.xmin, rect.ymin);
-  }
-
-  /* left */
-  if (sides & REGION_EMBOSS_LEFT) {
-    immVertex2f(pos, rect.xmin, rect.ymin);
-    immVertex2f(pos, rect.xmin, rect.ymax);
-  }
-
-  /* top */
-  if (sides & REGION_EMBOSS_TOP) {
-    immVertex2f(pos, rect.xmin, rect.ymax);
-    immVertex2f(pos, rect.xmax, rect.ymax);
-  }
-
-  immEnd();
-  immUnbindProgram();
-
   GPU_blend(GPU_BLEND_NONE);
 }
 
@@ -563,7 +565,7 @@ void ED_region_do_draw(bContext *C, ARegion *region)
     immUnbindProgram();
     GPU_blend(GPU_BLEND_NONE);
   }
-
+  return;
   memset(&region->drawrct, 0, sizeof(region->drawrct));
 
   UI_blocklist_free_inactive(C, region);

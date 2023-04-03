@@ -647,5 +647,7 @@ void WM_main(bContext *C)
 
     /* Execute cached changes draw. */
     wm_draw_update(C);
+
+    WM_exit(C);
   }
 }

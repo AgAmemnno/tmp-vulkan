@@ -25,6 +25,7 @@ class VKFrameBuffer : public FrameBuffer {
   VkDevice vk_device_ = VK_NULL_HANDLE;
   /* Base render pass used for framebuffer creation. */
   VkRenderPass vk_render_pass_ = VK_NULL_HANDLE;
+  VkImageLayout vk_render_pass_init_ = VK_IMAGE_LAYOUT_MAX_ENUM;
   /* Number of layers if the attachments are layered textures. */
   int depth_ = 1;
   /** Internal frame-buffers are immutable. */
@@ -51,6 +52,10 @@ class VKFrameBuffer : public FrameBuffer {
 
   ~VKFrameBuffer();
 
+  void set_dirty()
+  {
+    dirty_state_ = true;
+  };
   void bind(bool enabled_srgb) override;
   bool check(char err_out[256]) override;
   void clear(eGPUFrameBufferBits buffers,
@@ -65,6 +70,8 @@ class VKFrameBuffer : public FrameBuffer {
   void attachment_set_loadstore_op(GPUAttachmentType type,
                                    eGPULoadOp load_action,
                                    eGPUStoreOp store_action) override;
+
+  void apply_state();
 
   void read(eGPUFrameBufferBits planes,
             eGPUDataFormat format,
@@ -101,6 +108,16 @@ class VKFrameBuffer : public FrameBuffer {
   {
     return image_id_;
   }
+  VkImageLayout vk_render_pass_init_layout_get() const
+  {
+    return vk_render_pass_init_;
+  }
+  bool is_immutable()
+  {
+    return immutable_;
+  };
+
+  VkFormat is_color(int slot) const;
 
  private:
   void update_attachments();

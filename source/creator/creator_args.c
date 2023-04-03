@@ -1146,7 +1146,9 @@ static int arg_handle_gpu_backend_set(int argc, const char **argv, void *UNUSED(
 #  ifdef WITH_VULKAN_BACKEND
   else if (STREQ(argv[1], (backends_supported[backends_supported_num++] = "vulkan"))) {
     gpu_backend = GPU_BACKEND_VULKAN;
+    printf(">>>>>>>>>>>>>>>>>>>>>>>> GPU Backend Vulkan\n");
   }
+
 #  endif
 #  ifdef WITH_METAL_BACKEND
   else if (STREQ(argv[1], (backends_supported[backends_supported_num++] = "metal"))) {

@@ -6,7 +6,9 @@
  */
 
 #include "vk_buffer.hh"
+#include "vk_command_buffer.hh"
 #include "vk_context.hh"
+#include "vk_backend.hh"
 
 namespace blender::gpu {
 
@@ -48,11 +50,18 @@ bool VKBuffer::create(VKContext &context,
                       GPUUsageType usage,
                       VkBufferUsageFlagBits buffer_usage)
 {
-  BLI_assert(!is_allocated());
+  /*BLI_assert(!is_allocated());*/
+  if (is_allocated()) {
+    if (size_in_bytes_ >= size_in_bytes) {
+      return true;
+    }
+    free(context);
+  }
 
   size_in_bytes_ = size_in_bytes;
+  VKBackend& backend = VKBackend::get();
 
-  VmaAllocator allocator = context.mem_allocator_get();
+  VmaAllocator allocator = backend.mem_allocator_get();
   VkBufferCreateInfo create_info = {};
   create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
   create_info.flags = 0;
@@ -67,7 +76,8 @@ bool VKBuffer::create(VKContext &context,
   VmaAllocationCreateInfo vma_create_info = {};
   vma_create_info.flags = vma_allocation_flags(usage);
   vma_create_info.priority = 1.0f;
-  vma_create_info.usage = VMA_MEMORY_USAGE_AUTO;
+  vma_create_info.usage = (GPU_USAGE_DYNAMIC) ? VMA_MEMORY_USAGE_CPU_TO_GPU :
+                                                VMA_MEMORY_USAGE_AUTO;
 
   VkResult result = vmaCreateBuffer(
       allocator, &create_info, &vma_create_info, &vk_buffer_, &allocation_, nullptr);
@@ -111,7 +121,8 @@ bool VKBuffer::is_mapped() const
 bool VKBuffer::map(VKContext &context)
 {
   BLI_assert(!is_mapped());
-  VmaAllocator allocator = context.mem_allocator_get();
+  VKBackend &backend = VKBackend::get();
+  VmaAllocator allocator = backend.mem_allocator_get();
   VkResult result = vmaMapMemory(allocator, allocation_, &mapped_memory_);
   return result == VK_SUCCESS;
 }
@@ -119,20 +130,34 @@ bool VKBuffer::map(VKContext &context)
 void VKBuffer::unmap(VKContext &context)
 {
   BLI_assert(is_mapped());
-  VmaAllocator allocator = context.mem_allocator_get();
+  VKBackend &backend = VKBackend::get();
+  VmaAllocator allocator = backend.mem_allocator_get();
   vmaUnmapMemory(allocator, allocation_);
   mapped_memory_ = nullptr;
 }
 
 bool VKBuffer::free(VKContext &context)
 {
-  if (is_mapped()) {
-    unmap(context);
+  if(vk_buffer_!= VK_NULL_HANDLE){
+    if (is_mapped()) {
+      unmap(context);
+    }
+    VKBackend &backend = VKBackend::get();
+    VmaAllocator allocator = backend.mem_allocator_get();
+    vmaDestroyBuffer(allocator, vk_buffer_, allocation_);
+    vk_buffer_ = VK_NULL_HANDLE;
   }
-
-  VmaAllocator allocator = context.mem_allocator_get();
-  vmaDestroyBuffer(allocator, vk_buffer_, allocation_);
   return true;
 }
 
+void VKBuffer::copy(VKCommandBuffer *cmd, VKBuffer &dst, VkBufferCopy vbCopyRegion)
+{
+
+  VkDeviceSize srcsize = size_in_bytes_;
+  BLI_assert(srcsize >= (vbCopyRegion.srcOffset + vbCopyRegion.size));
+  VkDeviceSize dstsize = dst.size_in_bytes();
+  BLI_assert(dstsize >= (vbCopyRegion.dstOffset + vbCopyRegion.size));
+
+  cmd->copy(*this, dst, {vbCopyRegion});
+}
 }  // namespace blender::gpu

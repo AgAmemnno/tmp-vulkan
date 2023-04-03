@@ -24,9 +24,9 @@ VKTexture::~VKTexture()
 {
   VK_ALLOCATION_CALLBACKS
 
-  VKContext &context = *VKContext::get();
-  vmaDestroyImage(context.mem_allocator_get(), vk_image_, allocation_);
-  vkDestroyImageView(context.device_get(), vk_image_view_, vk_allocation_callbacks);
+  vmaDestroyImage(VKBackend::get().mem_allocator_get(), vk_image_, allocation_);
+  vkDestroyImageView(VKBackend::get().mem_device_get(), vk_image_view_, vk_allocation_callbacks);
+
 }
 
 void VKTexture::generate_mipmap()
@@ -109,15 +109,18 @@ void VKTexture::update_sub(
   if (!is_allocated()) {
     allocate();
   }
-
+  extent[2] = (extent[2] == 0) ? 1 : extent[2];
   /* Vulkan images cannot be directly mapped to host memory and requires a staging buffer. */
   VKContext &context = *VKContext::get();
   VKBuffer staging_buffer;
   size_t sample_len = extent[0] * extent[1] * extent[2];
   size_t device_memory_size = sample_len * to_bytesize(format_);
 
-  staging_buffer.create(
-      context, device_memory_size, GPU_USAGE_DEVICE_ONLY, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+  staging_buffer.create(context,
+                        device_memory_size,
+                        GPU_USAGE_DYNAMIC,
+                        (VkBufferUsageFlagBits)(VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
+                                                VK_BUFFER_USAGE_TRANSFER_DST_BIT));
   convert_host_to_device(staging_buffer.mapped_memory_get(), data, sample_len, format, format_);
 
   VkBufferImageCopy region = {};
@@ -197,6 +200,7 @@ static VkImageUsageFlagBits to_vk_image_usage(const eGPUTextureUsage usage,
     if (format_flag & (GPU_FORMAT_NORMALIZED_INTEGER | GPU_FORMAT_COMPRESSED)) {
       /* These formats aren't supported as an attachment. When using GPU_TEXTURE_USAGE_DEFAULT they
        * are still being evaluated to be attachable. So we need to skip them.*/
+      result = static_cast<VkImageUsageFlagBits>(result | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
     }
     else {
       if (format_flag & (GPU_FORMAT_DEPTH | GPU_FORMAT_STENCIL)) {
@@ -229,7 +233,7 @@ bool VKTexture::allocate()
   image_info.extent.width = extent[0];
   image_info.extent.height = extent[1];
   image_info.extent.depth = extent[2];
-  image_info.mipLevels = 1;
+  image_info.mipLevels = mipmaps_;
   image_info.arrayLayers = 1;
   image_info.format = to_vk_format(format_);
   /* Some platforms (NVIDIA) requires that attached textures are always tiled optimal.
@@ -261,7 +265,7 @@ bool VKTexture::allocate()
   VmaAllocationCreateInfo allocCreateInfo = {};
   allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
   allocCreateInfo.priority = 1.0f;
-  result = vmaCreateImage(context.mem_allocator_get(),
+  result = vmaCreateImage(VKBackend::get().mem_allocator_get(),
                           &image_info,
                           &allocCreateInfo,
                           &vk_image_,
@@ -319,6 +323,8 @@ void VKTexture::current_layout_set(const VkImageLayout new_layout)
 
 void VKTexture::layout_ensure(VKContext &context, const VkImageLayout requested_layout)
 {
+  context.command_buffer_get().image_transition(this, VkTransitionState::VK_ENSURE_TEXTURE, true);
+#if 0
   const VkImageLayout current_layout = current_layout_get();
   if (current_layout == requested_layout) {
     return;
@@ -333,6 +339,7 @@ void VKTexture::layout_ensure(VKContext &context, const VkImageLayout requested_
   barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
   context.command_buffer_get().pipeline_barrier(Span<VkImageMemoryBarrier>(&barrier, 1));
   current_layout_set(requested_layout);
+#endif
 }
 /** \} */
 

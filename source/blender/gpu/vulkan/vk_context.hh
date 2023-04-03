@@ -11,6 +11,7 @@
 
 #include "vk_command_buffer.hh"
 #include "vk_descriptor_pools.hh"
+#include "vk_state_manager.hh"
 
 namespace blender::gpu {
 class VKFrameBuffer;
@@ -26,7 +27,7 @@ class VKContext : public Context {
   VkQueue vk_queue_ = VK_NULL_HANDLE;
 
   /** Allocator used for texture and buffers and other resources. */
-  VmaAllocator mem_allocator_ = VK_NULL_HANDLE;
+  //VmaAllocator mem_allocator_ = VK_NULL_HANDLE;
   VKDescriptorPools descriptor_pools_;
 
   /** Limits of the device linked to this context. */
@@ -81,6 +82,11 @@ class VKContext : public Context {
     return static_cast<VKContext *>(Context::get());
   }
 
+  VkInstance instance_get() const
+  {
+    return vk_instance_;
+  }
+
   VkPhysicalDevice physical_device_get() const
   {
     return vk_physical_device_;
@@ -101,6 +107,11 @@ class VKContext : public Context {
     return command_buffer_;
   }
 
+  VKStateManager &state_manager_get()
+  {
+    return *(VKStateManager *)state_manager;
+  }
+
   VkQueue queue_get() const
   {
     return vk_queue_;
@@ -116,10 +127,12 @@ class VKContext : public Context {
     return descriptor_pools_;
   }
 
+  /*
   VmaAllocator mem_allocator_get() const
   {
     return mem_allocator_;
   }
+  */
 
   SafeImage &sc_image_get(int i = -1)
   {
@@ -129,6 +142,12 @@ class VKContext : public Context {
   }
 
   uint8_t semaphore_get(VkSemaphore &wait, VkSemaphore &finish);
+
+ uint8_t current_image_id_get(){
+   return 1&vk_fb_id_;
+   }
+
+  void swapbuffers();
 
  private:
   void init_physical_device_limits();

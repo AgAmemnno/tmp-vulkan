@@ -212,6 +212,7 @@ set(VULKAN_SRC
   vulkan/vk_fence.cc
   vulkan/vk_framebuffer.cc
   vulkan/vk_index_buffer.cc
+  vulkan/vk_immediate.cc
   vulkan/vk_memory_layout.cc
   vulkan/vk_memory.cc
   vulkan/vk_pipeline.cc
@@ -226,7 +227,9 @@ set(VULKAN_SRC
   vulkan/vk_storage_buffer.cc
   vulkan/vk_texture.cc
   vulkan/vk_uniform_buffer.cc
+  vulkan/vk_vertex_array.cc
   vulkan/vk_vertex_buffer.cc
+  
 
   vulkan/vk_backend.hh
   vulkan/vk_batch.hh
@@ -242,6 +245,7 @@ set(VULKAN_SRC
   vulkan/vk_fence.hh
   vulkan/vk_framebuffer.hh
   vulkan/vk_index_buffer.hh
+  vulkan/vk_immediate.hh
   vulkan/vk_memory_layout.hh
   vulkan/vk_memory.hh
   vulkan/vk_pipeline.hh
@@ -256,6 +260,7 @@ set(VULKAN_SRC
   vulkan/vk_storage_buffer.hh
   vulkan/vk_texture.hh
   vulkan/vk_uniform_buffer.hh
+  vulkan/vk_vertex_array.hh
   vulkan/vk_vertex_buffer.hh
 )
 

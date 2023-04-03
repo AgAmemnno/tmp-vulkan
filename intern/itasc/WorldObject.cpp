@@ -7,20 +7,19 @@
 
 #include "WorldObject.hpp"
 
-namespace iTaSC{
+namespace iTaSC {
 
 /* special singleton to be used as base for uncontrolled object */
 WorldObject Object::world;
 
-WorldObject::WorldObject():UncontrolledObject()
+WorldObject::WorldObject() : UncontrolledObject()
 {
-	initialize(0,1);
-	m_internalPose = Frame::Identity();
+  initialize(0, 1);
+  m_internalPose = Frame::Identity();
 }
 
-WorldObject::~WorldObject() 
+WorldObject::~WorldObject()
 {
 }
 
-
-}
+}  // namespace iTaSC

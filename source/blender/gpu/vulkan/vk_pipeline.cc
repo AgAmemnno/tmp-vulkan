@@ -96,6 +96,11 @@ void VKPipeline::finalize(VKContext &context,
 
   VK_ALLOCATION_CALLBACKS
 
+  VKFrameBuffer &framebuffer = *context.active_framebuffer_get();
+  VkGraphicsPipelineCreateInfo &pipeline_create_info =
+      context.state_manager_get().get_pipeline_create_info(framebuffer.vk_render_pass_get(),
+                                                           pipeline_layout);
+
   Vector<VkPipelineShaderStageCreateInfo> pipeline_stages;
   VkPipelineShaderStageCreateInfo vertex_stage_info = {};
   vertex_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -121,80 +126,14 @@ void VKPipeline::finalize(VKContext &context,
     pipeline_stages.append(fragment_stage_info);
   }
 
-  VKFrameBuffer &framebuffer = *context.active_framebuffer_get();
-
-  VkGraphicsPipelineCreateInfo pipeline_create_info = {};
-  pipeline_create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
   pipeline_create_info.stageCount = pipeline_stages.size();
   pipeline_create_info.pStages = pipeline_stages.data();
-  pipeline_create_info.layout = pipeline_layout;
-  pipeline_create_info.renderPass = framebuffer.vk_render_pass_get();
   pipeline_create_info.subpass = 0;
-
-  /* Vertex input state. */
-  VkPipelineVertexInputStateCreateInfo vertex_input_state = {};
-  vertex_input_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-  vertex_input_state.vertexBindingDescriptionCount = 0;
-  /* Dummy attribute containing the vertex positions. These should be extracted from shader create
-   * infos. */
-  VkVertexInputBindingDescription binding_description = {};
-  binding_description.binding = 0;
-  binding_description.stride = 4 * 3;
-  binding_description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-  vertex_input_state.vertexBindingDescriptionCount = 1;
-  vertex_input_state.pVertexBindingDescriptions = &binding_description;
-  VkVertexInputAttributeDescription attribute_description = {};
-  attribute_description.location = 0;
-  attribute_description.binding = 0;
-  attribute_description.format = VK_FORMAT_R32G32B32_SFLOAT;
-  attribute_description.offset = 0;
-  vertex_input_state.vertexAttributeDescriptionCount = 1;
-  vertex_input_state.pVertexAttributeDescriptions = &attribute_description;
-  pipeline_create_info.pVertexInputState = &vertex_input_state;
-
-  /* Input assembly state. */
-  VkPipelineInputAssemblyStateCreateInfo pipeline_input_assembly = {};
-  pipeline_input_assembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-  pipeline_input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-  pipeline_create_info.pInputAssemblyState = &pipeline_input_assembly;
-
-  VkPipelineRasterizationStateCreateInfo rasterization_state = {};
-  rasterization_state.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-  pipeline_create_info.pRasterizationState = &rasterization_state;
-  /* TODO: Needs to be sourced from GPU_state. */
-  rasterization_state.lineWidth = 1.0;
-
-  /* Viewport state. */
-  VkPipelineViewportStateCreateInfo viewport_state = {};
-  viewport_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-  VkViewport viewport = framebuffer.vk_viewport_get();
-  viewport_state.pViewports = &viewport;
-  viewport_state.viewportCount = 1;
-  VkRect2D scissor = framebuffer.vk_render_area_get();
-  viewport_state.pScissors = &scissor;
-  viewport_state.scissorCount = 1;
-  pipeline_create_info.pViewportState = &viewport_state;
-
-  /* Multisample state. */
-  VkPipelineMultisampleStateCreateInfo multisample_state = {};
-  multisample_state.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-  multisample_state.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-  multisample_state.minSampleShading = 1.0f;
-  pipeline_create_info.pMultisampleState = &multisample_state;
-
-  /* Color blend state. */
-  VkPipelineColorBlendStateCreateInfo pipeline_color_blend_state = {};
-  pipeline_color_blend_state.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-  VkPipelineColorBlendAttachmentState color_blend_attachment = {};
-  color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-                                          VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-  pipeline_color_blend_state.attachmentCount = 1;
-  pipeline_color_blend_state.pAttachments = &color_blend_attachment;
-  pipeline_create_info.pColorBlendState = &pipeline_color_blend_state;
 
   VkDevice vk_device = context.device_get();
   vkCreateGraphicsPipelines(
       vk_device, VK_NULL_HANDLE, 1, &pipeline_create_info, vk_allocation_callbacks, &vk_pipeline_);
+  framebuffer.set_dirty();
 }
 
 }  // namespace blender::gpu

@@ -15,6 +15,8 @@
 
 #include "vk_mem_alloc.h"
 
+#include "GPU_context.h"
+
 #include "gpu_texture_private.hh"
 
 namespace blender::gpu {
@@ -26,5 +28,6 @@ VkImageViewType to_vk_image_view_type(const eGPUTextureType type);
 VkImageType to_vk_image_type(const eGPUTextureType type);
 VkClearColorValue to_vk_clear_color_value(const eGPUDataFormat format, const void *data);
 const char *to_string(VkImageLayout layout);
+VkPrimitiveTopology to_vk(const GPUPrimType prim_type);
 
 }  // namespace blender::gpu

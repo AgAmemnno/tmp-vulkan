@@ -597,7 +597,7 @@ VKShader::~VKShader()
 {
   VK_ALLOCATION_CALLBACKS
 
-  VkDevice device = context_->device_get();
+  VkDevice device = VKBackend::get().mem_device_get();
   if (vertex_module_ != VK_NULL_HANDLE) {
     vkDestroyShaderModule(device, vertex_module_, vk_allocation_callbacks);
     vertex_module_ = VK_NULL_HANDLE;

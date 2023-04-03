@@ -965,13 +965,15 @@ static void wm_draw_window_offscreen(bContext *C, wmWindow *win, bool stereo)
 
       region->do_draw = false;
       CTX_wm_region_set(C, NULL);
+      break;
     }
 
     CTX_wm_area_set(C, NULL);
 
     GPU_debug_group_end();
+    break;
   }
-
+  return;
   /* Draw menus into their own frame-buffer. */
   LISTBASE_FOREACH (ARegion *, region, &screen->regionbase) {
     if (!region->visible) {
@@ -1123,7 +1125,10 @@ static void wm_draw_window(bContext *C, wmWindow *win)
   /* Draw area regions into their own frame-buffer. This way we can redraw
    * the areas that need it, and blit the rest from existing frame-buffers. */
   wm_draw_window_offscreen(C, win, stereo);
+  screen->do_draw = false;
 
+  GPU_context_end_frame(win->gpuctx);
+  return;
   /* Now we draw into the window frame-buffer, in full window coordinates. */
   if (!stereo) {
     /* Regular mono drawing. */

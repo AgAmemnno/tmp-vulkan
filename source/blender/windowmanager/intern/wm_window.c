@@ -2628,6 +2628,10 @@ void *WM_opengl_context_create(void)
   if (G.debug & G_DEBUG_GPU) {
     glSettings.flags |= GHOST_glDebugContext;
   }
+#ifdef WITH_VULKAN_BACKEND
+  /* Vulkan does not need a window. */
+  glSettings.context_type = GHOST_kDrawingContextTypeVulkan;
+#endif
   return GHOST_CreateOpenGLContext(g_system, glSettings);
 }
 

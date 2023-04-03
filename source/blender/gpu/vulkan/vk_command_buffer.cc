@@ -21,6 +21,118 @@
 
 namespace blender::gpu {
 
+template<typename T>
+bool VKCommandBuffer::image_transition(T *sfim,
+                                       VkTransitionState eTrans,
+                                       bool recorded,
+                                       VkImageLayout dst_layout)
+{
+
+  bool trans = false;
+  VkImageLayout src_layout = sfim->current_layout_get();
+  VkTransitionStateRaw eTransRaw = VkTransitionStateRaw::VK_TRANSITION_STATE_RAW_ALL;
+  switch (eTrans) {
+    case VkTransitionState::VK_BEFORE_PRESENT:
+      if (src_layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
+        return false;
+      };
+      eTransRaw = (src_layout == VK_IMAGE_LAYOUT_UNDEFINED) ?
+                      VkTransitionStateRaw::VK_UNDEF2PRESE :
+                      VkTransitionStateRaw::VK_COLOR2PRESE;
+      break;
+    case VkTransitionState::VK_BEFORE_RENDER_PASS:
+      if (src_layout == dst_layout) {
+        return false;
+      };
+      if (dst_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
+        eTransRaw = (src_layout == VK_IMAGE_LAYOUT_UNDEFINED) ?
+                        VkTransitionStateRaw::VK_UNDEF2COLOR :
+                    (src_layout == VK_IMAGE_LAYOUT_GENERAL) ?
+                        VkTransitionStateRaw::VK_GENER2COLOR :
+                        VkTransitionStateRaw::VK_PRESE2COLOR;
+      }
+      else {
+        BLI_assert_unreachable();
+      }
+      break;
+    case VkTransitionState::VK_ENSURE_TEXTURE:
+      if (src_layout == VK_IMAGE_LAYOUT_GENERAL) {
+        return false;
+      };
+      eTransRaw = VkTransitionStateRaw::VK_UNDEF2GENER;
+      break;
+    case VkTransitionState::VK_TRANSITION_STATE_ALL:
+    default:
+      BLI_assert_unreachable();
+      break;
+  }
+
+  BLI_assert(eTransRaw != VkTransitionStateRaw::VK_TRANSITION_STATE_RAW_ALL);
+
+  if (recorded) {
+    end_render_pass(nullptr);
+  }
+
+  begin_recording();
+
+  switch (eTransRaw) {
+
+    case VkTransitionStateRaw::VK_UNDEF2PRESE:
+      trans = layout_state_.init_image_layout(*this, sfim, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+      break;
+    case VkTransitionStateRaw::VK_UNDEF2GENER:
+      trans = layout_state_.init_image_layout(*this, sfim, VK_IMAGE_LAYOUT_GENERAL);
+      break;
+    case VkTransitionStateRaw::VK_UNDEF2COLOR:
+      trans = layout_state_.init_image_layout(
+          *this, sfim, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+      break;
+    case VkTransitionStateRaw::VK_PRESE2COLOR:
+      trans = layout_state_.pre_reder_image_layout(
+          *this, sfim, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+      break;
+    case VkTransitionStateRaw::VK_PRESE2GENER:
+      trans = layout_state_.pre_reder_image_layout(*this, sfim, VK_IMAGE_LAYOUT_GENERAL);
+      break;
+    case VkTransitionStateRaw::VK_GENER2COLOR:
+      trans = layout_state_.pre_reder_image_layout(
+          *this, sfim, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+      break;
+    case VkTransitionStateRaw::VK_COLOR2PRESE:
+      trans = layout_state_.pre_sent_image_layout(*this, sfim);
+      break;
+    case VkTransitionStateRaw::VK_TRANSITION_STATE_RAW_ALL:
+    default:
+      BLI_assert_unreachable();
+      break;
+  }
+
+  dst_layout = sfim->current_layout_get();
+  BLI_assert(src_layout != dst_layout);
+
+  debug::raise_vk_info(
+      "VKContext::ImageTracker::transition   IMAGE[%llx]  pipelineBarrier \n         %s ==> "
+      "%s\n",
+      (uint64_t)sfim->vk_image_handle(),
+      to_string(src_layout),
+      to_string(dst_layout));
+
+  if (recorded) {
+    submit();
+  }
+
+  return trans;
+};
+
+template bool VKCommandBuffer::image_transition(SafeImage *sfim,
+                                                VkTransitionState eTrans,
+                                                bool recorded,
+                                                VkImageLayout dst_layout);
+template bool VKCommandBuffer::image_transition(VKTexture *sfim,
+                                                VkTransitionState eTrans,
+                                                bool recorded,
+                                                VkImageLayout dst_layout);
+
 VKCommandBuffer::~VKCommandBuffer()
 {
   if (vk_device_ != VK_NULL_HANDLE) {
@@ -51,13 +163,13 @@ bool VKCommandBuffer::init(const VkDevice vk_device,
     fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
     vkCreateFence(vk_device, &fenceInfo, vk_allocation_callbacks, &vk_fence_);
 
-    sema_own_ = 1;
+
     BLI_assert(sema_toggle_[sema_own_] == VK_NULL_HANDLE);
 
     VkSemaphoreCreateInfo semaphore_info = {};
     semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
     vkCreateSemaphore(vk_device, &semaphore_info, NULL, &sema_toggle_[sema_own_]);
-
+    sema_signal_ = sema_own_;
     submission_id_.reset();
   }
   else {
@@ -110,12 +222,16 @@ bool VKCommandBuffer::begin_recording()
   return true;
 }
 
-void VKCommandBuffer::end_recording()
+void VKCommandBuffer::end_recording(bool imm_submit)
 {
-  if (in_toggle_) {
+  if ( in_toggle_) {
     end_render_pass(nullptr);
     vkEndCommandBuffer(vk_command_buffer_);
     in_submit_ = true;
+    in_toggle_ = false;
+    if(imm_submit){
+      submit(false, true);
+    }
   }
   in_toggle_ = false;
 }
@@ -124,7 +240,14 @@ void VKCommandBuffer::bind(const VKPipeline &pipeline, VkPipelineBindPoint bind_
 {
   vkCmdBindPipeline(vk_command_buffer_, bind_point, pipeline.vk_handle());
 }
-
+void VKCommandBuffer::viewport(VkViewport &viewport)
+{
+  vkCmdSetViewport(vk_command_buffer_, 0, 1, &viewport);
+}
+void VKCommandBuffer::scissor(VkRect2D &scissor)
+{
+  vkCmdSetScissor(vk_command_buffer_, 0, 1, &scissor);
+}
 void VKCommandBuffer::bind(const VKDescriptorSet &descriptor_set,
                            const VkPipelineLayout vk_pipeline_layout,
                            VkPipelineBindPoint bind_point)
@@ -134,44 +257,12 @@ void VKCommandBuffer::bind(const VKDescriptorSet &descriptor_set,
       vk_command_buffer_, bind_point, vk_pipeline_layout, 0, 1, &vk_descriptor_set, 0, 0);
 }
 
-bool VKCommandBuffer::begin_render_pass(const VKFrameBuffer &framebuffer, SafeImage &sfim)
-{
-
-  if (!in_toggle_) {
-    if (!begin_recording()) {
-      return false;
-    };
-  }
-
-  end_render_pass(nullptr);
-
-  image_transition(sfim, VkTransitionState::VK_PRESE2COLOR, true);
-
-  VkRenderPassBeginInfo render_pass_begin_info = {};
-  render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  render_pass_begin_info.renderPass = framebuffer.vk_render_pass_get();
-  render_pass_begin_info.framebuffer = framebuffer.vk_framebuffer_get();
-  render_pass_begin_info.renderArea = framebuffer.vk_render_area_get();
-  vkCmdBeginRenderPass(vk_command_buffer_, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-  begin_rp_ = true;
-
-  return true;
-}
-
 void VKCommandBuffer::end_render_pass(const VKFrameBuffer & /*framebuffer*/)
 {
 
   if (begin_rp_) {
     vkCmdEndRenderPass(vk_command_buffer_);
-    auto &sfim = VKContext::get()->sc_image_get();
-    auto src_layout = sfim.current_layout_get();
-    sfim.current_layout_set(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-    debug::raise_vk_info(
-        "VKContext::ImageTracker::transition   IMAGE[%llx] RenderPassTransition \n         %s ==> "
-        "%s\n",
-        (uint64_t)sfim.vk_image_handle(),
-        to_string(src_layout),
-        to_string(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR));
+    in_rp_submit_ = true;
     in_submit_ = true;
   }
   begin_rp_ = false;
@@ -219,6 +310,19 @@ void VKCommandBuffer::copy(VKTexture &dst_texture,
                          regions.data());
 }
 
+void VKCommandBuffer::copy(VKBuffer &dst_buffer, VKBuffer &src_buffer, Span<VkBufferCopy> regions)
+{
+  if (begin_rp_) {
+    end_render_pass(nullptr);
+    begin_recording();
+  }
+  vkCmdCopyBuffer(vk_command_buffer_,
+                  dst_buffer.vk_handle(),
+                  src_buffer.vk_handle(),
+                  regions.size(),
+                  regions.data());
+};
+
 void VKCommandBuffer::clear(VkImage vk_image,
                             VkImageLayout vk_image_layout,
                             const VkClearColorValue &vk_clear_color,
@@ -238,11 +342,18 @@ void VKCommandBuffer::clear(Span<VkClearAttachment> attachments, Span<VkClearRec
       vk_command_buffer_, attachments.size(), attachments.data(), areas.size(), areas.data());
 }
 
-void VKCommandBuffer::draw(int v_first, int v_count, int i_first, int i_count)
+void VKCommandBuffer::draw(int v_count, int i_count, int v_first, int i_first)
 {
   vkCmdDraw(vk_command_buffer_, v_count, i_count, v_first, i_first);
 }
 
+void VKCommandBuffer::bind_vertex_buffers(uint32_t firstBinding,
+                                          uint32_t bindingCount,
+                                          const VkBuffer *pBuffers)
+{
+  VkDeviceSize offsets = {0};
+  vkCmdBindVertexBuffers(vk_command_buffer_, firstBinding, bindingCount, pBuffers, &offsets);
+}
 void VKCommandBuffer::pipeline_barrier(VkPipelineStageFlags source_stages,
                                        VkPipelineStageFlags destination_stages)
 {
@@ -345,8 +456,8 @@ void VKCommandBuffer::submit_encoded_commands(bool fin)
   submit_info.signalSemaphoreCount = 0;
   submit_info.waitSemaphoreCount = 0;
 
-  VkSemaphore wait = sema_toggle_[(sema_own_ + 1) % 2];
-  VkSemaphore finish = (fin) ? sema_fin_ : sema_toggle_[sema_own_];
+  VkSemaphore wait = sema_toggle_[(sema_signal_ + 1) % 2];
+  VkSemaphore finish = (fin) ? sema_fin_ : sema_toggle_[sema_signal_];
 
   VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT};
 
@@ -357,16 +468,20 @@ void VKCommandBuffer::submit_encoded_commands(bool fin)
   submit_info.signalSemaphoreCount = (finish == VK_NULL_HANDLE) ? 0 : 1;
   submit_info.pSignalSemaphores = &finish;
 
+  auto &sfim = VKContext::get()->sc_image_get();
+  
   debug::raise_vk_info(
-      "\nSubmit Information Continue %d \n     wait semaphore [%llx]\n      signal semaphore "
+      "\nSubmit Information Continue %d \n image [%d]  [%llx]    wait semaphore [%llx]\n      signal semaphore "
       "[%llx]\n",
-      (int)!fin,
+        (int)!fin,
+       (int)(vk_fb_id_&1),
+      (uint64_t)sfim.vk_image_handle(),
       (uint64_t)wait,
       (uint64_t)finish);
 
   vkQueueSubmit(vk_queue_, 1, &submit_info, vk_fence_);
 
-  sema_own_ = (sema_own_ + 1) % 2;
+  sema_signal_ = (sema_signal_ + 1) % 2;
 
   vkQueueWaitIdle(vk_queue_);
 
@@ -375,7 +490,18 @@ void VKCommandBuffer::submit_encoded_commands(bool fin)
   in_flight_ = true;
 
   submission_id_.next();
-
+  if(in_rp_submit_){
+    
+    auto src_layout = sfim.current_layout_get();
+    sfim.current_layout_set(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+    debug::raise_vk_info(
+        "VKContext::ImageTracker::transition   IMAGE[%llx] RenderPassTransition \n         %s ==> "
+        "%s\n",
+        (uint64_t)sfim.vk_image_handle(),
+        to_string(src_layout),
+        to_string(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR));
+    in_rp_submit_ = false;
+  }
   if (fin) {
     sema_fin_ = VK_NULL_HANDLE;
   }
@@ -556,86 +682,5 @@ VkImageAspectFlags ImageLayoutState::get_aspect_flag(VkImageLayout srcLayout,
 
   return aspectMask;
 }
-
-#if 0
-  GHOST_TSuccess GHOST_ContextVK::fail_image_layout() {
-
-    VkCommandBuffer cmd = VK_NULL_HANDLE;
-    if (m_current_layouts[m_currentImage] != VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
-      BLI_assert(m_current_layouts[m_currentImage] ==
-                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-      return GHOST_kSuccess;
-    }
-
-    begin_submit_simple(cmd);
-
-    blender::vulkan::GHOST_ImageTransition(
-        cmd, m_swapchain_images[m_currentImage], getImageFormat(),
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM,
-        VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-
-    end_submit_simple();
-    m_current_layouts[m_currentImage] = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    return GHOST_kSuccess;
-  };
-  GHOST_TSuccess GHOST_ContextVK::finalize_image_layout() {
-
-    VkCommandBuffer cmd = VK_NULL_HANDLE;
-    if (m_current_layouts[m_currentImage] == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
-      return GHOST_kSuccess;
-    }
-    if (m_current_layouts[m_currentImage] !=
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
-      BLI_assert(false);
-      return GHOST_kFailure;
-    }
-
-    begin_submit_simple(cmd);
-
-    blender::vulkan::GHOST_ImageTransition(
-        cmd, m_swapchain_images[m_currentImage], getImageFormat(),
-        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-        VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM,
-        VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-
-    end_submit_simple();
-
-    m_current_layouts[m_currentImage] = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-    return GHOST_kSuccess;
-  };
-  void insert_image_memory_barrier(VkCommandBuffer command_buffer, VkImage image,
-                                 VkAccessFlags src_access_mask,
-                                 VkAccessFlags dst_access_mask,
-                                 VkImageLayout old_layout,
-                                 VkImageLayout new_layout,
-                                 VkPipelineStageFlags src_stage_mask,
-                                 VkPipelineStageFlags dst_stage_mask,
-                                 VkImageSubresourceRange subresource_range) {
-
-  VkImageMemoryBarrier barrier{};
-  barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.srcAccessMask = src_access_mask;
-  barrier.dstAccessMask = dst_access_mask;
-  barrier.oldLayout = old_layout;
-  barrier.newLayout = new_layout;
-  barrier.image = image;
-  barrier.subresourceRange = subresource_range;
-
-  vkCmdPipelineBarrier(command_buffer, src_stage_mask, dst_stage_mask, 0, 0,
-                       nullptr, 0, nullptr, 1, &barrier);
-  };
-#endif
 
 };  // namespace blender::gpu

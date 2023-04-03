@@ -13,7 +13,7 @@
 
 namespace blender::gpu {
 class VKContext;
-
+class VKCommandBuffer;
 /**
  * Class for handing vulkan buffers (allocation/updating/binding).
  */
@@ -39,6 +39,7 @@ class VKBuffer {
   void update(const void *data) const;
   void read(void *data) const;
   bool free(VKContext &context);
+  void copy(VKCommandBuffer *cmd, VKBuffer &dst, VkBufferCopy vbCopyRegion);
 
   int64_t size_in_bytes() const
   {

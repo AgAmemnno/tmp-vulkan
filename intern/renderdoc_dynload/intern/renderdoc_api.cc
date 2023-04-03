@@ -50,7 +50,7 @@ bool Renderdoc::check_loaded()
 void Renderdoc::load()
 {
 #ifdef _WIN32
-  if (HMODULE mod = GetModuleHandleA("renderdoc.dll")) {
+  if (HMODULE mod = GetModuleHandleA("D:/renderdoc/x64/Development/renderdoc.dll")) {
     pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)GetProcAddress(mod,
                                                                            "RENDERDOC_GetAPI");
     RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void **)&renderdoc_api_);

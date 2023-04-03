@@ -18,6 +18,32 @@ VKVertexBuffer::~VKVertexBuffer()
   release_data();
 }
 
+void VKVertexBuffer::bind()
+{
+
+  VKContext &context = *VKContext::get();
+  if (!buffer_.is_allocated()) {
+    allocate(context);
+  }
+
+  if (flag & GPU_VERTBUF_DATA_DIRTY) {
+    size_t vbo_size_ = this->size_used_get();
+
+    /* Do not transfer data from host to device when buffer is device only. */
+    if (usage_ != GPU_USAGE_DEVICE_ONLY) {
+      buffer_.update(data);
+    }
+    memory_usage += vbo_size_;
+
+    if (usage_ == GPU_USAGE_STATIC) {
+      MEM_SAFE_FREE(data);
+    }
+
+    flag &= ~GPU_VERTBUF_DATA_DIRTY;
+    flag |= GPU_VERTBUF_DATA_UPLOADED;
+  }
+}
+
 void VKVertexBuffer::bind_as_ssbo(uint binding)
 {
   VKContext &context = *VKContext::get();

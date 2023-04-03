@@ -13,6 +13,7 @@
 #  include "renderdoc_api.hh"
 #endif
 
+#include "vk_debug.hh"
 #include "vk_common.hh"
 
 #include "shaderc/shaderc.hpp"
@@ -27,15 +28,21 @@ class VKBackend : public GPUBackend {
 #ifdef WITH_RENDERDOC
   renderdoc::api::Renderdoc renderdoc_api_;
 #endif
+    /** Allocator used for texture and buffers and other resources. */
+  static VmaAllocator mem_allocator_;
+  static int                  context_ref_count_ ;
+  static VkDevice        mem_device_;
 
  public:
   VKBackend()
   {
+    context_ref_count_  = 0;
     VKBackend::init_platform();
   }
 
   virtual ~VKBackend()
   {
+    BLI_assert(context_ref_count_  == 0);
     VKBackend::platform_exit();
   }
 
@@ -71,6 +78,14 @@ class VKBackend : public GPUBackend {
 
   shaderc::Compiler &get_shaderc_compiler();
 
+  VmaAllocator &mem_allocator_get(){
+    return mem_allocator_;
+  };
+
+  VkDevice &mem_device_get(){
+    return mem_device_;
+  };
+
   static void capabilities_init(VKContext &context);
 
   static VKBackend &get()
@@ -78,9 +93,23 @@ class VKBackend : public GPUBackend {
     return *static_cast<VKBackend *>(GPUBackend::get());
   }
 
+  static void desable_gpuctx(VKContext* context){
+    context_ref_count_--;
+    if(context== gpuctx_){
+      gpuctx_ = nullptr;
+    }
+
+    if(context_ref_count_==0){
+      vmaDestroyAllocator(mem_allocator_);
+      debug::destroy_vk_callbacks();
+    }
+
+  };
+
  private:
   static void init_platform();
   static void platform_exit();
+  static VKContext *gpuctx_;
 };
 
 }  // namespace blender::gpu

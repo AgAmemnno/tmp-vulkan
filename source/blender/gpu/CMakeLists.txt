@@ -198,6 +198,8 @@ set(OPENGL_SRC
 )
 
 set(VULKAN_SRC
+  vulkan/vk_vertex_attribute_object.cc
+  vulkan/vk_vertex_attribute_object_cache.cc
   vulkan/vk_backend.cc
   vulkan/vk_batch.cc
   vulkan/vk_buffer.cc
@@ -216,6 +218,7 @@ set(VULKAN_SRC
   vulkan/vk_memory_layout.cc
   vulkan/vk_memory.cc
   vulkan/vk_pipeline.cc
+  vulkan/vk_pipeline_state.cc
   vulkan/vk_pixel_buffer.cc
   vulkan/vk_push_constants.cc
   vulkan/vk_query.cc
@@ -229,8 +232,9 @@ set(VULKAN_SRC
   vulkan/vk_uniform_buffer.cc
   vulkan/vk_vertex_array.cc
   vulkan/vk_vertex_buffer.cc
-  
 
+  vulkan/vk_vertex_attribute_object.hh
+  vulkan/vk_vertex_attribute_object_cache.hh
   vulkan/vk_backend.hh
   vulkan/vk_batch.hh
   vulkan/vk_buffer.hh
@@ -249,6 +253,7 @@ set(VULKAN_SRC
   vulkan/vk_memory_layout.hh
   vulkan/vk_memory.hh
   vulkan/vk_pipeline.hh
+  vulkan/vk_pipeline_state.hh
   vulkan/vk_pixel_buffer.hh
   vulkan/vk_push_constants.hh
   vulkan/vk_query.hh

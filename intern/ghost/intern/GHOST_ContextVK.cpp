@@ -30,6 +30,7 @@
 /* Set to 0 to allow devices that do not have the required features.
  * This allows development on OSX until we really needs these features. */
 #define STRICT_REQUIREMENTS 1
+#define ENABLE_DYNAMIC_STATE 1
 
 using namespace std;
 
@@ -117,6 +118,28 @@ static bool vklayer_config_exist(const char *vk_extension_config)
   if (m_debug) { \
     printf(__VA_ARGS__); \
   }
+static bool device_extensions_support(VkPhysicalDevice device, vector<const char *> required_exts)
+{
+  uint32_t ext_count;
+  vkEnumerateDeviceExtensionProperties(device, NULL, &ext_count, NULL);
+
+  vector<VkExtensionProperties> available_exts(ext_count);
+  vkEnumerateDeviceExtensionProperties(device, NULL, &ext_count, available_exts.data());
+
+  for (const auto &extension_needed : required_exts) {
+    bool found = false;
+    for (const auto &extension : available_exts) {
+      if (strcmp(extension_needed, extension.extensionName) == 0) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      return false;
+    }
+  }
+  return true;
+}
 
 class SingletonDevice {
  public:
@@ -229,6 +252,62 @@ class SingletonDevice {
     fprintf(stderr, "Couldn't find any Present queue family on selected device\n");
     return GHOST_kFailure;
   }
+  /*sascha williams sample dynamicstate.cpp*/
+	void getEnabledDynamicState(std::vector<const char *> &m_extensions_device)
+	{
+    void** pnext = &features2.pNext;
+		#ifdef VK_EXT_extended_dynamic_state
+    if (device_extensions_support(vk_physical_device_, {VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME})) {
+      m_extensions_device.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
+      static VkPhysicalDeviceExtendedDynamicStateFeaturesEXT pstruct =  { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT};
+		  pstruct.extendedDynamicState = VK_TRUE;
+			*pnext = &pstruct;
+      pnext  = &pstruct.pNext;
+      enable_ext  = EnabledDynamic::ENABLED_DYNAMIC;
+    }
+    #endif
+    #ifdef VK_EXT_extended_dynamic_state2
+    if (device_extensions_support(vk_physical_device_, {VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME})) {
+      m_extensions_device.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME);
+      static VkPhysicalDeviceExtendedDynamicState2FeaturesEXT pstruct =  { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT};
+		  pstruct.extendedDynamicState2 = VK_TRUE;
+      pstruct.extendedDynamicState2LogicOp = VK_TRUE;
+      //pstruct.extendedDynamicState2PatchControlPoints = VK_TRUE;
+			*pnext = &pstruct;
+      pnext  = &pstruct.pNext;
+      enable_ext  = (EnabledDynamic)( (uint8_t)enable_ext | (uint8_t)EnabledDynamic::ENABLED_DYNAMIC2 );
+    }
+    #endif
+    #ifdef VK_EXT_extended_dynamic_state3
+    if (device_extensions_support(vk_physical_device_, {VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME})) {
+      m_extensions_device.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME);
+      static VkPhysicalDeviceExtendedDynamicState3FeaturesEXT pstruct =  { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT};
+		  pstruct.extendedDynamicState3ColorBlendEnable = VK_TRUE;
+      pstruct.extendedDynamicState3ColorWriteMask = VK_TRUE;
+      pstruct.extendedDynamicState3DepthClampEnable = VK_TRUE;
+      pstruct.extendedDynamicState3DepthClipEnable = VK_TRUE;
+      pstruct.extendedDynamicState3LineRasterizationMode = VK_TRUE;
+      pstruct.extendedDynamicState3LogicOpEnable = VK_TRUE;
+      pstruct.extendedDynamicState3PolygonMode = VK_TRUE;
+      pstruct.extendedDynamicState3ProvokingVertexMode = VK_TRUE;
+			*pnext = &pstruct;
+      pnext  = &pstruct.pNext;
+      enable_ext  = (EnabledDynamic)( (uint8_t)enable_ext | (uint8_t)EnabledDynamic::ENABLED_DYNAMIC3 );
+    }
+    #endif
+    
+    #ifdef VK_EXT_vertex_input_dynamic_state
+    if (device_extensions_support(vk_physical_device_, {VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME})) {
+      m_extensions_device.push_back(VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME);
+      static VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT pstruct =  { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_INPUT_DYNAMIC_STATE_FEATURES_EXT};
+		  pstruct.vertexInputDynamicState = VK_TRUE;
+			*pnext = &pstruct;
+      pnext  = &pstruct.pNext;
+      enable_ext  = (EnabledDynamic)( (uint8_t)enable_ext | (uint8_t)EnabledDynamic::ENABLED_DYNAMIC_VERTEX );
+    }
+    #endif
+
+	}
 
   GHOST_TSuccess create(bool m_use_window_surface,
                         VkSurfaceKHR m_surface,
@@ -239,13 +318,17 @@ class SingletonDevice {
     /* According to the Vulkan specs, when `VK_KHR_portability_subset` is available it should be
      * enabled. See
      * https://vulkan.lunarg.com/doc/view/1.2.198.1/mac/1.2-extensions/vkspec.html#VUID-VkDeviceCreateInfo-pProperties-04451*/
-    if (device_extensions_support(m_physical_device, {VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME})) {
+    if (device_extensions_support(vk_physical_device_, {VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME})) {
       extensions_device.push_back(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
     }
 #endif
+    vkGetPhysicalDeviceFeatures2(vk_physical_device_,&features2);
+
+    #if ENABLE_DYNAMIC_STATE
+    getEnabledDynamicState(m_extensions_device);
+    #endif
 
     vector<VkDeviceQueueCreateInfo> queue_create_infos;
-
     {
       /* A graphic queue is required to draw anything. */
       if (!getGraphicQueueFamily(vk_physical_device_, &vk_queue_family_graphic_)) {
@@ -297,8 +380,8 @@ class SingletonDevice {
     device_create_info.ppEnabledLayerNames = m_layers_enabled.data();
     device_create_info.enabledExtensionCount = static_cast<uint32_t>(m_extensions_device.size());
     device_create_info.ppEnabledExtensionNames = m_extensions_device.data();
-    device_create_info.pEnabledFeatures = &device_features;
-
+    device_create_info.pEnabledFeatures = nullptr;//&device_features;
+    device_create_info.pNext = &features2;
     VK_CHECK(vkCreateDevice(vk_physical_device_, &device_create_info, NULL, &vk_device_));
 
     vkGetDeviceQueue(vk_device_, vk_queue_family_graphic_, 0, &vk_graphic_queue_);
@@ -319,11 +402,22 @@ class SingletonDevice {
   uint32_t vk_queue_family_graphic_;
   uint32_t vk_queue_family_present_;
   VkQueue vk_present_queue_, vk_graphic_queue_;
+  VkPhysicalDeviceFeatures2  features2 ={VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+  enum class EnabledDynamic :uint8_t{
+    NOT_ENABLED          = 0,
+    ENABLED_DYNAMIC = 0b1,
+    ENABLED_DYNAMIC2 = 0b10,
+    ENABLED_DYNAMIC_VERTEX = 0b100,
+    ENABLED_DYNAMIC3 = 0b1000,
+  };
+  EnabledDynamic enable_ext =  EnabledDynamic::NOT_ENABLED;
 };
 
 class SingletonInstance {
  public:
-  SingletonInstance() : vk_instance_(VK_NULL_HANDLE){};
+  SingletonInstance() : vk_instance_(VK_NULL_HANDLE){
+    putenv("VK_LAYER_PATH=C:\\VulkanSDK\\1.3.243.0\\Bin");
+  };
   ~SingletonInstance()
   {
     if (vk_instance_ != VK_NULL_HANDLE) {
@@ -503,7 +597,9 @@ class SingletonInstance {
 
     m_extensions_device.push_back("VK_KHR_dedicated_allocation");
     m_extensions_device.push_back("VK_KHR_get_memory_requirements2");
-
+    /*Dynamic State required VK_KHR_get_physical_device_properties2.*/
+    requireExtension(
+        extensions_available, extensions_enabled, "VK_KHR_get_physical_device_properties2");
     /* Enable MoltenVK required instance extensions. */
 #ifdef VK_MVK_MOLTENVK_EXTENSION_NAME
     requireExtension(
@@ -528,6 +624,17 @@ class SingletonInstance {
 
     VK_CHECK(vkCreateInstance(&create_info, NULL, &vk_instance_));
 
+    uint32_t instanceVersion = VK_API_VERSION_1_0;
+    
+    assert(vkEnumerateInstanceVersion);
+    vkEnumerateInstanceVersion(&instanceVersion );
+
+    // 3 macros to extract version info
+    uint32_t major = VK_VERSION_MAJOR(instanceVersion);
+    uint32_t minor = VK_VERSION_MINOR(instanceVersion);
+    uint32_t patch = VK_VERSION_PATCH(instanceVersion);
+
+    cout << "Vulkan Version:" << major << "." << minor << "." << patch << endl;
     return GHOST_kSuccess;
   }
 
@@ -929,28 +1036,6 @@ GHOST_TSuccess GHOST_ContextVK::releaseDrawingContext()
   return GHOST_kSuccess;
 }
 
-static bool device_extensions_support(VkPhysicalDevice device, vector<const char *> required_exts)
-{
-  uint32_t ext_count;
-  vkEnumerateDeviceExtensionProperties(device, NULL, &ext_count, NULL);
-
-  vector<VkExtensionProperties> available_exts(ext_count);
-  vkEnumerateDeviceExtensionProperties(device, NULL, &ext_count, available_exts.data());
-
-  for (const auto &extension_needed : required_exts) {
-    bool found = false;
-    for (const auto &extension : available_exts) {
-      if (strcmp(extension_needed, extension.extensionName) == 0) {
-        found = true;
-        break;
-      }
-    }
-    if (!found) {
-      return false;
-    }
-  }
-  return true;
-}
 
 GHOST_TSuccess GHOST_ContextVK::pickPhysicalDevice(vector<const char *> required_exts)
 {

@@ -27,7 +27,10 @@ class VKShaderInterface : public ShaderInterface {
    * overlapping.
    */
   uint32_t image_offset_ = 0;
-  Array<VKDescriptorSet::Location> descriptor_set_locations_;
+  //using desc_array_t = VKDescriptorSet::Location>;
+  using desc_array_t =   const shader::ShaderCreateInfo::Resource *;
+  Array<desc_array_t> descriptor_set_locations_;
+
 
   VKPushConstants::Layout push_constants_layout_;
 
@@ -37,10 +40,10 @@ class VKShaderInterface : public ShaderInterface {
   void init(const shader::ShaderCreateInfo &info);
 
   const VKDescriptorSet::Location descriptor_set_location(
-      const shader::ShaderCreateInfo::Resource &resource) const;
+      const shader::ShaderCreateInfo::Resource *resource) const;
   const VKDescriptorSet::Location descriptor_set_location(
       const shader::ShaderCreateInfo::Resource::BindType &bind_type, int binding) const;
-
+  const VKDescriptorSet::Location descriptor_set_location(int slot) const;
   /** Get the Layout of the shader. */
   const VKPushConstants::Layout &push_constants_layout_get() const
   {
@@ -58,8 +61,7 @@ class VKShaderInterface : public ShaderInterface {
   const ShaderInput *shader_input_get(
       const shader::ShaderCreateInfo::Resource::BindType &bind_type, int binding) const;
   const VKDescriptorSet::Location descriptor_set_location(const ShaderInput *shader_input) const;
-  void descriptor_set_location_update(const ShaderInput *shader_input,
-                                      const VKDescriptorSet::Location location);
+  void descriptor_set_location_update(const shader::ShaderCreateInfo::Resource *resource,const VKDescriptorSet::Location location);
 };
 
 }  // namespace blender::gpu

@@ -14,11 +14,14 @@
 
 #include "vk_common.hh"
 #include "vk_descriptor_set.hh"
+#include "vk_pipeline_state.hh"
 #include "vk_push_constants.hh"
 
 namespace blender::gpu {
 class VKContext;
 class VKShader;
+class VKVertexAttributeObject;
+class VKBatch;
 
 /**
  * Pipeline can be a compute pipeline or a graphic pipeline.
@@ -33,7 +36,8 @@ class VKPipeline : NonCopyable {
   VkPipeline vk_pipeline_ = VK_NULL_HANDLE;
   VKDescriptorSetTracker descriptor_set_;
   VKPushConstants push_constants_;
-
+  VKPipelineStateManager state_manager_;
+  Vector<VkPipeline>    vk_pipelines;
  public:
   VKPipeline() = default;
 
@@ -69,6 +73,11 @@ class VKPipeline : NonCopyable {
     return push_constants_;
   }
 
+  VKPipelineStateManager &state_manager_get()
+  {
+    return state_manager_;
+  }
+
   VkPipeline vk_handle() const;
   bool is_valid() const;
 
@@ -76,6 +85,12 @@ class VKPipeline : NonCopyable {
                 VkShaderModule vertex_module,
                 VkShaderModule fragment_module,
                 VkPipelineLayout &pipeline_layout);
+  void finalize(VKContext &context,
+                VkShaderModule vertex_module,
+                VkShaderModule fragment_module,
+                VkPipelineLayout &pipeline_layout,
+                const VKBatch &batch,
+                const VKVertexAttributeObject &vertex_attribute_object);
 };
 
 }  // namespace blender::gpu

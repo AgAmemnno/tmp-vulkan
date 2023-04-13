@@ -7,15 +7,23 @@
 #pragma once
 
 #include "BKE_global.h"
-#include "gl_debug.hh"
+#include "BLI_set.hh"
+
 #include "vk_common.hh"
+
+#include <typeindex>
+#include <mutex>
 
 namespace blender {
 namespace gpu {
 
+class VKContext;
+
 const char *to_string(VkObjectType type);
 
 namespace debug {
+
+
 struct VKDebuggingTools {
   /* Function pointer definitions .*/
 
@@ -40,17 +48,19 @@ struct VKDebuggingTools {
   std::mutex lists_mutex_;
 
   VKDebuggingTools();
+  VKDebuggingTools& operator =(VKDebuggingTools & tools);
   void clear();
   void add_ignore(int32_t id);
   void remove_ignore(int32_t id);
 };
-extern VKDebuggingTools tools;
+
 
 void raise_vk_error(const char *info);
 void check_vk_resources(const char *info);
 
 template<typename... Args> void raise_vk_info(const std::string &fmt, Args... args)
 {
+  VKDebuggingTools& tools = VKContext::get()->debugging_tools_get();
   if (tools.enabled) {
     size_t len = std::snprintf(nullptr, 0, fmt.c_str(), args...);
     std::vector<char> info(len + 1);
@@ -75,21 +85,31 @@ template<typename... Args> void raise_vk_info(const std::string &fmt, Args... ar
 /**
  * This function needs to be called once per context.
  */
-bool init_vk_callbacks(void *instance, PFN_vkGetInstanceProcAddr instload);
-void destroy_vk_callbacks();
+bool init_callbacks(VKContext *context, PFN_vkGetInstanceProcAddr instload);
+void destroy_callbacks(VKContext *context,VKDebuggingTools& tools);
 
-/* render doc demo => https://
- * github.com/baldurk/renderdoc/blob/52e9404961277d1bb1ed03a376b722c2b91e3762/util/test/demos/vk/vk_test.h#L231
- */
-template<typename T> void object_vk_label(VkDevice device, T obj, const std::string &name);
-void object_vk_label(VkDevice device, VkObjectType objType, uint64_t obj, const std::string &name);
 
-void pushMarker(VkCommandBuffer cmd, const std::string &name);
-void setMarker(VkCommandBuffer cmd, const std::string &name);
-void popMarker(VkCommandBuffer cmd);
-void pushMarker(VkQueue q, const std::string &name);
-void setMarker(VkQueue q, const std::string &name);
-void popMarker(VkQueue q);
+template<typename T> void object_label(VKContext *context, T obj, const char *name)
+{
+  if (!(G.debug & G_DEBUG_GPU)) {
+    return;
+  }
+  const size_t label_size = 64;
+  char label[label_size];
+  memset(label, 0, label_size);
+  static int stats = 0;
+  SNPRINTF(label, "%s_%d", name, stats++);
+  object_label(context, to_vk_object_type(obj), (uint64_t)obj, (const char *)label);
+};
+
+void object_label(VKContext *context, VkObjectType objType, uint64_t obj, const char *name);
+void push_marker(VKContext *context, VkCommandBuffer cmd, const char *name);
+void set_marker(VKContext *context, VkCommandBuffer cmd, const char *name);
+void pop_marker(VKContext *context, VkCommandBuffer cmd);
+void push_marker(VKContext *context, VkQueue queue, const char *name);
+void set_marker(VKContext *context, VkQueue queue, const char *name);
+void pop_marker(VKContext *context, VkQueue queue);
+
 
 }  // namespace debug
 }  // namespace gpu

@@ -23,6 +23,8 @@
 #include "vk_vertex_buffer.hh"
 #include "vk_memory.hh"
 #include "vk_backend.hh"
+#include "vk_descriptor_pools.hh"
+#include "vk_memory.hh"
 
 
 namespace blender::gpu {
@@ -31,6 +33,37 @@ VKContext* VKBackend::gpuctx_ = nullptr;
  int     VKBackend::context_ref_count_  = 0;
 VmaAllocator VKBackend::mem_allocator_ = VK_NULL_HANDLE;
 VkDevice  VKBackend::mem_device_ = VK_NULL_HANDLE;
+
+template<typename T>
+void VKBackend::desable_gpuctx(VKContext* context,T& descriptor_pools_){
+  context_ref_count_--;
+  if(context== gpuctx_){
+    gpuctx_ = nullptr;
+  }
+
+  static Vector<VkDescriptorPool> pools;
+  static debug::VKDebuggingTools  tools;
+  for(auto& pool :descriptor_pools_.pools_get()){
+    pools.append(pool);
+  }
+  auto& cur_tools = context->debugging_tools_get();
+  if(cur_tools.enabled){
+    tools = cur_tools;
+  }
+
+  if(context_ref_count_==0){
+    VK_ALLOCATION_CALLBACKS
+    for(auto& pool :pools){
+        vkDestroyDescriptorPool(context->device_get(), pool, vk_allocation_callbacks);
+    }
+    vmaDestroyAllocator(mem_allocator_);
+    debug::destroy_callbacks(context,tools);
+    pools.clear();
+  }
+
+};
+
+template void VKBackend::desable_gpuctx(VKContext*, VKDescriptorPools&);
 
 void VKBackend::init_platform()
 {

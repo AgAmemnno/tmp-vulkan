@@ -15,12 +15,14 @@ VKDescriptorPools::VKDescriptorPools()
 
 VKDescriptorPools::~VKDescriptorPools()
 {
+  #if 0
   VK_ALLOCATION_CALLBACKS
   for (const VkDescriptorPool vk_descriptor_pool : pools_) {
     BLI_assert(vk_device_ != VK_NULL_HANDLE);
     vkDestroyDescriptorPool(vk_device_, vk_descriptor_pool, vk_allocation_callbacks);
   }
   vk_device_ = VK_NULL_HANDLE;
+  #endif
 }
 
 void VKDescriptorPools::init(const VkDevice vk_device)
@@ -110,7 +112,7 @@ void VKDescriptorPools::free(VKDescriptorSet &descriptor_set)
 {
   VkDescriptorSet vk_descriptor_set = descriptor_set.vk_handle();
   VkDescriptorPool vk_descriptor_pool = descriptor_set.vk_pool_handle();
-  BLI_assert(pools_.contains(vk_descriptor_pool));
+  //BLI_assert(pools_.contains(vk_descriptor_pool));
   vkFreeDescriptorSets(vk_device_, vk_descriptor_pool, 1, &vk_descriptor_set);
   descriptor_set.mark_freed();
 }

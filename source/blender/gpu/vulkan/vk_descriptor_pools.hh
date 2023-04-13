@@ -49,7 +49,9 @@ class VKDescriptorPools {
 
   std::unique_ptr<VKDescriptorSet> allocate(const VkDescriptorSetLayout &descriptor_set_layout);
   void free(VKDescriptorSet &descriptor_set);
-
+  Vector<VkDescriptorPool>& pools_get(){
+    return  pools_;
+  }
   /**
    * Reset the pools to start looking for free space from the first descriptor pool.
    */

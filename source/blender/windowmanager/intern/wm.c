@@ -649,5 +649,8 @@ void WM_main(bContext *C)
     wm_draw_update(C);
 
     WM_exit(C);
+
+
+    
   }
 }

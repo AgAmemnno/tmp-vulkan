@@ -21,8 +21,8 @@ class VKTexture : public Texture {
    * to be changed. During this it requires to set the current layout in order to know which
    * conversion should happen. #current_layout_ keep track of the layout so the correct conversion
    * can be done.*/
-  VkImageLayout current_layout_ = VK_IMAGE_LAYOUT_UNDEFINED;
-
+  Vector<VkImageLayout> current_layout_ = {VK_IMAGE_LAYOUT_UNDEFINED};
+  int                                  current_mip_     = 0;   
  public:
   VKTexture(const char *name) : Texture(name)
   {
@@ -47,6 +47,7 @@ class VKTexture : public Texture {
   uint gl_bindcode_get() const override;
 
   void image_bind(int location);
+  void texture_bind(int binding, eGPUSamplerState sampler_type= GPU_SAMPLER_DEFAULT);
   VkImage vk_image_handle() const
   {
     BLI_assert(is_allocated());
@@ -59,7 +60,9 @@ class VKTexture : public Texture {
   }
 
   void ensure_allocated();
-
+  int current_mip_get(){
+    return current_mip_;
+  };
  protected:
   bool init_internal() override;
   bool init_internal(GPUVertBuf *vbo) override;
@@ -103,7 +106,7 @@ class VKTexture : public Texture {
    *
    * When texture is already in the requested layout, nothing will be done.
    */
-  void layout_ensure(VKContext &context, VkImageLayout requested_layout);
+  void layout_ensure(VKContext &context, const VkTransitionState requested_state);
 
   /** \} */
 };

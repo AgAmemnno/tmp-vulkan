@@ -489,6 +489,8 @@ void VKFrameBuffer::render_pass_create()
 
   vkCreateFramebuffer(
       context.device_get(), &framebuffer_create_info, vk_allocation_callbacks, &vk_framebuffer_);
+  debug::object_label(&context,vk_framebuffer_,"OffscreenFB");
+  debug::object_label(&context,image_views[0],"OffscreenIV");
 }
 
 void VKFrameBuffer::render_pass_free()

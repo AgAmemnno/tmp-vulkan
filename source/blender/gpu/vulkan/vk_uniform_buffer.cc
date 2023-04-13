@@ -7,6 +7,8 @@
 
 #include "vk_uniform_buffer.hh"
 #include "vk_context.hh"
+#include "vk_shader.hh"
+#include "vk_descriptor_set.hh"
 
 namespace blender::gpu {
 
@@ -28,8 +30,17 @@ void VKUniformBuffer::clear_to_zero()
 {
 }
 
-void VKUniformBuffer::bind(int /*slot*/)
+void VKUniformBuffer::bind(int slot)
 {
+  VKContext &context = *VKContext::get();
+  if (!buffer_.is_allocated()) {
+    allocate(context);
+  }
+  VKShader *shader = static_cast<VKShader *>(context.shader);
+  const VKShaderInterface &shader_interface = shader->interface_get();
+  const VKDescriptorSet::Location binding = shader_interface.descriptor_set_location(slot);
+  shader->pipeline_get().descriptor_set_get().bind(*this, binding);
+
 }
 
 void VKUniformBuffer::bind_as_ssbo(int /*slot*/)

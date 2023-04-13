@@ -100,6 +100,20 @@ void VKVertexBuffer::release_data()
 
 void VKVertexBuffer::upload_data()
 {
+  VKContext &context = *VKContext::get();
+  if (!buffer_.is_allocated()) {
+    allocate(context);
+  }
+
+  if (flag &= GPU_VERTBUF_DATA_DIRTY) {
+    buffer_.update(data);
+    if (usage_ == GPU_USAGE_STATIC) {
+      MEM_SAFE_FREE(data);
+    }
+
+    flag &= ~GPU_VERTBUF_DATA_DIRTY;
+    flag |= GPU_VERTBUF_DATA_UPLOADED;
+  }
 }
 
 void VKVertexBuffer::duplicate_data(VertBuf * /*dst*/)

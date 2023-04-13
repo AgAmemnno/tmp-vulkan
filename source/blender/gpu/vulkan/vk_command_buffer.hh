@@ -20,6 +20,8 @@ enum class VkTransitionState {
   VK_BEFORE_RENDER_PASS,
   VK_BEFORE_PRESENT,
   VK_ENSURE_TEXTURE,
+  VK_ENSURE_COPY_DST,
+  VK_ENSURE_COPY_SRC,
   VK_TRANSITION_STATE_ALL
 };
 
@@ -31,6 +33,9 @@ enum class VkTransitionStateRaw {
   VK_COLOR2PRESE,
   VK_UNDEF2GENER,
   VK_GENER2COLOR,
+  VK_ANY2SHADER_READ,
+  VK_ANY2TRANS_DST,
+  VK_ANY2TRANS_SRC,
   VK_TRANSITION_STATE_RAW_ALL
 };
 
@@ -52,7 +57,9 @@ class SafeImage {
   VkImageLayout layout_;
   bool keep_;
 
+
  public:
+  int   current_mip_ = 0;
   SafeImage();
 
   bool is_valid(const VkImage &image);
@@ -66,11 +73,22 @@ class SafeImage {
   VkImageLayout current_layout_get();
 
   VkImage vk_image_handle();
+
+  int current_mip_get(){
+    return current_mip_;
+  };
 };
 
 class ImageLayoutState {
-
  private:
+
+  const VkAccessFlagBits acs_general   =  (VkAccessFlagBits)(VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT| VK_ACCESS_TRANSFER_READ_BIT| VK_ACCESS_TRANSFER_WRITE_BIT);
+  const VkAccessFlagBits acs_attach    =   (VkAccessFlagBits)(VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+  const VkAccessFlagBits acs_shader    =  (VkAccessFlagBits)(VK_ACCESS_SHADER_READ_BIT);
+  const VkAccessFlagBits acs_undef           =  (VkAccessFlagBits)(VK_ACCESS_NONE_KHR);
+  const VkAccessFlagBits acs_transfer_dst  =  (VkAccessFlagBits)(VK_ACCESS_TRANSFER_WRITE_BIT);
+  const VkAccessFlagBits acs_transfer_src  =  (VkAccessFlagBits)(VK_ACCESS_TRANSFER_READ_BIT);
+
   uint32_t makeAccessMaskPipelineStageFlags(
       uint32_t accessMask,
       VkPipelineStageFlags supportedShaderBits = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
@@ -87,45 +105,99 @@ class ImageLayoutState {
 
   VkImageAspectFlags get_aspect_flag(VkImageLayout srcLayout, VkImageLayout dstLayout);
 
- public:
   template<typename T>
-  bool init_image_layout(VKCommandBuffer &cmd, T *safeim, VkImageLayout dst_layout)
+  void barrier(VKCommandBuffer &cmd, T *safeim, VkImageLayout dst_layout,VkImageLayout src_layout,VkAccessFlagBits src_acs,VkAccessFlagBits dst_acs)
   {
-
-    VkImageLayout src_layout = safeim->current_layout_get();
-
-    if (src_layout == dst_layout) {
-      return false;
-    }
-
-    BLI_assert(ELEM(dst_layout,
-                    VK_IMAGE_LAYOUT_GENERAL,
-                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL));
-    BLI_assert(src_layout == VK_IMAGE_LAYOUT_UNDEFINED);
-
-    const bool present = (dst_layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-
-    VkAccessFlagBits src_acs = VK_ACCESS_NONE_KHR;
-    VkAccessFlagBits dst_acs = (present) ?
-                                   VK_ACCESS_MEMORY_READ_BIT :
-                                   (VkAccessFlagBits)(VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-                                                      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
-
     VkPipelineStageFlags srcPipe = makeAccessMaskPipelineStageFlags(src_acs);
     VkPipelineStageFlags dstPipe = makeAccessMaskPipelineStageFlags(dst_acs);
 
     VkImageAspectFlags aspect = get_aspect_flag(src_layout, dst_layout);
 
     VkImageMemoryBarrier barrier = makeImageMemoryBarrier(
-        safeim->vk_image_handle(), src_acs, dst_acs, src_layout, dst_layout, aspect, 0, 1);
+        safeim->vk_image_handle(), src_acs, dst_acs, src_layout, dst_layout, aspect,safeim->current_mip_get() , mip_level);
 
     cmd.pipeline_barrier(srcPipe, dstPipe, {barrier});
 
     safeim->current_layout_set(dst_layout);
+  }
+  int mip_level = 0;
+ public:
+  template<typename T>
+  bool init_image_layout(VKCommandBuffer &cmd, T *safeim, VkImageLayout dst_layout, VkImageLayout src_layout)
+  {
+    BLI_assert(ELEM(dst_layout,
+                    VK_IMAGE_LAYOUT_GENERAL,
+                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL));
+
+    BLI_assert(src_layout == VK_IMAGE_LAYOUT_UNDEFINED);
+    const bool present   = (dst_layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+    const bool color       = (dst_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    const bool shader    = (dst_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+    VkAccessFlagBits src_acs = VK_ACCESS_NONE_KHR;
+    VkAccessFlagBits dst_acs = (present) ? VK_ACCESS_MEMORY_READ_BIT : (color)?acs_attach: (shader)?acs_shader:acs_general;
+
+    barrier(cmd,safeim,dst_layout,src_layout,src_acs,dst_acs);
 
     return true;
   };
+
+  template<typename T>
+  bool transfer(VKCommandBuffer &cmd, T *safeim, VkImageLayout dst_layout, VkImageLayout src_layout)
+  {
+
+    const bool  dst         = dst_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    const bool present   = (src_layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+    const bool color       = (src_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    const bool shader    = (src_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+
+    VkAccessFlagBits src_acs = (present) ? VK_ACCESS_MEMORY_READ_BIT : (color)?acs_attach: (shader)?acs_shader:acs_general;
+    VkAccessFlagBits dst_acs = (dst)?acs_transfer_dst:acs_transfer_src;
+
+    barrier(cmd,safeim,dst_layout,src_layout,src_acs,dst_acs);
+
+    return true;
+  };
+
+  template<typename T>
+  bool shader(VKCommandBuffer &cmd, T *safeim, VkImageLayout dst_layout, VkImageLayout src_layout)
+  {
+    VkAccessFlagBits dst_acs = (dst_layout == VK_IMAGE_LAYOUT_GENERAL)?acs_general:acs_shader;
+    VkAccessFlagBits src_acs;
+    switch(src_layout){
+      case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+        src_acs = VK_ACCESS_MEMORY_READ_BIT;
+        break;
+      case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+        src_acs = acs_attach;
+        break;
+      case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+        src_acs = acs_shader;
+        break;
+      case VK_IMAGE_LAYOUT_GENERAL:
+        src_acs = acs_general;
+        break;
+      case VK_IMAGE_LAYOUT_UNDEFINED:
+        src_acs = acs_undef;
+        break;
+      case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL :
+        src_acs = acs_transfer_src;
+        break;
+      case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL :
+        src_acs = acs_transfer_dst;
+        break;
+      default:
+        BLI_assert_unreachable();
+        break;
+    }
+
+    barrier(cmd,safeim,dst_layout,src_layout,src_acs,dst_acs);
+    return true;
+  };
+
 
   template<typename T>
   bool pre_reder_image_layout(VKCommandBuffer &cmd, T *safeim, VkImageLayout dst_layout)
@@ -165,8 +237,8 @@ class ImageLayoutState {
   {
 
     VkImageLayout src_layout = safeim->current_layout_get();
-    VkImageLayout dst_layout =
-        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;  // VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;//VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    VkImageLayout dst_layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;  // VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;//VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
     if (src_layout == dst_layout) {
       return false;
     }
@@ -190,7 +262,9 @@ class ImageLayoutState {
 
     return true;
   };
-
+  void mip_level_set(int level){
+    mip_level = level;
+  }
 };  // blender::gpu
 
 }  //  namespace blender::gpu
@@ -199,9 +273,11 @@ namespace blender::gpu {
 class VKBuffer;
 class VKDescriptorSet;
 class VKFrameBuffer;
+class VKIndexBuffer;
 class VKPipeline;
 class VKPushConstants;
 class VKTexture;
+class VKVertexBuffer;
 
 /** Command buffer to keep track of the life-time of a command buffer. */
 class VKCommandBuffer : NonCopyable, NonMovable {
@@ -268,10 +344,7 @@ class VKCommandBuffer : NonCopyable, NonMovable {
   bool init(const VkDevice vk_device, const VkQueue vk_queue, VkCommandBuffer vk_command_buffer);
   bool begin_recording();
   void end_recording(bool imm_submit = false);
-  void bind(const VKPipeline &vk_pipeline, VkPipelineBindPoint bind_point);
-  void bind(const VKDescriptorSet &descriptor_set,
-            const VkPipelineLayout vk_pipeline_layout,
-            VkPipelineBindPoint bind_point);
+
 
   bool ensure_render_pass(){
     if (begin_rp_) {
@@ -287,36 +360,7 @@ class VKCommandBuffer : NonCopyable, NonMovable {
     }
     return false;
   }
-  template<typename T> bool begin_render_pass(const VKFrameBuffer &framebuffer, T &sfim)
-  {
-    #if 0
-    if (begin_rp_) {
-      return true;
-    }
-    if(in_submit_){
-      submit(true,false);
-    }
-    if (!in_toggle_) {
-      if (!begin_recording()) {
-        return false;
-      };
-    }
-    #endif
-    image_transition(&sfim,
-                     VkTransitionState::VK_BEFORE_RENDER_PASS,
-                     true,
-                     framebuffer.vk_render_pass_init_layout_get());
-
-    VkRenderPassBeginInfo render_pass_begin_info = {};
-    render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    render_pass_begin_info.renderPass = framebuffer.vk_render_pass_get();
-    render_pass_begin_info.framebuffer = framebuffer.vk_framebuffer_get();
-    render_pass_begin_info.renderArea = framebuffer.vk_render_area_get();
-    vkCmdBeginRenderPass(vk_command_buffer_, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-    begin_rp_ = true;
-
-    return true;
-  }
+  template<typename T> bool begin_render_pass(const VKFrameBuffer &framebuffer, T &sfim);
   void end_render_pass(const VKFrameBuffer &framebuffer);
 
   /**
@@ -346,7 +390,7 @@ class VKCommandBuffer : NonCopyable, NonMovable {
   bool image_transition(T *sfim,
                         VkTransitionState eTrans,
                         bool recorded = false,
-                        VkImageLayout dst_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+                        VkImageLayout dst_layout = VK_IMAGE_LAYOUT_MAX_ENUM,int mip_level= 1);
 
   /**
    * Clear color image resource.
@@ -364,7 +408,16 @@ class VKCommandBuffer : NonCopyable, NonMovable {
 
   void draw(int v_first, int v_count, int i_first, int i_count);
 
+  void bind(const VKPipeline &vk_pipeline, VkPipelineBindPoint bind_point);
+  void bind(const VKDescriptorSet &descriptor_set,
+            const VkPipelineLayout vk_pipeline_layout,
+            VkPipelineBindPoint bind_point);
   void bind_vertex_buffers(uint32_t firstBinding, uint32_t bindingCount, const VkBuffer *pBuffers);
+
+  void bind(const uint32_t binding,
+            const VKVertexBuffer &vertex_buffer,
+            const VkDeviceSize offset);
+  void bind(const VKIndexBuffer &index_buffer, VkIndexType index_type);
 
   void viewport(VkViewport &viewport);
   void scissor(VkRect2D &scissor);

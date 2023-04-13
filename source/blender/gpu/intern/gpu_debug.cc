@@ -88,7 +88,8 @@ void GPU_debug_capture_begin()
       printf("Failed to start GPU frame capture!\n");
     }
     /* Call GPU_finish to ensure all desired GPU commands occur within the capture boundary. */
-    GPU_finish();
+    //GPU_finish();
+    GPU_flush();
   }
 }
 
@@ -102,7 +103,7 @@ void GPU_debug_capture_end()
   Context *ctx = Context::get();
   if (ctx && ctx->debug_is_capturing) {
     /* Call GPU_finish to ensure all desired GPU commands occur within the capture boundary. */
-    GPU_finish();
+    GPU_flush();
     ctx->debug_capture_end();
     ctx->debug_is_capturing = false;
   }

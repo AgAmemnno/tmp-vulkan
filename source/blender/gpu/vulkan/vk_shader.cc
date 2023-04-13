@@ -15,6 +15,8 @@
 #include "BLI_string_utils.h"
 #include "BLI_vector.hh"
 
+#include "BKE_global.h"
+
 using namespace blender::gpu::shader;
 
 extern "C" char datatoc_glsl_shader_defines_glsl[];
@@ -379,7 +381,7 @@ static void print_resource(std::ostream &os,
                            const VKShaderInterface &shader_interface,
                            const ShaderCreateInfo::Resource &res)
 {
-  const VKDescriptorSet::Location location = shader_interface.descriptor_set_location(res);
+  const VKDescriptorSet::Location location = shader_interface.descriptor_set_location(&res);
   print_resource(os, location, res);
 }
 
@@ -546,7 +548,10 @@ Vector<uint32_t> VKShader::compile_glsl_to_spirv(Span<const char *> sources,
   shaderc::Compiler &compiler = backend.get_shaderc_compiler();
   shaderc::CompileOptions options;
   options.SetOptimizationLevel(shaderc_optimization_level_performance);
-
+  if (G.debug & G_DEBUG_GPU) {
+    options.SetOptimizationLevel(shaderc_optimization_level_zero);
+    options.SetGenerateDebugInfo();
+  }
   shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(
       combined_sources, stage, name, options);
   if (module.GetNumErrors() != 0 || module.GetNumWarnings() != 0) {
@@ -846,11 +851,11 @@ static VkDescriptorType descriptor_type(const shader::ShaderCreateInfo::Resource
 }
 
 static VkDescriptorSetLayoutBinding create_descriptor_set_layout_binding(
-    const VKDescriptorSet::Location location, const shader::ShaderCreateInfo::Resource &resource)
+    const VKDescriptorSet::Location location, const shader::ShaderCreateInfo::Resource *resource)
 {
   VkDescriptorSetLayoutBinding binding = {};
   binding.binding = location;
-  binding.descriptorType = descriptor_type(resource);
+  binding.descriptorType = descriptor_type(*resource);
   binding.descriptorCount = 1;
   binding.stageFlags = VK_SHADER_STAGE_ALL;
   binding.pImmutableSamplers = nullptr;
@@ -875,10 +880,10 @@ static VkDescriptorSetLayoutBinding create_descriptor_set_layout_binding(
 
 static void add_descriptor_set_layout_bindings(
     const VKShaderInterface &interface,
-    const Vector<shader::ShaderCreateInfo::Resource> &resources,
+    const Vector<const shader::ShaderCreateInfo::Resource*> &resources,
     Vector<VkDescriptorSetLayoutBinding> &r_bindings)
 {
-  for (const shader::ShaderCreateInfo::Resource &resource : resources) {
+  for (const shader::ShaderCreateInfo::Resource* resource : resources) {
     const VKDescriptorSet::Location location = interface.descriptor_set_location(resource);
     r_bindings.append(create_descriptor_set_layout_binding(location, resource));
   }
@@ -892,7 +897,7 @@ static void add_descriptor_set_layout_bindings(
 
 static VkDescriptorSetLayoutCreateInfo create_descriptor_set_layout(
     const VKShaderInterface &interface,
-    const Vector<shader::ShaderCreateInfo::Resource> &resources,
+    const Vector<const shader::ShaderCreateInfo::Resource*> &resources,
     Vector<VkDescriptorSetLayoutBinding> &r_bindings)
 {
   add_descriptor_set_layout_bindings(interface, resources, r_bindings);
@@ -927,9 +932,13 @@ bool VKShader::finalize_descriptor_set_layouts(VkDevice vk_device,
    * for #Frequency::PASS/BATCH. This isn't possible as areas expect that the binding location is
    * static and predictable (EEVEE-NEXT) or the binding location can be mapped to a single number
    * (Python). */
-  Vector<ShaderCreateInfo::Resource> all_resources;
-  all_resources.extend(info.pass_resources_);
-  all_resources.extend(info.batch_resources_);
+  Vector<const ShaderCreateInfo::Resource*> all_resources;
+  for(int i=0;i<info.pass_resources_.size();i++) {
+    all_resources.append(&info.pass_resources_[i]);
+  }
+  for(int i=0;i<info.batch_resources_.size();i++) {
+    all_resources.append(&info.batch_resources_[i]);
+  }
 
   Vector<VkDescriptorSetLayoutBinding> bindings;
   VkDescriptorSetLayoutCreateInfo layout_info = create_descriptor_set_layout(
@@ -955,6 +964,16 @@ bool VKShader::transform_feedback_enable(GPUVertBuf *)
 void VKShader::transform_feedback_disable()
 {
 }
+
+void VKShader::update_graphics_pipeline(VKContext &context,
+                                        const VKBatch &batch,
+                                        const VKVertexAttributeObject &vertex_attribute_object)
+{
+  BLI_assert(is_graphics_shader());
+  pipeline_get().finalize(
+      context, vertex_module_, fragment_module_, pipeline_layout_, batch, vertex_attribute_object);
+}
+
 void VKShader::update_graphics_pipeline(VKContext &context)
 {
   BLI_assert(is_graphics_shader());

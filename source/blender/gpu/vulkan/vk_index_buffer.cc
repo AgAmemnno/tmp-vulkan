@@ -10,9 +10,26 @@
 #include "vk_shader_interface.hh"
 
 namespace blender::gpu {
+void VKIndexBuffer::ensure_updated()
+{
+  if (is_subrange_) {
+    src_->upload_data();
+    return;
+  }
 
+  VKContext &context = *VKContext::get();
+  if (!buffer_.is_allocated()) {
+    allocate(context);
+  }
+
+  if (data_ != nullptr) {
+    buffer_.update(data_);
+    MEM_SAFE_FREE(data_);
+  }
+}
 void VKIndexBuffer::upload_data()
 {
+  ensure_updated();
 }
 
 void VKIndexBuffer::bind_as_ssbo(uint binding)
@@ -27,6 +44,11 @@ void VKIndexBuffer::bind_as_ssbo(uint binding)
   const VKDescriptorSet::Location location = shader_interface.descriptor_set_location(
       shader::ShaderCreateInfo::Resource::BindType::STORAGE_BUFFER, binding);
   shader->pipeline_get().descriptor_set_get().bind_as_ssbo(*this, location);
+}
+
+void VKIndexBuffer::bind(VKContext &context)
+{
+  context.command_buffer_get().bind(*this, to_vk_index_type(index_type_));
 }
 
 void VKIndexBuffer::read(uint32_t *data) const

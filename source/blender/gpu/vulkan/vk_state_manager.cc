@@ -12,13 +12,12 @@
 
 #include "GPU_capabilities.h"
 
-#include "vk_context.hh"
-
 #include "vk_backend.hh"
-
 #include "vk_framebuffer.hh"
 #include "vk_texture.hh"
-
+#include "vk_context.hh"
+#include "vk_pipeline.hh"
+#include "vk_shader.hh"
 #include "vk_state_manager.hh"
 
 namespace blender::gpu {
@@ -198,29 +197,19 @@ VkGraphicsPipelineCreateInfo &VKStateManager::get_pipeline_create_info(VkRenderP
 
 void VKStateManager::apply_state()
 {
-  if (!this->use_bgl) {
-    this->set_state(this->state);
-    /// this->set_mutable_state(this->mutable_state);
-    /// this->texture_bind_apply();
-    // this->image_bind_apply();
-  }
-  /* This is needed by gpu_py_offscreen. */
-  active_fb->apply_state();
-
-  set_color_blend_from_fb(active_fb);
-};
+  VKContext &context = *VKContext::get();
+  VKShader &shader = unwrap(*context.shader);
+  VKPipeline &pipeline = shader.pipeline_get();
+  pipeline.state_manager_get().set_state(state, mutable_state);
+}
 
 void VKStateManager::force_state()
 {
-  /* Little exception for clip distances since they need to keep the old count
-   * correct. */
-  uint32_t clip_distances = current_.clip_distances;
-  current_ = ~this->state;
-  current_.clip_distances = clip_distances;
-  current_mutable_ = ~this->mutable_state;
-  this->set_state(this->state);
-  this->set_mutable_state(this->mutable_state);
-};
+  VKContext &context = *VKContext::get();
+  VKShader &shader = unwrap(*context.shader);
+  VKPipeline &pipeline = shader.pipeline_get();
+  pipeline.state_manager_get().force_state(state, mutable_state);
+}
 
 void VKStateManager::set_prim_type(const GPUPrimType prim)
 {
@@ -474,7 +463,7 @@ void VKStateManager::set_stencil_test(const eGPUStencilTest test, const eGPUSten
       ds.front.passOp = VK_STENCIL_OP_KEEP;
       ds.front.depthFailOp = VK_STENCIL_OP_KEEP;
       ds.back = ds.front;
-      glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+     
   }
 
   if (test != GPU_STENCIL_NONE) {
@@ -858,33 +847,22 @@ void VKStateManager::set_color_blend_from_fb(VKFrameBuffer *fb)
 /** \name Texture State Management
  * \{ */
 
-void VKStateManager::texture_bind(Texture * /*tex_*/,
-                                  eGPUSamplerState /*sampler_type*/,
-                                  int /*binding*/)
-{
-#if 0
+
+void VKStateManager::texture_bind(Texture *tex_, eGPUSamplerState sampler_type,
+                                  int binding) {
   BLI_assert(binding < GPU_max_textures());
   VKTexture *tex = static_cast<VKTexture *>(tex_);
   if (G.debug & G_DEBUG_GPU) {
-    tex->check_feedback_loop();
+    //tex->check_feedback_loop();
   }
+  //attachment2sampler(tex);
 
-  attachment2sampler(tex);
+  tex->texture_bind(binding,sampler_type);
 
-  auto shader = VKContext::get()->pipeline_state.active_shader;
-  shader->append_write_descriptor(tex, sampler_type, binding);
-  /* Eliminate redundant binds. */
-  if ((textures_[binding].imageView == tex->desc_info_.imageView) &&
-      (this->samplers_[binding] == ((uint32_t)sampler_type))) {
-    return;
-  }
-  targets_[binding] = tex->target_type_;
-  textures_[binding] = tex->desc_info_;
-  this->samplers_[binding] = (uint)sampler_type;
-  tex->is_bound_ = true;
+
   dirty_texture_binds_ |= 1ULL << binding;
-#endif
 }
+
 
 void VKStateManager::texture_bind_temp(VKTexture * /*tex*/)
 {
@@ -894,34 +872,14 @@ void VKStateManager::texture_bind_temp(VKTexture * /*tex*/)
   dirty_texture_binds_ |= 1ULL;
 }
 
-void VKStateManager::texture_unbind(Texture * /*tex_*/)
+void VKStateManager::texture_unbind(Texture * tex_)
 {
-#if 0
-  VKTexture *tex = static_cast<VKTexture *>(tex_);
-  if ((!tex->is_bound_) || (tex->desc_info_.imageView == VK_NULL_HANDLE)) {
-    return;
-  }
 
-  for (int i = 0; i < ARRAY_SIZE(textures_); i++) {
-    if (textures_[i].imageView == tex->desc_info_.imageView) {
-      textures_[i] = {};
-      this->samplers_[i] = 0;
-      dirty_texture_binds_ |= 1ULL << i;
-    }
-  }
-  tex->is_bound_ = false;
-#endif
 }
 
 void VKStateManager::texture_unbind_all()
 {
-  for (int i = 0; i < ARRAY_SIZE(textures_); i++) {
-    if (textures_[i].imageView != VK_NULL_HANDLE) {
-      textures_[i] = {VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM};
-      this->samplers_[i] = 0;
-      dirty_texture_binds_ |= 1ULL << i;
-    }
-  }
+
   this->texture_bind_apply();
 }
 
@@ -939,24 +897,7 @@ void VKStateManager::texture_bind_apply()
   int last = 64 - bitscan_reverse_uint64(dirty_bind);
   int count = last - first;
   */
-  ///
-  /// TODO write out Or rebuild layout set
-  /*
 
-  if (GLContext::multi_bind_support) {
-    glBindTextures(first, count, textures_ + first);
-    glBindSamplers(first, count, samplers_ + first);
-  }
-  else {
-    for (int unit = first; unit < last; unit++) {
-      if ((dirty_bind >> unit) & 1UL) {
-        glActiveTexture(GL_TEXTURE0 + unit);
-        glBindTexture(targets_[unit], textures_[unit]);
-        glBindSampler(unit, samplers_[unit]);
-      }
-    }
-  }
-  */
 }
 
 void VKStateManager::texture_unpack_row_length_set(uint len)
@@ -970,11 +911,7 @@ void VKStateManager::texture_unpack_row_length_set(uint len)
 uint64_t VKStateManager::bound_texture_slots()
 {
   uint64_t bound_slots = 0;
-  for (int i = 0; i < ARRAY_SIZE(textures_); i++) {
-    if (textures_[i].imageView != VK_NULL_HANDLE) {
-      bound_slots |= 1ULL << i;
-    }
-  }
+
   return bound_slots;
 }
 /** \} */
@@ -986,11 +923,7 @@ uint64_t VKStateManager::bound_texture_slots()
 uint8_t VKStateManager::bound_image_slots()
 {
   uint8_t bound_slots = 0;
-  for (int i = 0; i < ARRAY_SIZE(images_); i++) {
-    if (images_[i] != 0) {
-      bound_slots |= 1ULL << i;
-    }
-  }
+
   return bound_slots;
 }
 

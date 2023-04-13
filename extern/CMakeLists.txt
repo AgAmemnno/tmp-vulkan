@@ -96,5 +96,5 @@ message(STATUS "WITH_VULKAN_BACKEND  ${WITH_VULKAN_BACKEND} ====================
 
 if(WITH_VULKAN_BACKEND)
   add_subdirectory(vulkan_memory_allocator)
-  add_subdirectory(Vulkan-ValidationLayers)
+  #add_subdirectory(Vulkan-ValidationLayers)
 endif()

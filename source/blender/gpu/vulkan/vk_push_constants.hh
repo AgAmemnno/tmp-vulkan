@@ -251,6 +251,8 @@ class VKPushConstants : VKResourceTracker<VKUniformBuffer> {
    * Only valid when storage type = StorageType::UNIFORM_BUFFER.
    */
   std::unique_ptr<VKUniformBuffer> &uniform_buffer_get();
+
+
 };
 
 }  // namespace blender::gpu

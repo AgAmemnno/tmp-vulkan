@@ -42,7 +42,8 @@ void VKTexture::clear(eGPUDataFormat format, const void *data)
   if (!is_allocated()) {
     allocate();
   }
-
+  int c_mip = current_mip_ ;
+  current_mip_ = -1;
   VKContext &context = *VKContext::get();
   VKCommandBuffer &command_buffer = context.command_buffer_get();
   VkClearColorValue clear_color = to_vk_clear_color_value(format, data);
@@ -50,10 +51,12 @@ void VKTexture::clear(eGPUDataFormat format, const void *data)
   range.aspectMask = to_vk_image_aspect_flag_bits(format_);
   range.levelCount = VK_REMAINING_MIP_LEVELS;
   range.layerCount = VK_REMAINING_ARRAY_LAYERS;
-  layout_ensure(context, VK_IMAGE_LAYOUT_GENERAL);
+  layout_ensure(context, VkTransitionState::VK_ENSURE_COPY_DST);
 
   command_buffer.clear(
       vk_image_, current_layout_get(), clear_color, Span<VkImageSubresourceRange>(&range, 1));
+  current_mip_  = c_mip;
+
 }
 
 void VKTexture::swizzle_set(const char /*swizzle_mask*/[4])
@@ -70,8 +73,10 @@ void VKTexture::mip_range_set(int /*min*/, int /*max*/)
 
 void *VKTexture::read(int mip, eGPUDataFormat format)
 {
+  int c_mip = current_mip_;
+  current_mip_ = mip;
   VKContext &context = *VKContext::get();
-  layout_ensure(context, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+  layout_ensure(context, VkTransitionState::VK_ENSURE_COPY_SRC);
 
   /* Vulkan images cannot be directly mapped to host memory and requires a staging buffer. */
   VKBuffer staging_buffer;
@@ -98,6 +103,7 @@ void *VKTexture::read(int mip, eGPUDataFormat format)
   command_buffer.copy(staging_buffer, *this, Span<VkBufferImageCopy>(&region, 1));
   command_buffer.submit();
 
+  current_mip_ = c_mip;
   void *data = MEM_mallocN(host_memory_size, __func__);
   convert_device_to_host(data, staging_buffer.mapped_memory_get(), sample_len, format, format_);
   return data;
@@ -133,11 +139,15 @@ void VKTexture::update_sub(
   region.imageSubresource.aspectMask = to_vk_image_aspect_flag_bits(format_);
   region.imageSubresource.mipLevel = mip;
   region.imageSubresource.layerCount = 1;
+  current_mip_ = mip;
 
-  layout_ensure(context, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+  layout_ensure(context, VkTransitionState::VK_ENSURE_COPY_DST);
   VKCommandBuffer &command_buffer = context.command_buffer_get();
   command_buffer.copy(*this, staging_buffer, Span<VkBufferImageCopy>(&region, 1));
   command_buffer.submit();
+
+  layout_ensure(context,VkTransitionState::VK_ENSURE_TEXTURE);
+
 }
 
 void VKTexture::update_sub(int /*offset*/[3],
@@ -188,13 +198,13 @@ bool VKTexture::is_allocated() const
 static VkImageUsageFlagBits to_vk_image_usage(const eGPUTextureUsage usage,
                                               const eGPUTextureFormatFlag format_flag)
 {
-  VkImageUsageFlagBits result = static_cast<VkImageUsageFlagBits>(VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                                                                  VK_IMAGE_USAGE_SAMPLED_BIT);
+  VkImageUsageFlagBits result = static_cast<VkImageUsageFlagBits>(VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+
   if (usage & GPU_TEXTURE_USAGE_SHADER_READ) {
-    result = static_cast<VkImageUsageFlagBits>(result | VK_IMAGE_USAGE_STORAGE_BIT);
+    result = static_cast<VkImageUsageFlagBits>(result | VK_IMAGE_USAGE_SAMPLED_BIT);
   }
   if (usage & GPU_TEXTURE_USAGE_SHADER_WRITE) {
-    result = static_cast<VkImageUsageFlagBits>(result | VK_IMAGE_USAGE_STORAGE_BIT);
+    result = static_cast<VkImageUsageFlagBits>(result | VK_IMAGE_USAGE_STORAGE_BIT| VK_IMAGE_USAGE_SAMPLED_BIT);
   }
   if (usage & GPU_TEXTURE_USAGE_ATTACHMENT) {
     if (format_flag & (GPU_FORMAT_NORMALIZED_INTEGER | GPU_FORMAT_COMPRESSED)) {
@@ -236,6 +246,13 @@ bool VKTexture::allocate()
   image_info.mipLevels = mipmaps_;
   image_info.arrayLayers = 1;
   image_info.format = to_vk_format(format_);
+
+  current_layout_.resize(mipmaps_);
+  for(auto & layout :current_layout_){
+    layout = VK_IMAGE_LAYOUT_UNDEFINED;
+  };
+  current_mip_ = 0;
+
   /* Some platforms (NVIDIA) requires that attached textures are always tiled optimal.
    *
    * As image data are always accessed via an staging buffer we can enable optimal tiling for all
@@ -276,7 +293,7 @@ bool VKTexture::allocate()
   }
 
   /* Promote image to the correct layout. */
-  layout_ensure(context, VK_IMAGE_LAYOUT_GENERAL);
+  //layout_ensure(context,VkTransitionState::VK_ENSURE_TEXTURE);
 
   VK_ALLOCATION_CALLBACKS
   VkImageViewCreateInfo image_view_info = {};
@@ -302,9 +319,27 @@ void VKTexture::image_bind(int binding)
   VKContext &context = *VKContext::get();
   VKShader *shader = static_cast<VKShader *>(context.shader);
   const VKShaderInterface &shader_interface = shader->interface_get();
-  const VKDescriptorSet::Location location = shader_interface.descriptor_set_location(
-      shader::ShaderCreateInfo::Resource::BindType::IMAGE, binding);
+  const VKDescriptorSet::Location location = shader_interface.descriptor_set_location(binding);
+  
   shader->pipeline_get().descriptor_set_get().image_bind(*this, location);
+}
+
+
+void VKTexture::texture_bind(int binding, eGPUSamplerState sampler_type)
+{
+  if (!is_allocated()) {
+    allocate();
+  }
+  VKContext &context = *VKContext::get();
+  VKShader *shader = static_cast<VKShader *>(context.shader);
+  const VKShaderInterface &shader_interface = shader->interface_get();
+  const VKDescriptorSet::Location location = shader_interface.descriptor_set_location(binding);
+
+  current_mip_ = -1;
+  VKCommandBuffer &command_buffer = context.command_buffer_get();
+  command_buffer.image_transition(this, VkTransitionState::VK_ENSURE_TEXTURE, false, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,mipmaps_);
+
+  shader->pipeline_get().descriptor_set_get().texture_bind(*this, location, sampler_type);
 }
 
 /* -------------------------------------------------------------------- */
@@ -313,17 +348,31 @@ void VKTexture::image_bind(int binding)
 
 VkImageLayout VKTexture::current_layout_get() const
 {
-  return current_layout_;
+  if(current_mip_ == -1){
+    auto layout0 = current_layout_[0];
+    for(int i= 1;i<mipmaps_;i++){
+      BLI_assert(layout0 ==  current_layout_[i]);
+    }
+    return  layout0;
+  }
+  return current_layout_[current_mip_];
 }
 
 void VKTexture::current_layout_set(const VkImageLayout new_layout)
 {
-  current_layout_ = new_layout;
+  if(current_mip_ == -1){
+    for(int i= 0;i<mipmaps_;i++){
+      current_layout_[i] =  new_layout;
+    }
+    return;
+  }
+  current_layout_[current_mip_] = new_layout;
 }
 
-void VKTexture::layout_ensure(VKContext &context, const VkImageLayout requested_layout)
+void VKTexture::layout_ensure(VKContext &context, const VkTransitionState requested_state)
 {
-  context.command_buffer_get().image_transition(this, VkTransitionState::VK_ENSURE_TEXTURE, true);
+  context.command_buffer_get().image_transition(this, requested_state, true);
+
 #if 0
   const VkImageLayout current_layout = current_layout_get();
   if (current_layout == requested_layout) {

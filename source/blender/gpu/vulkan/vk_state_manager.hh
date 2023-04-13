@@ -91,15 +91,15 @@ class VKStateManager : public StateManager {
   /** Limits. */
   float line_width_range_[2];
 
-  VkImageType targets_[64] = {};
-  VkDescriptorImageInfo textures_[64] = {};
-  GLuint samplers_[64] = {0};
+  //VkImageType targets_[64] = {};
+  VkImageView textures_[64] = {};
+  uint16_t samplers_[64];
+
   uint64_t dirty_texture_binds_ = 0;
 
-  GLuint images_[8] = {0};
-  GLenum formats_[8] = {0};
   uint8_t dirty_image_binds_ = 0;
   VKContext *ctx_;
+
 
  public:
   VKStateManager(VKContext *_ctx);

@@ -142,8 +142,8 @@ void VKImmediate::end()
     reinterpret_cast<VKShader*>(shader)->pipeline_get().push_constants_get().update(*ctx);
     
     (ctx->command_buffer_get()).draw(vertex_len, 1, 0, 0);
-    (ctx->command_buffer_get()).submit(false, true);
-    ctx->swapbuffers();
+    (ctx->command_buffer_get()).submit(true, false);
+    //ctx->swapbuffers();
 
   }
 

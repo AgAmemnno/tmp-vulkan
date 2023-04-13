@@ -19,12 +19,32 @@
 #include "BLI_system.h"
 #include "CLG_log.h"
 
+#include "vk_common.hh"
 #include "vk_backend.hh"
 #include "vk_context.hh"
 
 #include <mutex>
 
 #define VK_DEBUG_ENABLED 1
+
+
+#  if defined(__unix__) || defined(__APPLE__)
+#    include <sys/time.h>
+#    include <unistd.h>
+#    define GET_FUNC_ADDRESS dlsym
+#  endif
+#  if defined(_MSC_VER)
+#    define  WINDOWS_LEAN_AND_MEAN
+#    include <Windows.h>
+#    include <VersionHelpers.h> /* This needs to be included after Windows.h. */
+#    include <io.h>
+#    if !defined(ENABLE_VIRTUAL_TERMINAL_PROCESSING)
+#      define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
+#    endif
+
+#    define GET_FUNC_ADDRESS (void *)GetProcAddress
+#  endif
+
 
 namespace blender::gpu {
 const char *to_vk_error_string(VkResult result)
@@ -79,6 +99,7 @@ const char *to_vk_error_string(VkResult result)
 
 namespace debug {
 #if defined(VK_DEBUG_ENABLED)
+static VkInstance vk_instance_s = VK_NULL_HANDLE;
 
 VKDebuggingTools::VKDebuggingTools()
 {
@@ -105,8 +126,7 @@ void VKDebuggingTools::remove_ignore(int32_t id)
   lists_mutex_.unlock();
 }
 
-/*If we don't have multiple instances, VKDebuggingTools is Singleton.*/
-VKDebuggingTools tools;
+
 /*for creating breakpoints.*/
 extern inline void VK_ERROR_CHECK(VkResult r, const char *name)
 {
@@ -228,53 +248,105 @@ const char *to_string(VkObjectType type)
   }
   return "NotFound";
 };
+static  VkResult vulkan_dynamic_load(PFN_vkGetInstanceProcAddr& func)
+  {
 
-static void vulkan_dynamic_debug_functions(VkInstance &instance,
-                                           PFN_vkGetInstanceProcAddr instload)
-{
+#  if defined(_WIN32)
+    HMODULE vulkanDll = LoadLibraryA("D:\\blender\\lib\\win64_vc15\\vulkan\\bin\\vulkan-1-x64.dll");
+    if (!vulkanDll) {
+      return VK_ERROR_INITIALIZATION_FAILED;
+    }
+#  elif defined(__APPLE__)
+    void *vulkanDll = dlopen("libvulkan.dylib", RTLD_NOW | RTLD_LOCAL);
+    if (!vulkanDll) {
+      vulkanDll = dlopen("libvulkan.1.dylib", RTLD_NOW | RTLD_LOCAL);
+    }
+    if (!vulkanDll) {
+      vulkanDll = dlopen("libMoltenVK.dylib", RTLD_NOW | RTLD_LOCAL);
+    }
+    if (!vulkanDll) {
+      return VK_ERROR_INITIALIZATION_FAILED;
+    }
 
-#  if defined(VK_DEBUG_ENABLED)
-  tools.vkCmdBeginDebugUtilsLabelEXT_r = (PFN_vkCmdBeginDebugUtilsLabelEXT)instload(
-      instance, "vkCmdBeginDebugUtilsLabelEXT");
-  tools.vkCmdEndDebugUtilsLabelEXT_r = (PFN_vkCmdEndDebugUtilsLabelEXT)instload(
-      instance, "vkCmdEndDebugUtilsLabelEXT");
-  tools.vkCmdInsertDebugUtilsLabelEXT_r = (PFN_vkCmdInsertDebugUtilsLabelEXT)instload(
-      instance, "vkCmdInsertDebugUtilsLabelEXT");
-  tools.vkCreateDebugUtilsMessengerEXT_r = (PFN_vkCreateDebugUtilsMessengerEXT)instload(
-      instance, "vkCreateDebugUtilsMessengerEXT");
-  tools.vkDestroyDebugUtilsMessengerEXT_r = (PFN_vkDestroyDebugUtilsMessengerEXT)instload(
-      instance, "vkDestroyDebugUtilsMessengerEXT");
-  tools.vkQueueBeginDebugUtilsLabelEXT_r = (PFN_vkQueueBeginDebugUtilsLabelEXT)instload(
-      instance, "vkQueueBeginDebugUtilsLabelEXT");
-  tools.vkQueueEndDebugUtilsLabelEXT_r = (PFN_vkQueueEndDebugUtilsLabelEXT)instload(
-      instance, "vkQueueEndDebugUtilsLabelEXT");
-  tools.vkQueueInsertDebugUtilsLabelEXT_r = (PFN_vkQueueInsertDebugUtilsLabelEXT)instload(
-      instance, "vkQueueInsertDebugUtilsLabelEXT");
-  tools.vkSetDebugUtilsObjectNameEXT_r = (PFN_vkSetDebugUtilsObjectNameEXT)instload(
-      instance, "vkSetDebugUtilsObjectNameEXT");
-  tools.vkSetDebugUtilsObjectTagEXT_r = (PFN_vkSetDebugUtilsObjectTagEXT)instload(
-      instance, "vkSetDebugUtilsObjectTagEXT");
-  tools.vkSubmitDebugUtilsMessageEXT_r = (PFN_vkSubmitDebugUtilsMessageEXT)instload(
-      instance, "vkSubmitDebugUtilsMessageEXT");
+#  else
+    void *vulkanDll = dlopen("libvulkan.so.1", RTLD_NOW | RTLD_LOCAL);
+    if (!vulkanDll) {
+      vulkanDll = dlopen("libvulkan.so", RTLD_NOW | RTLD_LOCAL);
+    }
+    if (!vulkanDll) {
+      return VK_ERROR_INITIALIZATION_FAILED;
+    }
+#  endif
 
-  if (tools.vkCmdBeginDebugUtilsLabelEXT_r != nullptr) {
-    tools.enabled = true;
+#  define LOAD(name) GET_FUNC_ADDRESS(vulkanDll, name)
+
+    func = (PFN_vkGetInstanceProcAddr)LOAD("vkGetInstanceProcAddr");
+    //vkGetDeviceProcAddr = (PFN_vkGetDeviceProcAddr)INSTLOAD(instance,"vkGetDeviceProcAddr");
+#  undef LOAD
+
+    return VK_SUCCESS;
   }
 
-#  endif /* defined(VK_DEBUG_ENABLED) */
+
+static void vulkan_dynamic_debug_functions(VKContext *context, PFN_vkGetInstanceProcAddr/* instload_*/)
+{
+  VKDebuggingTools &tools = context->debugging_tools_get();
+
+
+  VkInstance instance = context->instance_get();
+  tools.instance = instance;
+  PFN_vkGetInstanceProcAddr instload;
+  vulkan_dynamic_load(instload);
+  if (instload) {
+
+    tools.enabled = false;
+    tools.vkCmdBeginDebugUtilsLabelEXT_r = (PFN_vkCmdBeginDebugUtilsLabelEXT)instload(
+        instance, "vkCmdBeginDebugUtilsLabelEXT");
+    tools.vkCmdEndDebugUtilsLabelEXT_r = (PFN_vkCmdEndDebugUtilsLabelEXT)instload(
+        instance, "vkCmdEndDebugUtilsLabelEXT");
+    tools.vkCmdInsertDebugUtilsLabelEXT_r = (PFN_vkCmdInsertDebugUtilsLabelEXT)instload(
+        instance, "vkCmdInsertDebugUtilsLabelEXT");
+    tools.vkCreateDebugUtilsMessengerEXT_r = (PFN_vkCreateDebugUtilsMessengerEXT)instload(
+        instance, "vkCreateDebugUtilsMessengerEXT");
+    tools.vkDestroyDebugUtilsMessengerEXT_r = (PFN_vkDestroyDebugUtilsMessengerEXT)instload(
+        instance, "vkDestroyDebugUtilsMessengerEXT");
+    tools.vkQueueBeginDebugUtilsLabelEXT_r = (PFN_vkQueueBeginDebugUtilsLabelEXT)instload(
+        instance, "vkQueueBeginDebugUtilsLabelEXT");
+    tools.vkQueueEndDebugUtilsLabelEXT_r = (PFN_vkQueueEndDebugUtilsLabelEXT)instload(
+        instance, "vkQueueEndDebugUtilsLabelEXT");
+    tools.vkQueueInsertDebugUtilsLabelEXT_r = (PFN_vkQueueInsertDebugUtilsLabelEXT)instload(
+        instance, "vkQueueInsertDebugUtilsLabelEXT");
+    tools.vkSetDebugUtilsObjectNameEXT_r = (PFN_vkSetDebugUtilsObjectNameEXT)instload(
+        instance, "vkSetDebugUtilsObjectNameEXT");
+    tools.vkSetDebugUtilsObjectTagEXT_r = (PFN_vkSetDebugUtilsObjectTagEXT)instload(
+        instance, "vkSetDebugUtilsObjectTagEXT");
+    tools.vkSubmitDebugUtilsMessageEXT_r = (PFN_vkSubmitDebugUtilsMessageEXT)instload(
+        instance, "vkSubmitDebugUtilsMessageEXT");
+    tools.vkCreateDebugUtilsMessengerEXT_r = (PFN_vkCreateDebugUtilsMessengerEXT )instload(instance,"vkCreateDebugUtilsMessengerEXT");
+    tools.vkDestroyDebugUtilsMessengerEXT_r = (PFN_vkDestroyDebugUtilsMessengerEXT )instload(instance,"vkDestroyDebugUtilsMessengerEXT");
+    if (tools.vkCmdBeginDebugUtilsLabelEXT_r) {
+      tools.enabled = true;
+      vk_instance_s = instance;
+    }
+  }
+  else {
+    tools.vkCmdBeginDebugUtilsLabelEXT_r = nullptr;
+    tools.vkCmdEndDebugUtilsLabelEXT_r = nullptr;
+    tools.vkCmdInsertDebugUtilsLabelEXT_r = nullptr;
+    tools.vkCreateDebugUtilsMessengerEXT_r = nullptr;
+    tools.vkDestroyDebugUtilsMessengerEXT_r = nullptr;
+    tools.vkQueueBeginDebugUtilsLabelEXT_r = nullptr;
+    tools.vkQueueEndDebugUtilsLabelEXT_r = nullptr;
+    tools.vkQueueInsertDebugUtilsLabelEXT_r = nullptr;
+    tools.vkSetDebugUtilsObjectNameEXT_r = nullptr;
+    tools.vkSetDebugUtilsObjectTagEXT_r = nullptr;
+    tools.vkSubmitDebugUtilsMessageEXT_r = nullptr;
+    tools.enabled = false;
+  }
 }
 
-VKAPI_ATTR VkResult VKAPI_CALL
-vkCreateDebugUtilsMessengerEXT(VkInstance instance,
-                               const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
-                               const VkAllocationCallbacks *pAllocator,
-                               VkDebugUtilsMessengerEXT *pMessenger)
-{
-  VkResult r = tools.vkCreateDebugUtilsMessengerEXT_r(
-      instance, pCreateInfo, pAllocator, pMessenger);
-  VK_ERROR_CHECK(r, __FUNCTION__);
-  return r;
-};
+
+
 
 VKAPI_ATTR VkBool32 VKAPI_CALL
 debugUtilsCB(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -416,7 +488,7 @@ static VkResult CreateDebugUtils(VkDebugUtilsMessageSeverityFlagsEXT flag, VKDeb
 {
 
   deb.dbgIgnoreMessages.clear();
-  BLI_assert(tools.vkCreateDebugUtilsMessengerEXT_r);
+  BLI_assert(deb.vkCreateDebugUtilsMessengerEXT_r);
 
   VkDebugUtilsMessengerCreateInfoEXT dbg_messenger_create_info;
   dbg_messenger_create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -428,14 +500,14 @@ static VkResult CreateDebugUtils(VkDebugUtilsMessageSeverityFlagsEXT flag, VKDeb
                                           VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
   dbg_messenger_create_info.pfnUserCallback = debugUtilsCB;
   dbg_messenger_create_info.pUserData = &deb;
-  return tools.vkCreateDebugUtilsMessengerEXT_r(
+  return deb.vkCreateDebugUtilsMessengerEXT_r(
       deb.instance, &dbg_messenger_create_info, nullptr, &deb.dbgMessenger);
 }
 static VkResult DestroyDebugUtils(VKDebuggingTools &deb)
 {
 
-  BLI_assert(tools.vkDestroyDebugUtilsMessengerEXT_r);
-  tools.vkDestroyDebugUtilsMessengerEXT_r(deb.instance, deb.dbgMessenger, nullptr);
+  BLI_assert(deb.vkDestroyDebugUtilsMessengerEXT_r);
+  deb.vkDestroyDebugUtilsMessengerEXT_r(deb.instance, deb.dbgMessenger, nullptr);
 
   deb.dbgIgnoreMessages.clear();
   deb.dbgMessenger = nullptr;
@@ -459,46 +531,126 @@ static bool CreateDebug(VKDebuggingTools &deb)
 
 #endif
 
-bool init_vk_callbacks(void *instance, PFN_vkGetInstanceProcAddr instload)
+bool init_callbacks(VKContext *context, PFN_vkGetInstanceProcAddr instload)
 {
-  CLOG_ENSURE(&LOG);
-
-  /*
-  One-to-one with instances.
-  Currently, we do not assume multiple instances.
-  */
-  BLI_assert((tools.instance == VK_NULL_HANDLE) ||
-             ((tools.instance != VK_NULL_HANDLE) && (instance == tools.instance)));
-  if (tools.instance != VK_NULL_HANDLE) {
+  if (vk_instance_s == VK_NULL_HANDLE) {
+    vulkan_dynamic_debug_functions(context, instload);
+    CreateDebug(context->debugging_tools_get());
     return true;
-  }
-
-  tools.instance = static_cast<VkInstance>(instance);
-
-#if defined(VK_DEBUG_ENABLED)
-  if (instload) {
-    VkInstance vk_instance = static_cast<VkInstance>(instance);
-    vulkan_dynamic_debug_functions(vk_instance, instload);
-    if (tools.enabled) {
-      CreateDebug(tools);
-      return true;
-    };
-  }
-#endif
+  };
   return false;
 }
 
-void destroy_vk_callbacks()
+void destroy_callbacks(VKContext *context,VKDebuggingTools& tools)
 {
-
-#if defined(VK_DEBUG_ENABLED)
   if (tools.enabled) {
-    if (tools.dbgMessenger) {
-      DestroyDebugUtils(tools);
+    vulkan_dynamic_debug_functions(context, nullptr);
+    DestroyDebugUtils(tools);
+    vk_instance_s = VK_NULL_HANDLE;
+  }
+}
+
+VKDebuggingTools& VKDebuggingTools::operator =(VKDebuggingTools & tools){
+
+  this->instance = tools.instance;
+  this->dbgMessenger = tools.dbgMessenger;
+  this->vkDestroyDebugUtilsMessengerEXT_r = tools.vkDestroyDebugUtilsMessengerEXT_r;
+  this->vkCreateDebugUtilsMessengerEXT_r = tools.vkCreateDebugUtilsMessengerEXT_r;
+  this->enabled = tools.enabled;
+  return *this;
+}
+
+void object_label(VKContext *context,
+                     VkObjectType objType,
+                     uint64_t obj,
+                     const char *name)
+{
+  if (G.debug & G_DEBUG_GPU) {
+    if( std::string("Buffer_15") == name ){
+      printf("");
+    }
+    const VKDebuggingTools& tools = context->debugging_tools_get();
+    if (tools.enabled) {
+      VkDebugUtilsObjectNameInfoEXT info = {};
+      info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+      info.objectType = objType;
+      info.objectHandle = obj;
+      info.pObjectName = name;
+      tools.vkSetDebugUtilsObjectNameEXT_r(context->device_get(), &info);
     }
   }
-#endif
-  tools.clear();
+}
+
+void push_marker(VKContext *context, VkCommandBuffer cmd, const char *name)
+{
+  if (G.debug & G_DEBUG_GPU) {
+    const VKDebuggingTools& tools = context->debugging_tools_get();
+    if (tools.enabled) {
+      VkDebugUtilsLabelEXT info = {};
+      info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+      info.pLabelName = name;
+      tools.vkCmdBeginDebugUtilsLabelEXT_r(cmd, &info);
+    }
+  }
+}
+
+void set_marker(VKContext *context, VkCommandBuffer cmd, const char *name)
+{
+  if (G.debug & G_DEBUG_GPU) {
+    const VKDebuggingTools& tools = context->debugging_tools_get();
+    if (tools.enabled) {
+      VkDebugUtilsLabelEXT info = {};
+      info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+      info.pLabelName = name;
+      tools.vkCmdInsertDebugUtilsLabelEXT_r(cmd, &info);
+    }
+  }
+}
+
+void pop_marker(VKContext *context, VkCommandBuffer cmd)
+{
+  if (G.debug & G_DEBUG_GPU) {
+    const VKDebuggingTools& tools = context->debugging_tools_get();
+    if (tools.enabled) {
+      tools.vkCmdEndDebugUtilsLabelEXT_r(cmd);
+    }
+  }
+}
+
+void push_marker(VKContext *context, VkQueue queue, const char *name)
+{
+  if (G.debug & G_DEBUG_GPU) {
+    const VKDebuggingTools& tools = context->debugging_tools_get();
+    if (tools.enabled) {
+      VkDebugUtilsLabelEXT info = {};
+      info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+      info.pLabelName = name;
+      tools.vkQueueBeginDebugUtilsLabelEXT_r(queue, &info);
+    }
+  }
+}
+
+void set_marker(VKContext *context, VkQueue queue, const char *name)
+{
+  if (G.debug & G_DEBUG_GPU) {
+    const VKDebuggingTools& tools = context->debugging_tools_get();
+    if (tools.enabled) {
+      VkDebugUtilsLabelEXT info = {};
+      info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+      info.pLabelName = name;
+      tools.vkQueueInsertDebugUtilsLabelEXT_r(queue, &info);
+    }
+  }
+}
+
+void pop_marker(VKContext *context, VkQueue queue)
+{
+  if (G.debug & G_DEBUG_GPU) {
+    const VKDebuggingTools& tools = context->debugging_tools_get();
+    if (tools.enabled) {
+      tools.vkQueueEndDebugUtilsLabelEXT_r(queue);
+    }
+  }
 }
 
 };  // namespace debug

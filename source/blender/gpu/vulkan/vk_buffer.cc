@@ -30,6 +30,7 @@ static VmaAllocationCreateFlagBits vma_allocation_flags(GPUUsageType usage)
       return static_cast<VmaAllocationCreateFlagBits>(
           VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT);
     case GPU_USAGE_DYNAMIC:
+    case GPU_USAGE_STREAM:
       return static_cast<VmaAllocationCreateFlagBits>(
           VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT);
     case GPU_USAGE_DEVICE_ONLY:
@@ -37,7 +38,7 @@ static VmaAllocationCreateFlagBits vma_allocation_flags(GPUUsageType usage)
           VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT |
           VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT);
     case GPU_USAGE_FLAG_BUFFER_TEXTURE_ONLY:
-    case GPU_USAGE_STREAM:
+
       break;
   }
   BLI_assert_msg(false, "Unimplemented GPUUsageType");
@@ -84,7 +85,7 @@ bool VKBuffer::create(VKContext &context,
   if (result != VK_SUCCESS) {
     return false;
   }
-
+  debug::object_label(&context,vk_buffer_,"Buffer");
   /* All buffers are mapped to virtual memory. */
   return map(context);
 }
@@ -118,7 +119,7 @@ bool VKBuffer::is_mapped() const
   return mapped_memory_ != nullptr;
 }
 
-bool VKBuffer::map(VKContext &context)
+bool VKBuffer::map(VKContext &/*context*/)
 {
   BLI_assert(!is_mapped());
   VKBackend &backend = VKBackend::get();
@@ -127,7 +128,7 @@ bool VKBuffer::map(VKContext &context)
   return result == VK_SUCCESS;
 }
 
-void VKBuffer::unmap(VKContext &context)
+void VKBuffer::unmap(VKContext &/*context*/)
 {
   BLI_assert(is_mapped());
   VKBackend &backend = VKBackend::get();

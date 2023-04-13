@@ -33,7 +33,8 @@ class VKBackend : public GPUBackend {
   static int                  context_ref_count_ ;
   static VkDevice        mem_device_;
 
- public:
+
+  public:
   VKBackend()
   {
     context_ref_count_  = 0;
@@ -93,18 +94,8 @@ class VKBackend : public GPUBackend {
     return *static_cast<VKBackend *>(GPUBackend::get());
   }
 
-  static void desable_gpuctx(VKContext* context){
-    context_ref_count_--;
-    if(context== gpuctx_){
-      gpuctx_ = nullptr;
-    }
-
-    if(context_ref_count_==0){
-      vmaDestroyAllocator(mem_allocator_);
-      debug::destroy_vk_callbacks();
-    }
-
-  };
+  template<typename T>
+  static void desable_gpuctx(VKContext* context,T& descriptor_pools_);
 
  private:
   static void init_platform();

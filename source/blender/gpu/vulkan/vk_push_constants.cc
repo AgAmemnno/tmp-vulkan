@@ -130,6 +130,7 @@ VKPushConstants &VKPushConstants::operator=(VKPushConstants &&other)
   return *this;
 }
 
+
 void VKPushConstants::update(VKContext &context)
 {
   VKShader *shader = static_cast<VKShader *>(context.shader);
@@ -139,6 +140,7 @@ void VKPushConstants::update(VKContext &context)
                  "Invalid state detected. Push constants doesn't belong to the active shader of "
                  "the given context.");
   VKDescriptorSetTracker &descriptor_set = pipeline.descriptor_set_get();
+
 
   switch (layout_get().storage_type_get()) {
     case VKPushConstants::StorageType::NONE:
@@ -150,7 +152,10 @@ void VKPushConstants::update(VKContext &context)
 
     case VKPushConstants::StorageType::UNIFORM_BUFFER:
       update_uniform_buffer();
-      descriptor_set.bind(*uniform_buffer_get(), layout_get().descriptor_set_location_get());
+      VKUniformBuffer& ubo = *(uniform_buffer_get());
+
+      descriptor_set.bind(ubo,  layout_get().descriptor_set_location_get());
+
       break;
   }
 }

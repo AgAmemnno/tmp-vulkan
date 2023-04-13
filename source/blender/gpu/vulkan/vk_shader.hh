@@ -72,6 +72,10 @@ class VKShader : public Shader {
 
   void update_graphics_pipeline(VKContext &context);
 
+  void update_graphics_pipeline(VKContext &context,
+                                const VKBatch &batch,
+                                const VKVertexAttributeObject &vertex_attribute_object);
+
  private:
   Vector<uint32_t> compile_glsl_to_spirv(Span<const char *> sources, shaderc_shader_kind kind);
   void build_shader_module(Span<uint32_t> spirv_module, VkShaderModule *r_shader_module);
@@ -98,5 +102,8 @@ static inline VKShader *unwrap(Shader *shader)
 {
   return static_cast<VKShader *>(shader);
 }
-
+static inline VKShader &unwrap(Shader &shader)
+{
+  return static_cast<VKShader &>(shader);
+}
 }  // namespace blender::gpu

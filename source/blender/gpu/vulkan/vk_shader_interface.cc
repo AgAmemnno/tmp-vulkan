@@ -12,7 +12,7 @@ namespace blender::gpu {
 
 void VKShaderInterface::init(const shader::ShaderCreateInfo &info)
 {
-  /*In order to make ShaderCreateInfo const in VKShaderInterface::init, i have to use set because DescriptorSet binding is conflicted.*/
+
   static char PUSH_CONSTANTS_FALLBACK_NAME[] = "push_constants_fallback";
   static size_t PUSH_CONSTANTS_FALLBACK_NAME_LEN = strlen(PUSH_CONSTANTS_FALLBACK_NAME);
 
@@ -36,7 +36,7 @@ void VKShaderInterface::init(const shader::ShaderCreateInfo &info)
     all_resources.append(&info.batch_resources_[i]);
   }
 
-
+  /* Images are treated as descriptor sets, so they are counted separately. #uniform_image_len_ */
   for (const ShaderCreateInfo::Resource *res : all_resources) {
     switch (res->bind_type) {
       case ShaderCreateInfo::Resource::BindType::IMAGE:
@@ -58,6 +58,7 @@ void VKShaderInterface::init(const shader::ShaderCreateInfo &info)
   }
 
   /* Reserve 1 uniform buffer for push constants fallback. */
+  /* Access to push constants is never done as a uniform block. So we don't need to count it in ubo_len.*/
   size_t names_size = info.interface_names_size_;
   VKContext &context = *VKContext::get();
   const VKPushConstants::StorageType push_constants_storage_type =
@@ -105,6 +106,7 @@ void VKShaderInterface::init(const shader::ShaderCreateInfo &info)
 
  
   /* Add push constant when using uniform buffer as fallback. */
+  /* I don't think we need to allocate input either for fallback.*/
   int32_t push_constants_fallback_location = -1;
   if (push_constants_storage_type == VKPushConstants::StorageType::UNIFORM_BUFFER) {
     ubo_push_len_  = 1;
@@ -166,6 +168,7 @@ void VKShaderInterface::init(const shader::ShaderCreateInfo &info)
   }
 
   /* Determine the descriptor set locations after the inputs have been sorted. */
+  /* Fallback ubos must be counted when generating descriptor sets. #ubo_push_len_ */
   auto descruptor_set_len_ = ubo_len_  + ssbo_len_ +  ubo_push_len_ + uniform_image_len_;
   descriptor_set_locations_ = Array<desc_array_t>(descruptor_set_len_);
   uint32_t descriptor_set_location = 0;
@@ -180,6 +183,7 @@ void VKShaderInterface::init(const shader::ShaderCreateInfo &info)
   int32_t push_constant_descriptor_set_location = -1;
   if (push_constants_storage_type == VKPushConstants::StorageType::UNIFORM_BUFFER) {
     push_constant_descriptor_set_location = descriptor_set_location++;
+    /* For fallback UBO, #VKPushconstants manages its descriptor number. */
     //const ShaderInput *push_constant_input = ubo_get(PUSH_CONSTANTS_FALLBACK_NAME);
     //descriptor_set_location_update(push_constant_input, push_constants_fallback_location);
     descriptor_set_locations_[push_constant_descriptor_set_location] = nullptr;
@@ -198,10 +202,16 @@ static int32_t shader_input_index(const ShaderInput *shader_inputs,
 void VKShaderInterface::descriptor_set_location_update(const shader::ShaderCreateInfo::Resource *resource,
                                                        const VKDescriptorSet::Location location)
 {
+  /** we have to decide the binding number of the descriptor set.
+  * And that number is then rendered into the shader.
+  * Here, I think it would be better to have the same value as the index of the array.
+  * And since ShaderCreateInfo is `const` from now on, it creates a pseudo-map by referencing the resource pointer. */
+
   //int32_t index = shader_input_index(inputs_, shader_input);
   descriptor_set_locations_[location] = resource;
 }
 
+/* This is a redundant function. */
 const VKDescriptorSet::Location VKShaderInterface::descriptor_set_location(int slot) const
 {
   if(descriptor_set_locations_.size() > slot){
@@ -211,6 +221,7 @@ const VKDescriptorSet::Location VKShaderInterface::descriptor_set_location(int s
   }
   return -1;
 }
+
 const VKDescriptorSet::Location VKShaderInterface::descriptor_set_location(const shader::ShaderCreateInfo::Resource *resource) const
 {
   for(int i =0;i<descriptor_set_locations_.size();i++){
@@ -222,6 +233,9 @@ const VKDescriptorSet::Location VKShaderInterface::descriptor_set_location(const
   BLI_assert(false);
 }
 
+/** Now only set number 0 is used. So the binding number is a unique integer. This function was not used. 
+ *   For example, this function makes sense if we associate a bind type with a set number.
+ **/
 const VKDescriptorSet::Location VKShaderInterface::descriptor_set_location(
     const shader::ShaderCreateInfo::Resource::BindType &bind_type, int binding) const
 {

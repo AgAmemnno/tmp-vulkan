@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2023 Blender Foundation. All rights reserved. */
+ * Copyright 2023 Blender Foundation */
 
 /** \file
  * \ingroup gpu
@@ -276,8 +276,8 @@ class VKFrameBuffer;
 class VKIndexBuffer;
 class VKPipeline;
 class VKPushConstants;
-class VKTexture;
-class VKVertexBuffer;
+class VKPipeline;
+class VKDescriptorSet;
 
 /** Command buffer to keep track of the life-time of a command buffer. */
 class VKCommandBuffer : NonCopyable, NonMovable {
@@ -341,28 +341,13 @@ class VKCommandBuffer : NonCopyable, NonMovable {
     begin_cmd_ = begin_rp_ = false;
   };
   virtual ~VKCommandBuffer();
-  bool init(const VkDevice vk_device, const VkQueue vk_queue, VkCommandBuffer vk_command_buffer);
-  bool begin_recording();
-  void end_recording(bool imm_submit = false);
-
-
-  bool ensure_render_pass(){
-    if (begin_rp_) {
-      return true;
-    }
-    if(in_submit_){
-      submit(true,false);
-    }
-    if (!in_toggle_) {
-      if (!begin_recording()) {
-        return false;
-      };
-    }
-    return false;
-  }
-  template<typename T> bool begin_render_pass(const VKFrameBuffer &framebuffer, T &sfim);
-  void end_render_pass(const VKFrameBuffer &framebuffer);
-
+  void init(const VkDevice vk_device, const VkQueue vk_queue, VkCommandBuffer vk_command_buffer);
+  void begin_recording();
+  void end_recording();
+  void bind(const VKPipeline &vk_pipeline, VkPipelineBindPoint bind_point);
+  void bind(const VKDescriptorSet &descriptor_set,
+            const VkPipelineLayout vk_pipeline_layout,
+            VkPipelineBindPoint bind_point);
   /**
    * Add a push constant command to the command buffer.
    *

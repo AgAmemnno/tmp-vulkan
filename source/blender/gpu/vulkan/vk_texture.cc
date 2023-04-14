@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2022 Blender Foundation. All rights reserved. */
+ * Copyright 2022 Blender Foundation */
 
 /** \file
  * \ingroup gpu
@@ -29,13 +29,9 @@ VKTexture::~VKTexture()
 
 }
 
-void VKTexture::generate_mipmap()
-{
-}
+void VKTexture::generate_mipmap() {}
 
-void VKTexture::copy_to(Texture * /*tex*/)
-{
-}
+void VKTexture::copy_to(Texture * /*tex*/) {}
 
 void VKTexture::clear(eGPUDataFormat format, const void *data)
 {
@@ -59,17 +55,11 @@ void VKTexture::clear(eGPUDataFormat format, const void *data)
 
 }
 
-void VKTexture::swizzle_set(const char /*swizzle_mask*/[4])
-{
-}
+void VKTexture::swizzle_set(const char /*swizzle_mask*/[4]) {}
 
-void VKTexture::stencil_texture_mode_set(bool /*use_stencil*/)
-{
-}
+void VKTexture::stencil_texture_mode_set(bool /*use_stencil*/) {}
 
-void VKTexture::mip_range_set(int /*min*/, int /*max*/)
-{
-}
+void VKTexture::mip_range_set(int /*min*/, int /*max*/) {}
 
 void *VKTexture::read(int mip, eGPUDataFormat format)
 {
@@ -191,6 +181,14 @@ void VKTexture::ensure_allocated()
 }
 
 bool VKTexture::is_allocated() const
+void VKTexture::ensure_allocated()
+{
+  if (!is_allocated()) {
+    allocate();
+  }
+}
+
+bool VKTexture::is_allocated() const
 {
   return vk_image_ != VK_NULL_HANDLE && allocation_ != VK_NULL_HANDLE;
 }
@@ -261,6 +259,7 @@ bool VKTexture::allocate()
   image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
   image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   image_info.usage = to_vk_image_usage(gpu_image_usage_flags_, format_flag_);
+  image_info.usage = to_vk_image_usage(gpu_image_usage_flags_, format_flag_);
   image_info.samples = VK_SAMPLE_COUNT_1_BIT;
 
   VkResult result;
@@ -320,7 +319,7 @@ void VKTexture::image_bind(int binding)
   VKShader *shader = static_cast<VKShader *>(context.shader);
   const VKShaderInterface &shader_interface = shader->interface_get();
   const VKDescriptorSet::Location location = shader_interface.descriptor_set_location(binding);
-  
+
   shader->pipeline_get().descriptor_set_get().image_bind(*this, location);
 }
 

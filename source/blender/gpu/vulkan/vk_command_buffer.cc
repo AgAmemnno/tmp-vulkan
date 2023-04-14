@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2023 Blender Foundation. All rights reserved. */
+ * Copyright 2023 Blender Foundation */
 
 /** \file
  * \ingroup gpu
@@ -412,6 +412,12 @@ void VKCommandBuffer::clear(VkImage vk_image,
                        &vk_clear_color,
                        ranges.size(),
                        ranges.data());
+}
+
+void VKCommandBuffer::clear(Span<VkClearAttachment> attachments, Span<VkClearRect> areas)
+{
+  vkCmdClearAttachments(
+      vk_command_buffer_, attachments.size(), attachments.data(), areas.size(), areas.data());
 }
 
 void VKCommandBuffer::clear(Span<VkClearAttachment> attachments, Span<VkClearRect> areas)

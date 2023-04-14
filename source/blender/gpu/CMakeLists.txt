@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
-# Copyright 2006 Blender Foundation. All rights reserved.
+# Copyright 2006 Blender Foundation
 
 # WITH_OPENGL limits the visibility of the opengl headers to just GPU and bg_gpu,
 # to more easily highlight code-paths in other libraries that need to be refactored,
@@ -217,6 +217,7 @@ set(VULKAN_SRC
   vulkan/vk_immediate.cc
   vulkan/vk_memory_layout.cc
   vulkan/vk_memory.cc
+  vulkan/vk_memory_layout.cc
   vulkan/vk_pipeline.cc
   vulkan/vk_pipeline_state.cc
   vulkan/vk_pixel_buffer.cc
@@ -252,6 +253,7 @@ set(VULKAN_SRC
   vulkan/vk_immediate.hh
   vulkan/vk_memory_layout.hh
   vulkan/vk_memory.hh
+  vulkan/vk_memory_layout.hh
   vulkan/vk_pipeline.hh
   vulkan/vk_pipeline_state.hh
   vulkan/vk_pixel_buffer.hh
@@ -348,7 +350,13 @@ if(WITH_VULKAN_BACKEND)
     ${MOLTENVK_LIBRARIES}
     extern_vulkan_memory_allocator
   )
+
   add_definitions(-DWITH_VULKAN_BACKEND)
+  if(WIN32)
+    if(EXISTS ${LIBDIR}/imath/bin/imath.dll)
+      add_definitions(-DIMATH_DLL)
+    endif()
+  endif()
 endif()
 
 if(WITH_VULKAN_GUARDEDALLOC)
@@ -448,6 +456,7 @@ set(GLSL_SRC
   shaders/common/gpu_shader_math_matrix_lib.glsl
   shaders/common/gpu_shader_math_rotation_lib.glsl
   shaders/common/gpu_shader_math_vector_lib.glsl
+  shaders/common/gpu_shader_smaa_lib.glsl
   shaders/common/gpu_shader_test_lib.glsl
   shaders/common/gpu_shader_utildefines_lib.glsl
 
@@ -748,10 +757,6 @@ if(WITH_MOD_FLUID)
   add_definitions(-DWITH_FLUID)
 endif()
 
-if(WITH_IMAGE_DDS)
-  add_definitions(-DWITH_DDS)
-endif()
-
 if(WITH_OPENCOLORIO)
   add_definitions(-DWITH_OCIO)
 endif()
@@ -810,6 +815,7 @@ if(WITH_GPU_BUILDTIME_SHADER_BUILDER)
     bf_blenlib
     bf_intern_ghost
     ${PLATFORM_LINKLIBS}
+    ${IMATH_LIBRARIES}
   )
   target_include_directories(shader_builder PRIVATE ${INC} ${CMAKE_CURRENT_BINARY_DIR})
 
@@ -840,6 +846,7 @@ if(WITH_GTESTS2)
     set(TEST_SRC
       tests/gpu_testing.cc
 
+      tests/framebuffer_test.cc
       tests/index_buffer_test.cc
       tests/push_constants_test.cc
       tests/shader_test.cc

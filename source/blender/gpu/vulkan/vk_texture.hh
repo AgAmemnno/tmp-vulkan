@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2022 Blender Foundation. All rights reserved. */
+ * Copyright 2022 Blender Foundation */
 
 /** \file
  * \ingroup gpu
@@ -22,11 +22,9 @@ class VKTexture : public Texture {
    * conversion should happen. #current_layout_ keep track of the layout so the correct conversion
    * can be done.*/
   Vector<VkImageLayout> current_layout_ = {VK_IMAGE_LAYOUT_UNDEFINED};
-  int                                  current_mip_     = 0;   
+  int                                  current_mip_     = 0;
  public:
-  VKTexture(const char *name) : Texture(name)
-  {
-  }
+  VKTexture(const char *name) : Texture(name) {}
   virtual ~VKTexture() override;
 
   void generate_mipmap() override;
@@ -51,10 +49,12 @@ class VKTexture : public Texture {
   VkImage vk_image_handle() const
   {
     BLI_assert(is_allocated());
+    BLI_assert(is_allocated());
     return vk_image_;
   }
   VkImageView vk_image_view_handle() const
   {
+    BLI_assert(is_allocated());
     BLI_assert(is_allocated());
     return vk_image_view_;
   }
@@ -70,6 +70,8 @@ class VKTexture : public Texture {
 
  private:
   /** Is this texture already allocated on device. */
+  bool is_allocated() const;
+
   bool is_allocated() const;
 
   /**

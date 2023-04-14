@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2022 Blender Foundation. All rights reserved. */
+ * Copyright 2022 Blender Foundation */
 
 /** \file
  * \ingroup gpu
@@ -165,7 +165,7 @@ class VKContext : public Context {
     return descriptor_pools_;
   }
 
-  
+
   debug::VKDebuggingTools &debugging_tools_get()
   {
     return debugging_tools_;
@@ -217,4 +217,3 @@ class VKContext : public Context {
 };
 
 }  // namespace blender::gpu
-

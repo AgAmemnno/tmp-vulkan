@@ -60,6 +60,9 @@
 #include "ED_scene.h"
 #include "ED_screen.h"
 
+#include "IMB_imbuf.h"
+#include "IMB_imbuf_types.h"
+
 #include "UI_interface.h"
 #include "UI_interface_icons.h"
 
@@ -1002,7 +1005,11 @@ wmWindow *WM_window_open(bContext *C,
   return NULL;
 }
 
-/* ****************** Operators ****************** */
+/** \} */
+
+/* -------------------------------------------------------------------- */
+/** \name Operators
+ * \{ */
 
 int wm_window_close_exec(bContext *C, wmOperator *UNUSED(op))
 {
@@ -1067,7 +1074,11 @@ int wm_window_fullscreen_toggle_exec(bContext *C, wmOperator *UNUSED(op))
   return OPERATOR_FINISHED;
 }
 
-/* ************ events *************** */
+/** \} */
+
+/* -------------------------------------------------------------------- */
+/** \name Events
+ * \{ */
 
 void wm_cursor_position_from_ghost_client_coords(wmWindow *win, int *x, int *y)
 {
@@ -1688,9 +1699,10 @@ void wm_ghost_init(bContext *C)
   GHOST_UseWindowFocus(wm_init_state.window_focus);
 }
 
-/* TODO move this to wm_init_exit.cc. */
 void wm_ghost_init_background(void)
 {
+  /* TODO: move this to `wm_init_exit.cc`. */
+
   if (g_system) {
     return;
   }
@@ -1830,15 +1842,16 @@ eWM_CapabilitiesFlag WM_capabilities_flag(void)
   if (flag != -1) {
     return flag;
   }
-
   flag = 0;
-  if (GHOST_SupportsCursorWarp()) {
+
+  const GHOST_TCapabilityFlag ghost_flag = GHOST_GetCapabilities();
+  if (ghost_flag & GHOST_kCapabilityCursorWarp) {
     flag |= WM_CAPABILITY_CURSOR_WARP;
   }
-  if (GHOST_SupportsWindowPosition()) {
+  if (ghost_flag & GHOST_kCapabilityWindowPosition) {
     flag |= WM_CAPABILITY_WINDOW_POSITION;
   }
-  if (GHOST_SupportsPrimaryClipboard()) {
+  if (ghost_flag & GHOST_kCapabilityPrimaryClipboard) {
     flag |= WM_CAPABILITY_PRIMARY_CLIPBOARD;
   }
 
@@ -2054,6 +2067,45 @@ void WM_clipboard_text_set(const char *buf, bool selection)
     GHOST_putClipboard(buf, selection);
 #endif
   }
+}
+
+bool WM_clipboard_image_available(void)
+{
+  return (bool)GHOST_hasClipboardImage();
+}
+
+ImBuf *WM_clipboard_image_get(void)
+{
+  int width, height;
+
+  uint *rgba = GHOST_getClipboardImage(&width, &height);
+  if (!rgba) {
+    return NULL;
+  }
+
+  ImBuf *ibuf = IMB_allocFromBuffer(rgba, NULL, width, height, 4);
+  free(rgba);
+
+  return ibuf;
+}
+
+bool WM_clipboard_image_set(ImBuf *ibuf)
+{
+  bool free_byte_buffer = false;
+  if (ibuf->rect == NULL) {
+    /* Add a byte buffer if it does not have one. */
+    IMB_rect_from_float(ibuf);
+    free_byte_buffer = true;
+  }
+
+  bool success = (bool)GHOST_putClipboardImage(ibuf->rect, ibuf->x, ibuf->y);
+
+  if (free_byte_buffer) {
+    /* Remove the byte buffer if we added it. */
+    imb_freerectImBuf(ibuf);
+  }
+
+  return success;
 }
 
 /** \} */

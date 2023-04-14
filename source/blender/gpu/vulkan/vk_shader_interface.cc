@@ -104,7 +104,7 @@ void VKShaderInterface::init(const shader::ShaderCreateInfo &info)
   }
 
 
- 
+
   /* Add push constant when using uniform buffer as fallback. */
   /* I don't think we need to allocate input either for fallback.*/
   int32_t push_constants_fallback_location = -1;
@@ -233,7 +233,7 @@ const VKDescriptorSet::Location VKShaderInterface::descriptor_set_location(const
   BLI_assert(false);
 }
 
-/** Now only set number 0 is used. So the binding number is a unique integer. This function was not used. 
+/** Now only set number 0 is used. So the binding number is a unique integer. This function was not used.
  *   For example, this function makes sense if we associate a bind type with a set number.
  **/
 const VKDescriptorSet::Location VKShaderInterface::descriptor_set_location(

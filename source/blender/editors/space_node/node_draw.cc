@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2008 Blender Foundation. All rights reserved. */
+ * Copyright 2008 Blender Foundation */
 
 /** \file
  * \ingroup spnode
@@ -58,7 +58,7 @@
 #include "WM_api.h"
 #include "WM_types.h"
 
-#include "ED_gpencil.h"
+#include "ED_gpencil_legacy.h"
 #include "ED_node.h"
 #include "ED_node.hh"
 #include "ED_screen.h"
@@ -1052,7 +1052,7 @@ static void create_inspection_string_for_geometry_socket(std::stringstream &ss,
         break;
       }
       case GEO_COMPONENT_TYPE_VOLUME: {
-        ss << TIP_("Volume");
+        ss << CTX_TIP_(BLT_I18NCONTEXT_ID_ID, "Volume");
         break;
       }
       case GEO_COMPONENT_TYPE_EDIT: {
@@ -2722,7 +2722,8 @@ static void frame_node_prepare_for_draw(bNode &node, Span<bNode *> nodes)
   const float has_label = node.label[0] != '\0';
 
   const float label_height = frame_node_label_height(*data);
-  /* Add an additional 25 % to account for the descenders. This works well in most cases. */
+  /* Add an additional 25% to account for the glyphs descender.
+   * This works well in most cases. */
   const float margin_top = 0.5f * margin + (has_label ? 1.25f * label_height : 0.5f * margin);
 
   /* Initialize rect from current frame size. */

@@ -187,19 +187,21 @@ template<class T, class V = T, class S = T> class Rall2d {
     return *this;
   }
 
-  // = Operators between Rall2d objects
-  /*
-           friend INLINE Rall2d<T,V,S> operator /(const Rall2d<T,V,S>& lhs,const Rall2d<T,V,S>&
-     rhs); friend INLINE Rall2d<T,V,S> operator *(const Rall2d<T,V,S>& lhs,const Rall2d<T,V,S>&
-     rhs); friend INLINE Rall2d<T,V,S> operator +(const Rall2d<T,V,S>& lhs,const Rall2d<T,V,S>&
-     rhs); friend INLINE Rall2d<T,V,S> operator -(const Rall2d<T,V,S>& lhs,const Rall2d<T,V,S>&
-     rhs); friend INLINE Rall2d<T,V,S> operator -(const Rall2d<T,V,S>& arg); friend INLINE
-     Rall2d<T,V,S> operator *(S s,const Rall2d<T,V,S>& v); friend INLINE Rall2d<T,V,S> operator
-     *(const Rall2d<T,V,S>& v,S s); friend INLINE Rall2d<T,V,S> operator +(S s,const Rall2d<T,V,S>&
-     v); friend INLINE Rall2d<T,V,S> operator +(const Rall2d<T,V,S>& v,S s); friend INLINE
-     Rall2d<T,V,S> operator -(S s,const Rall2d<T,V,S>& v); friend INLINE INLINE Rall2d<T,V,S>
-     operator -(const Rall2d<T,V,S>& v,S s); friend INLINE Rall2d<T,V,S> operator /(S s,const
-     Rall2d<T,V,S>& v); friend INLINE Rall2d<T,V,S> operator /(const Rall2d<T,V,S>& v,S s);
+        // = Operators between Rall2d objects
+/*
+         friend INLINE Rall2d<T,V,S> operator /(const Rall2d<T,V,S>& lhs,const Rall2d<T,V,S>& rhs);
+         friend INLINE Rall2d<T,V,S> operator *(const Rall2d<T,V,S>& lhs,const Rall2d<T,V,S>& rhs);
+         friend INLINE Rall2d<T,V,S> operator +(const Rall2d<T,V,S>& lhs,const Rall2d<T,V,S>& rhs);
+         friend INLINE Rall2d<T,V,S> operator -(const Rall2d<T,V,S>& lhs,const Rall2d<T,V,S>& rhs);
+         friend INLINE Rall2d<T,V,S> operator -(const Rall2d<T,V,S>& arg);
+         friend INLINE Rall2d<T,V,S> operator *(S s,const Rall2d<T,V,S>& v);
+         friend INLINE Rall2d<T,V,S> operator *(const Rall2d<T,V,S>& v,S s);
+         friend INLINE Rall2d<T,V,S> operator +(S s,const Rall2d<T,V,S>& v);
+         friend INLINE Rall2d<T,V,S> operator +(const Rall2d<T,V,S>& v,S s);
+         friend INLINE Rall2d<T,V,S> operator -(S s,const Rall2d<T,V,S>& v);
+         friend INLINE Rall2d<T,V,S> operator -(const Rall2d<T,V,S>& v,S s);
+         friend INLINE Rall2d<T,V,S> operator /(S s,const Rall2d<T,V,S>& v);
+         friend INLINE Rall2d<T,V,S> operator /(const Rall2d<T,V,S>& v,S s);
 
           // = Mathematical functions that operate on Rall2d objects
 

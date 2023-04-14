@@ -1,11 +1,13 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2022 Blender Foundation. All rights reserved. */
+ * Copyright 2022 Blender Foundation */
 
 /** \file
  * \ingroup gpu
  */
 
 #include "vk_framebuffer.hh"
+#include "vk_memory.hh"
+#include "vk_texture.hh"
 #include "vk_memory.hh"
 #include "vk_texture.hh"
 
@@ -226,29 +228,11 @@ void VKFrameBuffer::clear(const Vector<VkClearAttachment> &attachments)
   }
 }
 
-void VKFrameBuffer::clear(const eGPUFrameBufferBits buffers,
-                          const float clear_color[4],
-                          float clear_depth,
-                          uint clear_stencil)
+void VKFrameBuffer::clear(eGPUFrameBufferBits /*buffers*/,
+                          const float /*clear_col*/[4],
+                          float /*clear_depth*/,
+                          uint /*clear_stencil*/)
 {
-  Vector<VkClearAttachment> attachments;
-  if (buffers & (GPU_DEPTH_BIT | GPU_STENCIL_BIT)) {
-    build_clear_attachments_depth_stencil(buffers, clear_depth, clear_stencil, attachments);
-  }
-  if (buffers & GPU_COLOR_BIT) {
-
-    if (immutable_) {
-      copy_v4_v4(immutable_attachment_.clearValue.color.float32, clear_color);
-      clear({immutable_attachment_});
-      return;
-    }
-    else {
-      float clear_color_single[4];
-      copy_v4_v4(clear_color_single, clear_color);
-      build_clear_attachments_color(&clear_color_single, false, attachments);
-    }
-  }
-  clear(attachments);
 }
 
 void VKFrameBuffer::clear_multi(const float (*clear_color)[4])
@@ -280,18 +264,12 @@ void VKFrameBuffer::attachment_set_loadstore_op(GPUAttachmentType /*type*/,
 {
 }
 
-/** \} */
-
-/* -------------------------------------------------------------------- */
-/** \name Read back
- * \{ */
-
-void VKFrameBuffer::read(eGPUFrameBufferBits planes,
-                         eGPUDataFormat format,
-                         const int area[4],
-                         int channel_len,
-                         int slot,
-                         void * r_data)
+void VKFrameBuffer::read(eGPUFrameBufferBits /*planes*/,
+                         eGPUDataFormat /*format*/,
+                         const int /*area*/[4],
+                         int /*channel_len*/,
+                         int /*slot*/,
+                         void * /*r_data*/)
 {
   VKTexture *texture = nullptr;
   switch (plane) {
@@ -339,206 +317,5 @@ void VKFrameBuffer::blit_to(eGPUFrameBufferBits /*planes*/,
                             int /*dst_offset_y*/)
 {
 }
-
-/** \} */
-
-/* -------------------------------------------------------------------- */
-/** \name Update attachments
- * \{ */
-
-void VKFrameBuffer::update_attachments()
-{
-  if (immutable_) {
-    return;
-  }
-  if (!dirty_attachments_) {
-    return;
-  }
-
-  render_pass_free();
-  render_pass_create();
-
-  dirty_attachments_ = false;
-}
-
-void VKFrameBuffer::render_pass_create()
-{
-  BLI_assert(!immutable_);
-  BLI_assert(vk_render_pass_ == VK_NULL_HANDLE);
-  BLI_assert(vk_framebuffer_ == VK_NULL_HANDLE);
-
-  VK_ALLOCATION_CALLBACKS
-
-  /* Track first attachment for size.*/
-  GPUAttachmentType first_attachment = GPU_FB_MAX_ATTACHMENT;
-
-  std::array<VkAttachmentDescription, GPU_FB_MAX_ATTACHMENT> attachment_descriptions;
-  std::array<VkImageView, GPU_FB_MAX_ATTACHMENT> image_views;
-  std::array<VkAttachmentReference, GPU_FB_MAX_ATTACHMENT> attachment_references;
-#  if 0
-  Vector <VkAttachmentReference> color_attachments;
-  VkAttachmentReference depth_attachment = {};
-#endif
-  bool has_depth_attachment = false;
-  bool found_attachment = false;
-  int depth_location = -1;
-
-  for (int type = GPU_FB_MAX_ATTACHMENT - 1; type >= 0; type--) {
-    GPUAttachment &attachment = attachments_[type];
-    if (attachment.tex == nullptr && !found_attachment) {
-      /* Move the depth texture to the next binding point after all color textures. The binding
-       * location of the color textures should be kept in sync between ShaderCreateInfos and the
-       * framebuffer attachments. The depth buffer should be the last slot. */
-      depth_location = max_ii(type - GPU_FB_COLOR_ATTACHMENT0, 0);
-      continue;
-    }
-    found_attachment |= attachment.tex != nullptr;
-
-    /* Keep the first attachment to the first color attachment, or to the depth buffer when there
-     * is no color attachment. */
-    if (attachment.tex != nullptr &&
-        (first_attachment == GPU_FB_MAX_ATTACHMENT || type >= GPU_FB_COLOR_ATTACHMENT0)) {
-      first_attachment = static_cast<GPUAttachmentType>(type);
-    }
-
-    int attachment_location = type >= GPU_FB_COLOR_ATTACHMENT0 ? type - GPU_FB_COLOR_ATTACHMENT0 :
-                                                                 depth_location;
-
-    if (attachment.tex) {
-      /* Ensure texture is allocated to ensure the image view.*/
-      VKTexture &texture = *static_cast<VKTexture *>(unwrap(attachment.tex));
-      texture.ensure_allocated();
-      image_views[attachment_location] = texture.vk_image_view_handle();
-
-      VkAttachmentDescription &attachment_description =
-          attachment_descriptions[attachment_location];
-      attachment_description.flags = 0;
-      attachment_description.format = to_vk_format(texture.format_get());
-      attachment_description.samples = VK_SAMPLE_COUNT_1_BIT;
-      attachment_description.loadOp =
-          VK_ATTACHMENT_LOAD_OP_LOAD;  // VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-      attachment_description.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-      attachment_description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-      attachment_description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-      attachment_description.initialLayout =
-          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;  // VK_IMAGE_LAYOUT_GENERAL;
-      attachment_description.finalLayout =
-          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;  // VK_IMAGE_LAYOUT_GENERAL;
-      vk_render_pass_init_ = attachment_description.initialLayout;
-      /* Create the attachment reference. */
-      const bool is_depth_attachment = ELEM(
-          type, GPU_FB_DEPTH_ATTACHMENT, GPU_FB_DEPTH_STENCIL_ATTACHMENT);
-
-      BLI_assert_msg(!is_depth_attachment || !has_depth_attachment,
-                     "There can only be one depth/stencil attachment.");
-      has_depth_attachment |= is_depth_attachment;
-      VkAttachmentReference &attachment_reference = attachment_references[attachment_location];
-      attachment_reference.attachment = attachment_location;
-      attachment_reference.layout = is_depth_attachment ?
-                                        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL :
-                                        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    }
-  }
-
-  /* Update the size, viewport & scissor based on the first attachment. */
-  if (first_attachment != GPU_FB_MAX_ATTACHMENT) {
-    GPUAttachment &attachment = attachments_[first_attachment];
-    BLI_assert(attachment.tex);
-
-    int size[3];
-    GPU_texture_get_mipmap_size(attachment.tex, attachment.mip, size);
-    size_set(size[0], size[1]);
-  }
-  else {
-    /* A framebuffer should at least be 1 by 1.*/
-    this->size_set(1, 1);
-  }
-  viewport_reset();
-  scissor_reset();
-
-  /* Create render pass. */
-
-  const int attachment_len = has_depth_attachment ? depth_location + 1 : depth_location;
-  const int color_attachment_len = depth_location;
-  VkSubpassDescription subpass = {};
-  subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-  subpass.colorAttachmentCount = color_attachment_len;
-  subpass.pColorAttachments = attachment_references.data();
-  if (has_depth_attachment) {
-    subpass.pDepthStencilAttachment = &attachment_references[depth_location];
-  }
-
-  // Use subpass dependencies for layout transitions
-  std::array<VkSubpassDependency, 2> dependencies;
-  int depCnt = 1;
-  dependencies[0].srcSubpass = 0;
-  dependencies[0].dstSubpass = 0;
-  dependencies[0].srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-  dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-  dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-                                  VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-  dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-  if (has_depth_attachment) {
-
-    depCnt++;
-    dependencies[1].srcSubpass = VK_SUBPASS_EXTERNAL;
-    dependencies[1].dstSubpass = 0;
-    dependencies[1].srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
-                                   VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-    dependencies[1].dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
-                                   VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-    dependencies[1].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-    dependencies[1].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
-                                    VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
-    dependencies[1].dependencyFlags = 0;
-  }
-
-  VkRenderPassCreateInfo render_pass_info = {};
-  render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-  render_pass_info.attachmentCount = attachment_len;
-  render_pass_info.pAttachments = attachment_descriptions.data();
-  render_pass_info.subpassCount = 1;
-  render_pass_info.pSubpasses = &subpass;
-  render_pass_info.dependencyCount = depCnt;
-  render_pass_info.pDependencies = dependencies.data();
-
-  VKContext &context = *VKContext::get();
-  vkCreateRenderPass(
-      context.device_get(), &render_pass_info, vk_allocation_callbacks, &vk_render_pass_);
-
-  /* We might want to split frame-buffer and render-pass. */
-  VkFramebufferCreateInfo framebuffer_create_info = {};
-  framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-  framebuffer_create_info.renderPass = vk_render_pass_;
-  framebuffer_create_info.attachmentCount = attachment_len;
-  framebuffer_create_info.pAttachments = image_views.data();
-  framebuffer_create_info.width = width_;
-  framebuffer_create_info.height = height_;
-  framebuffer_create_info.layers = 1;
-
-  vkCreateFramebuffer(
-      context.device_get(), &framebuffer_create_info, vk_allocation_callbacks, &vk_framebuffer_);
-  debug::object_label(&context,vk_framebuffer_,"OffscreenFB");
-  debug::object_label(&context,image_views[0],"OffscreenIV");
-}
-
-void VKFrameBuffer::render_pass_free()
-{
-  BLI_assert(!immutable_);
-  if (vk_render_pass_ == VK_NULL_HANDLE) {
-    return;
-  }
-  VK_ALLOCATION_CALLBACKS
-
-  VKContext &context = *VKContext::get();
-  vkDestroyRenderPass(context.device_get(), vk_render_pass_, vk_allocation_callbacks);
-  vkDestroyFramebuffer(context.device_get(), vk_framebuffer_, vk_allocation_callbacks);
-  vk_render_pass_ = VK_NULL_HANDLE;
-  vk_framebuffer_ = VK_NULL_HANDLE;
-}
-
-/** \} */
 
 }  // namespace blender::gpu

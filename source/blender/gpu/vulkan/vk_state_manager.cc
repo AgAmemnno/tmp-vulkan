@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2023 Blender Foundation. All rights reserved. */
+ * Copyright 2023 Blender Foundation */
 
 /** \file
  * \ingroup gpu
@@ -463,7 +463,7 @@ void VKStateManager::set_stencil_test(const eGPUStencilTest test, const eGPUSten
       ds.front.passOp = VK_STENCIL_OP_KEEP;
       ds.front.depthFailOp = VK_STENCIL_OP_KEEP;
       ds.back = ds.front;
-     
+
   }
 
   if (test != GPU_STENCIL_NONE) {
@@ -954,13 +954,9 @@ void VKStateManager::image_bind(Texture *tex, int binding)
   texture->image_bind(binding);
 }
 
-void VKStateManager::image_unbind(Texture * /*tex*/)
-{
-}
+void VKStateManager::image_unbind(Texture * /*tex*/) {}
 
-void VKStateManager::image_unbind_all()
-{
-}
+void VKStateManager::image_unbind_all() {}
 
 void VKStateManager::image_bind_apply()
 {

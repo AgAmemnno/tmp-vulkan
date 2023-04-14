@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2022 Blender Foundation. All rights reserved. */
+ * Copyright 2022 Blender Foundation */
 
 /** \file
  * \ingroup gpu
@@ -60,13 +60,9 @@ void VKIndexBuffer::read(uint32_t *data) const
   buffer_.read(data);
 }
 
-void VKIndexBuffer::update_sub(uint /*start*/, uint /*len*/, const void * /*data*/)
-{
-}
+void VKIndexBuffer::update_sub(uint /*start*/, uint /*len*/, const void * /*data*/) {}
 
-void VKIndexBuffer::strip_restart_indices()
-{
-}
+void VKIndexBuffer::strip_restart_indices() {}
 
 void VKIndexBuffer::allocate(VKContext &context)
 {

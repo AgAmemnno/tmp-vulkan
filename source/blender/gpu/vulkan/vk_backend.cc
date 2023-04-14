@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2022 Blender Foundation. All rights reserved. */
+ * Copyright 2022 Blender Foundation */
 
 /** \file
  * \ingroup gpu
@@ -91,13 +91,9 @@ void VKBackend::platform_exit()
   GPG.clear();
 }
 
-void VKBackend::delete_resources()
-{
-}
+void VKBackend::delete_resources() {}
 
-void VKBackend::samplers_update()
-{
-}
+void VKBackend::samplers_update() {}
 
 void VKBackend::compute_dispatch(int groups_x_len, int groups_y_len, int groups_z_len)
 {
@@ -116,9 +112,7 @@ void VKBackend::compute_dispatch(int groups_x_len, int groups_y_len, int groups_
   command_buffer.dispatch(groups_x_len, groups_y_len, groups_z_len);
 }
 
-void VKBackend::compute_dispatch_indirect(StorageBuf * /*indirect_buf*/)
-{
-}
+void VKBackend::compute_dispatch_indirect(StorageBuf * /*indirect_buf*/) {}
 
 Context *VKBackend::context_alloc(void *ghost_window, void *ghost_context)
 {
@@ -139,7 +133,7 @@ Context *VKBackend::context_alloc(void *ghost_window, void *ghost_context)
     info.instance = context->instance_get();
     info.pAllocationCallbacks = vk_allocation_callbacks;
     vmaCreateAllocator(&info, &mem_allocator_);
-    
+
   }
   return context;
 }
@@ -216,9 +210,7 @@ void VKBackend::render_end()
   /*finalize Queue*/
 }
 
-void VKBackend::render_step()
-{
-}
+void VKBackend::render_step() {}
 
 shaderc::Compiler &VKBackend::get_shaderc_compiler()
 {

@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later
  * Copyright 2022 Blender Foundation */
+ * Copyright 2022 Blender Foundation */
 
 /** \file
  * \ingroup gpu
@@ -27,7 +28,7 @@ void VKBatch::draw(int v_first, int v_count, int i_first, int i_count)
   CNT++;
 
   VKFrameBuffer* fb = context.active_framebuffer_get();
-  
+
   int viewport[4];
   fb->viewport_get(viewport);
   printf(">>>>>>>>>>>>>>>>>>>>>>VKBatch Draw<<<<<<<<<<<<< CNT[%d]  FrameBuffer %llx Viewport (%d %d %d %d) \n",CNT,(uintptr_t)fb->vk_framebuffer_get(),viewport[0],viewport[1],viewport[2],viewport[3]);

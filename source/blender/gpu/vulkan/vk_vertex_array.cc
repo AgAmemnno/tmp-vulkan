@@ -103,7 +103,8 @@ void VKVertArray::update_bindings(VKVertexInput& input,
 {
   /*#glBindVertexArray(vao);*/
   vbo_bind(input,interface, format, v_first, 0, false);
-  VKContext::get()->state_manager_get().set_vertex_input(input);
+  //VKContext::get()->state_manager_get().set_vertex_input(input);
+  BLI_assert_unreachable();
 }
 
 /** \} */

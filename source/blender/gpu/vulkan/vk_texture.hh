@@ -7,8 +7,13 @@
 
 #pragma once
 
+
 #include "gpu_texture_private.hh"
+
+#include "vk_command_buffer.hh"
+
 #include "vk_context.hh"
+
 
 namespace blender::gpu {
 
@@ -45,7 +50,7 @@ class VKTexture : public Texture {
   uint gl_bindcode_get() const override;
 
   void image_bind(int location);
-  void texture_bind(int binding, eGPUSamplerState sampler_type= GPU_SAMPLER_DEFAULT);
+  void texture_bind(int binding,const GPUSamplerState& sampler_type);
   VkImage vk_image_handle() const
   {
     BLI_assert(is_allocated());
@@ -70,8 +75,6 @@ class VKTexture : public Texture {
 
  private:
   /** Is this texture already allocated on device. */
-  bool is_allocated() const;
-
   bool is_allocated() const;
 
   /**
@@ -108,9 +111,8 @@ class VKTexture : public Texture {
    *
    * When texture is already in the requested layout, nothing will be done.
    */
+ 
   void layout_ensure(VKContext &context, const VkTransitionState requested_state);
-
-  /** \} */
 };
 
 static inline VKTexture *unwrap(Texture *tex)

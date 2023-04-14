@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2023 Blender Foundation */
+ * Copyright 2023 Blender Foundation. All rights reserved. */
 
 /** \file
  * \ingroup gpu
@@ -21,7 +21,7 @@
 
 #include "BLI_assert.h"
 
-#include "intern/GHOST_ContextVk.h"
+#include "intern/GHOST_ContextVk.hh"
 
 namespace blender::gpu {
 
@@ -304,14 +304,6 @@ void VKCommandBuffer::bind(const VKPipeline &pipeline, VkPipelineBindPoint bind_
   vkCmdBindPipeline(vk_command_buffer_, bind_point, pipeline.vk_handle());
 }
 
-void VKCommandBuffer::bind(const uint32_t binding,
-                           const VKVertexBuffer &vertex_buffer,
-                           const VkDeviceSize offset)
-{
-  VkBuffer vk_buffer = vertex_buffer.vk_handle();
-  vkCmdBindVertexBuffers(vk_command_buffer_, binding, 1, &vk_buffer, &offset);
-}
-
 void VKCommandBuffer::bind(const VKIndexBuffer &index_buffer, VkIndexType index_type)
 {
   VkBuffer vk_buffer = index_buffer.vk_handle();
@@ -334,6 +326,23 @@ void VKCommandBuffer::bind(const VKDescriptorSet &descriptor_set,
   vkCmdBindDescriptorSets(
       vk_command_buffer_, bind_point, vk_pipeline_layout, 0, 1, &vk_descriptor_set, 0, 0);
 }
+
+void VKCommandBuffer::bind(const uint32_t binding,
+                           const VKVertexBuffer &vertex_buffer,
+                           const VkDeviceSize offset)
+{
+  bind(binding, vertex_buffer.vk_handle(), offset);
+}
+
+void VKCommandBuffer::bind(const uint32_t binding,
+                           const VkBuffer &vk_buffer,
+                           const VkDeviceSize offset)
+{
+
+  vkCmdBindVertexBuffers(vk_command_buffer_, binding, 1, &vk_buffer, &offset);
+}
+
+
 
 void VKCommandBuffer::end_render_pass(const VKFrameBuffer & /*framebuffer*/)
 {
@@ -412,12 +421,6 @@ void VKCommandBuffer::clear(VkImage vk_image,
                        &vk_clear_color,
                        ranges.size(),
                        ranges.data());
-}
-
-void VKCommandBuffer::clear(Span<VkClearAttachment> attachments, Span<VkClearRect> areas)
-{
-  vkCmdClearAttachments(
-      vk_command_buffer_, attachments.size(), attachments.data(), areas.size(), areas.data());
 }
 
 void VKCommandBuffer::clear(Span<VkClearAttachment> attachments, Span<VkClearRect> areas)

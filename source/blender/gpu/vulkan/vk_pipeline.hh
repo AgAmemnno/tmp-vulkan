@@ -82,9 +82,12 @@ class VKPipeline : NonCopyable {
   bool is_valid() const;
 
   void finalize(VKContext &context,
-                VkShaderModule vertex_module,
-                VkShaderModule fragment_module,
-                VkPipelineLayout &pipeline_layout);
+                          VkShaderModule vertex_module,
+                          VkShaderModule fragment_module,
+                          VkPipelineLayout &pipeline_layout,
+                          GPUPrimType topology,
+                          const VKVertexAttributeObject &vertex_attribute_object);
+
   void finalize(VKContext &context,
                 VkShaderModule vertex_module,
                 VkShaderModule fragment_module,

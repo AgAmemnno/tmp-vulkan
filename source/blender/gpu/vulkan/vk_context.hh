@@ -25,23 +25,25 @@
 namespace blender::gpu{
 struct VKSamplerState {
   bool initialized;
-  eGPUSamplerState state;
+  GPUSamplerState state;
 
   bool operator==(const VKSamplerState &other) const {
     /* Add other parameters as needed. */
     return (this->state == other.state);
   }
 
+  #if 0
   operator uint() const { return uint(state); }
-
   operator uint64_t() const { return uint64_t(state); }
+  #endif
+
   VKSamplerState() { initialized = false; };
-  VKSamplerState(eGPUSamplerState state_) : state(state_) {
+  VKSamplerState(GPUSamplerState state_) : state(state_) {
     initialized = false;
   }
 };
 
-const VKSamplerState DEFAULT_SAMPLER_STATE = VKSamplerState(GPU_SAMPLER_DEFAULT /*, 0, 9999*/);
+const VKSamplerState DEFAULT_SAMPLER_STATE = VKSamplerState();//GPU_SAMPLER_DEFAULT /*, 0, 9999*/);
 };
 
 namespace blender::gpu {
@@ -111,7 +113,7 @@ class VKContext : public Context {
 
   bool validate_image();
 
-  void bind_graphics_pipeline();
+  void bind_graphics_pipeline(GPUPrimType prim_type, const VKVertexAttributeObject &vertex_attribute_object);
 
   static VKContext *get(void)
   {
@@ -165,7 +167,7 @@ class VKContext : public Context {
     return descriptor_pools_;
   }
 
-
+  
   debug::VKDebuggingTools &debugging_tools_get()
   {
     return debugging_tools_;
@@ -208,7 +210,7 @@ class VKContext : public Context {
     VkSampler sampler_state;
     bool is_arg_buffer_binding;
   };
-  VkSampler sampler_state_cache_[GPU_SAMPLER_MAX];
+  VkSampler sampler_state_cache_[512];//GPU_SAMPLER_MAX];
   VkSampler default_sampler_state_;
   SamplerStateBindingCached  cached_vertex_sampler_state_bindings[VK_MAX_TEXTURE_SLOTS];
   SamplerStateBindingCached cached_fragment_sampler_state_bindings[VK_MAX_TEXTURE_SLOTS];

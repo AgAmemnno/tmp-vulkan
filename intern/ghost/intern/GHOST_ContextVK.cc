@@ -1037,59 +1037,6 @@ GHOST_TSuccess GHOST_ContextVK::releaseDrawingContext()
 }
 
 
-  vector<VkLayerProperties> layers(layer_count);
-  vkEnumerateInstanceLayerProperties(&layer_count, layers.data());
-
-  return layers;
-}
-
-static bool checkLayerSupport(vector<VkLayerProperties> &layers_available, const char *layer_name)
-{
-  for (const auto &layer : layers_available) {
-    if (strcmp(layer_name, layer.layerName) == 0) {
-      return true;
-    }
-  }
-  return false;
-}
-
-static void enableLayer(vector<VkLayerProperties> &layers_available,
-                        vector<const char *> &layers_enabled,
-                        const char *layer_name,
-                        const bool debug)
-{
-  if (checkLayerSupport(layers_available, layer_name)) {
-    layers_enabled.push_back(layer_name);
-  }
-  else if (debug) {
-    fprintf(
-        stderr, "Warning: Layer requested, but not supported by the platform. [%s]\n", layer_name);
-  }
-}
-
-static bool device_extensions_support(VkPhysicalDevice device, vector<const char *> required_exts)
-{
-  uint32_t ext_count;
-  vkEnumerateDeviceExtensionProperties(device, NULL, &ext_count, NULL);
-
-  vector<VkExtensionProperties> available_exts(ext_count);
-  vkEnumerateDeviceExtensionProperties(device, NULL, &ext_count, available_exts.data());
-
-  for (const auto &extension_needed : required_exts) {
-    bool found = false;
-    for (const auto &extension : available_exts) {
-      if (strcmp(extension_needed, extension.extensionName) == 0) {
-        found = true;
-        break;
-      }
-    }
-    if (!found) {
-      return false;
-    }
-  }
-  return true;
-}
-
 GHOST_TSuccess GHOST_ContextVK::pickPhysicalDevice(vector<const char *> required_exts)
 {
   m_physical_device = VK_NULL_HANDLE;
@@ -1451,12 +1398,13 @@ GHOST_TSuccess GHOST_ContextVK::initializeDrawingContext()
   }
 #endif
 
-  auto layers_available = getLayersAvailable();
-  auto extensions_available = getExtensionsAvailable();
-
-  vector<const char *> layers_enabled;
-  if (m_debug) {
-    enableLayer(layers_available, layers_enabled, VkLayer::KHRONOS_validation, m_debug);
+  if (!sVKInstance.is_valid()) {
+    sVKInstance.create(m_use_window_surface,
+                       m_debug,
+                       m_context_major_version,
+                       m_context_minor_version,
+                       m_layers_enabled,
+                       m_extensions_device);
   }
 
   sVKInstance.increment(m_instance);
@@ -1546,3 +1494,4 @@ GHOST_TSuccess GHOST_ContextVK::releaseNativeHandles()
 {
   return GHOST_kSuccess;
 }
+

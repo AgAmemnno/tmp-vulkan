@@ -74,8 +74,7 @@ void VKDescriptorSetTracker::bind_as_ssbo(VKIndexBuffer &buffer,
   binding.buffer_size = buffer.size_get();
 }
 
-void VKDescriptorSetTracker::texture_bind(VKTexture &texture,
-                                        const VKDescriptorSet::Location location,eGPUSamplerState sampler_type)
+void VKDescriptorSetTracker:: texture_bind(VKTexture &texture, VKDescriptorSet::Location location,const GPUSamplerState& sampler_type)
 {
   Binding &binding = ensure_location(location);
   binding.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;

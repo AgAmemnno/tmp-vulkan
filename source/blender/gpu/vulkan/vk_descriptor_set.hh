@@ -155,7 +155,7 @@ class VKDescriptorSetTracker : protected VKResourceTracker<VKDescriptorSet> {
   void bind(VKStorageBuffer &buffer, VKDescriptorSet::Location location);
   void bind(VKUniformBuffer &buffer, VKDescriptorSet::Location location);
   void image_bind(VKTexture &texture, VKDescriptorSet::Location location);
-  void texture_bind(VKTexture &texture, VKDescriptorSet::Location location,eGPUSamplerState sampler_type);
+  void texture_bind(VKTexture &texture, VKDescriptorSet::Location location,const GPUSamplerState& sampler_type);
 
   void bindcmd(VKCommandBuffer& command_buffer,VkPipelineLayout pipeline_layout);
   /**

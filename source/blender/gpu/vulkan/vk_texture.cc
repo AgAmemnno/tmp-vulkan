@@ -181,14 +181,6 @@ void VKTexture::ensure_allocated()
 }
 
 bool VKTexture::is_allocated() const
-void VKTexture::ensure_allocated()
-{
-  if (!is_allocated()) {
-    allocate();
-  }
-}
-
-bool VKTexture::is_allocated() const
 {
   return vk_image_ != VK_NULL_HANDLE && allocation_ != VK_NULL_HANDLE;
 }
@@ -324,8 +316,9 @@ void VKTexture::image_bind(int binding)
 }
 
 
-void VKTexture::texture_bind(int binding, eGPUSamplerState sampler_type)
+void VKTexture::texture_bind(int binding,const GPUSamplerState& sampler_type)
 {
+  #if 0
   if (!is_allocated()) {
     allocate();
   }
@@ -339,6 +332,7 @@ void VKTexture::texture_bind(int binding, eGPUSamplerState sampler_type)
   command_buffer.image_transition(this, VkTransitionState::VK_ENSURE_TEXTURE, false, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,mipmaps_);
 
   shader->pipeline_get().descriptor_set_get().texture_bind(*this, location, sampler_type);
+  #endif
 }
 
 /* -------------------------------------------------------------------- */

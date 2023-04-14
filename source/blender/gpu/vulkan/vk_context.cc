@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2022 Blender Foundation */
+ * Copyright 2022 Blender Foundation. All rights reserved. */
 
 /** \file
  * \ingroup gpu
@@ -19,7 +19,7 @@
 
 #include "GHOST_C-api.h"
 
-#include "intern/GHOST_ContextVk.h"
+#include "intern/GHOST_ContextVk.hh"
 
 namespace blender::gpu {
 
@@ -45,7 +45,7 @@ VKContext::VKContext(void *ghost_window, void *ghost_context)
 
   init_physical_device_limits();
   /*Issue Memory Leak */
-  #if 0
+  #if 0 
   /* Initialize the memory allocator. */
   VmaAllocatorCreateInfo info = {};
   /* Should use same vulkan version as GHOST (1.2), but set to 1.0 as 1.2 requires
@@ -62,26 +62,27 @@ VKContext::VKContext(void *ghost_window, void *ghost_context)
 
   VKBackend::capabilities_init(*this);
 
-  state_manager = new VKStateManager(this);
-  imm = new VKImmediate(this);
+  state_manager = new VKStateManager();
+  imm = new VKImmediate();
 
   /* For off-screen contexts. Default frame-buffer is empty. */
   back_left = new VKFrameBuffer("back_left");
   active_fb = back_left;
   vk_swap_chain_images_.resize(vk_im_prop.nums);
 
+  #if 0
     /* Initialize samplers. */
   for (uint i = 0; i < GPU_SAMPLER_MAX; i++) {
     VKSamplerState state;
     state.state = static_cast<eGPUSamplerState>(i);
     sampler_state_cache_[i] = this->generate_sampler_from_state(state);
   }
-
+  #endif
   vk_in_frame_ = false;
 }
 
 VkSampler VKContext::generate_sampler_from_state(VKSamplerState sampler_state) {
-
+    #if 0
   /* Check if sampler already exists for given state. */
   VkSamplerCreateInfo samplerCI = {VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
 
@@ -144,6 +145,8 @@ VkSampler VKContext::generate_sampler_from_state(VKSamplerState sampler_state) {
                             &sampler_state_cache_[(uint)sampler_state]);
 
   return sampler_state_cache_[(uint)sampler_state];
+  #endif
+  return VK_NULL_HANDLE;
 }
 
 VkSampler VKContext::get_default_sampler_state() {
@@ -155,19 +158,22 @@ return default_sampler_state_;
 }
 
 VkSampler VKContext::get_sampler_from_state(VKSamplerState sampler_state) {
+  #if 0
 BLI_assert((uint)sampler_state >= 0 &&
             ((uint)sampler_state) < GPU_SAMPLER_MAX);
 return sampler_state_cache_[(uint)sampler_state];
+#endif
+return VK_NULL_HANDLE;
 }
 
 VKContext::~VKContext()
 {
-
+  #if 0 
   for (int i = 0; i < GPU_SAMPLER_MAX; i++) {
     if (sampler_state_cache_[i] != VK_NULL_HANDLE)
       vkDestroySampler(vk_device_, sampler_state_cache_[i], nullptr);
   };
-
+  #endif
   VKBackend::desable_gpuctx(this,descriptor_pools_);
 }
 
@@ -184,25 +190,50 @@ void VKContext::activate()
   if (ghost_window_) {
     VkImage image; /* TODO will be used for reading later... */
     VkFramebuffer vk_framebuffer;
-    VkFramebuffer vk_framebuffer;
     VkRenderPass render_pass;
     VkExtent2D extent;
     uint32_t fb_id;
 
-    GHOST_GetVulkanBackbuffer(
-        (GHOST_WindowHandle)ghost_window_, &image, &framebuffer, &render_pass, &extent, &fb_id);
-
-    /* Recreate the gpu::VKFrameBuffer wrapper after every swap. */
+    GHOST_GetVulkanBackbuffer((GHOST_WindowHandle)ghost_window_,
+                              &image,
+                              &vk_framebuffer,
+                              &render_pass,
+                              &extent,
+                              &fb_id,
+                              0);
+    active_fb = nullptr;
     delete back_left;
+    back_left = new VKFrameBuffer("swapchain-0", vk_framebuffer, render_pass, extent);
+    ((VKFrameBuffer *)back_left)->set_image_id(0);
 
-    back_left = new VKFrameBuffer("back_left", framebuffer, render_pass, extent);
+    GHOST_GetVulkanBackbuffer((GHOST_WindowHandle)ghost_window_,
+                              &image,
+                              &vk_framebuffer,
+                              &render_pass,
+                              &extent,
+                              &fb_id,
+                              1);
+    delete front_left;
+    front_left = new VKFrameBuffer("swapchain-1", vk_framebuffer, render_pass, extent);
+    ((VKFrameBuffer *)front_left)->set_image_id(1);
+
+    uint32_t current_im = fb_id & 1;
+
+    if (current_im == 1) {
+      std::swap(back_left, front_left);
+    }
+    
+    printf("FRAMEBUFER Reallocate  >>>>>>>>>>>>>>>>>>>> back %llx (%s) front %llx (%s) \n",(uint64_t)back_left,back_left->name_get(),(uint64_t)front_left,front_left->name_get());
+
     active_fb = back_left;
+    back_left->bind(false);
   }
   immActivate();
 }
 
 void VKContext::deactivate()
 {
+  immDeactivate();
 }
 
 void VKContext::begin_frame()
@@ -254,145 +285,132 @@ void VKContext::flush()
 
 void VKContext::finish()
 {
-  command_buffer_.submit();
-}
 
-bool VKContext::validate_frame()
-{
-
-  VkSemaphore wait = VK_NULL_HANDLE, fin = VK_NULL_HANDLE;
-
-  uint8_t fb_id = semaphore_get(wait, fin);
-  uint8_t current_frame = (fb_id >> 1) & 1;
-  bool active_cache = (active_fb == back_left);
-
-  vk_fb_id_ = fb_id;
-  VkSemaphore sema_fin = command_buffer_.get_fin_semaphore();
-  uint8_t sema_frame = command_buffer_.get_sema_frame();
-
-  if (sema_fin == VK_NULL_HANDLE) {
-    if (sema_frame == current_frame) {
-      GHOST_SwapWindowBuffers((GHOST_WindowHandle)ghost_window_);
-      fb_id = semaphore_get(wait, fin);
-      current_frame = (fb_id >> 1) & 1;
-      BLI_assert(sema_frame != current_frame);
-    }
-    command_buffer_.set_remote_semaphore(wait);
-    command_buffer_.set_fin_semaphore(fin);
-    command_buffer_.set_sema_frame(current_frame);
-  }
-  else if (sema_fin == fin) {
-    BLI_assert(sema_frame == current_frame);
-  }
-  else {
-    BLI_assert_unreachable();
-  }
-
-  uint8_t backleft_id  = ((VKFrameBuffer *)back_left)->get_image_id();
-  uint8_t current_im  = (fb_id) & 1;
-
-  if (current_im != backleft_id) {
-    std::swap(back_left, front_left);
-    if (active_cache) {
-      active_fb = back_left;
-    }
-  }
-
-  if (!active_fb) {
-    active_fb = back_left;
-  }
- printf("FRAMEBUFER Validate  >>>>>>>>>>>>>>>>>>>> back %llx (%s) front %llx (%s) \n",(uint64_t)back_left,back_left->name_get(),(uint64_t)front_left,front_left->name_get());
-
-  BLI_assert(((VKFrameBuffer *)back_left)->get_image_id() == current_im);
-
-  return true;
-};
-
-void VKContext::swapchains()
-{
-  GHOST_SwapWindowBuffers((GHOST_WindowHandle)ghost_window_);
-};
-
-bool VKContext::validate_frame()
-{
-
-  VkSemaphore wait = VK_NULL_HANDLE, fin = VK_NULL_HANDLE;
-
-  uint8_t fb_id = semaphore_get(wait, fin);
-  uint8_t current_frame = (fb_id >> 1) & 1;
-  bool active_cache = (active_fb == back_left);
-
-  vk_fb_id_ = fb_id;
-  VkSemaphore sema_fin = command_buffer_.get_fin_semaphore();
-  uint8_t sema_frame = command_buffer_.get_sema_frame();
-
-  if (sema_fin == VK_NULL_HANDLE) {
-    if (sema_frame == current_frame) {
-      GHOST_SwapWindowBuffers((GHOST_WindowHandle)ghost_window_);
-      fb_id = semaphore_get(wait, fin);
-      current_frame = (fb_id >> 1) & 1;
-      BLI_assert(sema_frame != current_frame);
-    }
-    command_buffer_.set_remote_semaphore(wait);
-    command_buffer_.set_fin_semaphore(fin);
-    command_buffer_.set_sema_frame(current_frame);
-  }
-  else if (sema_fin == fin) {
-    BLI_assert(sema_frame == current_frame);
-  }
-  else {
-    BLI_assert_unreachable();
-  }
-
-  uint8_t backleft_id  = ((VKFrameBuffer *)back_left)->get_image_id();
-  uint8_t current_im  = (fb_id) & 1;
-
-  if (current_im != backleft_id) {
-    std::swap(back_left, front_left);
-    if (active_cache) {
-      active_fb = back_left;
-    }
-  }
-
-  if (!active_fb) {
-    active_fb = back_left;
-  }
- printf("FRAMEBUFER Validate  >>>>>>>>>>>>>>>>>>>> back %llx (%s) front %llx (%s) \n",(uint64_t)back_left,back_left->name_get(),(uint64_t)front_left,front_left->name_get());
-
-  BLI_assert(((VKFrameBuffer *)back_left)->get_image_id() == current_im);
-
-  return true;
-};
-
-void VKContext::swapchains()
-{
-  GHOST_SwapWindowBuffers((GHOST_WindowHandle)ghost_window_);
-};
-
-void VKContext::memory_statistics_get(int * /*total_mem*/, int * /*free_mem*/) {}
-
-void VKContext::activate_framebuffer(VKFrameBuffer &framebuffer)
-{
   if (has_active_framebuffer()) {
     deactivate_framebuffer();
   }
 
-  BLI_assert(active_fb == nullptr);
-  active_fb = &framebuffer;
-  command_buffer_.begin_render_pass(framebuffer);
+  command_buffer_.submit(false, true);
+  vk_in_frame_ = false;
 }
 
-bool VKContext::has_active_framebuffer() const
+void VKContext::flush(bool toggle, bool fin, bool activate)
 {
-  return active_fb != nullptr;
+
+  VKFrameBuffer *previous_framebuffer = nullptr;
+
+  if (activate) {
+    previous_framebuffer = active_framebuffer_get();
+    if (has_active_framebuffer()) {
+      deactivate_framebuffer();
+    }
+  }
+
+  command_buffer_.submit(toggle, fin);
+
+  if (activate && (previous_framebuffer != nullptr)) {
+    activate_framebuffer(*previous_framebuffer);
+  }
+
+  if (fin) {
+    vk_in_frame_ = false;
+  }
 }
 
-void VKContext::deactivate_framebuffer()
+bool VKContext::validate_image()
 {
-  BLI_assert(active_fb != nullptr);
-  VKFrameBuffer *framebuffer = unwrap(active_fb);
-  command_buffer_.end_render_pass(*framebuffer);
-  active_fb = nullptr;
+
+  VkImage image;
+  VkFramebuffer vk_framebuffer;
+  VkRenderPass render_pass;
+  VkExtent2D extent;
+  uint32_t fb_id;
+
+  GHOST_GetVulkanBackbuffer((GHOST_WindowHandle)ghost_window_,
+                            &image,
+                            &vk_framebuffer,
+                            &render_pass,
+                            &extent,
+                            &fb_id,
+                            vk_fb_id_ & 1);
+  uint8_t current_im = fb_id & 1;
+  BLI_assert((vk_fb_id_ & 1) == current_im);
+  auto &im = sc_image_get(current_im);
+
+  if (!im.is_valid(image)) {
+
+    im.init(image, vk_im_prop.format);
+
+    command_buffer_.begin_recording();
+
+    im.current_layout_set(VK_IMAGE_LAYOUT_UNDEFINED);
+
+    command_buffer_.image_transition(&im, VkTransitionState::VK_BEFORE_PRESENT, false);
+
+    flush(true, false, true);
+  }
+
+  return true;
+}
+
+bool VKContext::validate_frame()
+{
+
+  VkSemaphore wait = VK_NULL_HANDLE, fin = VK_NULL_HANDLE;
+
+  uint8_t fb_id = semaphore_get(wait, fin);
+  uint8_t current_frame = (fb_id >> 1) & 1;
+  bool active_cache = (active_fb == back_left);
+
+  vk_fb_id_ = fb_id;
+  VkSemaphore sema_fin = command_buffer_.get_fin_semaphore();
+  uint8_t sema_frame = command_buffer_.get_sema_frame();
+
+  if (sema_fin == VK_NULL_HANDLE) {
+    if (sema_frame == current_frame) {
+      GHOST_SwapWindowBuffers((GHOST_WindowHandle)ghost_window_);
+      fb_id = semaphore_get(wait, fin);
+      current_frame = (fb_id >> 1) & 1;
+      BLI_assert(sema_frame != current_frame);
+    }
+    command_buffer_.set_remote_semaphore(wait);
+    command_buffer_.set_fin_semaphore(fin);
+    command_buffer_.set_sema_frame(current_frame);
+  }
+  else if (sema_fin == fin) {
+    BLI_assert(sema_frame == current_frame);
+  }
+  else {
+    BLI_assert_unreachable();
+  }
+
+  uint8_t backleft_id  = ((VKFrameBuffer *)back_left)->get_image_id();
+  uint8_t current_im  = (fb_id) & 1;
+
+  if (current_im != backleft_id) {
+    std::swap(back_left, front_left);
+    if (active_cache) {
+      active_fb = back_left;
+    }
+  }
+
+  if (!active_fb) {
+    active_fb = back_left;
+  }
+ printf("FRAMEBUFER Validate  >>>>>>>>>>>>>>>>>>>> back %llx (%s) front %llx (%s) \n",(uint64_t)back_left,back_left->name_get(),(uint64_t)front_left,front_left->name_get());
+
+  BLI_assert(((VKFrameBuffer *)back_left)->get_image_id() == current_im);
+
+  return true;
+};
+
+void VKContext::swapchains()
+{
+  GHOST_SwapWindowBuffers((GHOST_WindowHandle)ghost_window_);
+};
+
+void VKContext::memory_statistics_get(int * /*total_mem*/, int * /*free_mem*/)
+{
 }
 
 uint8_t VKContext::semaphore_get(VkSemaphore &wait, VkSemaphore &finish)
@@ -503,11 +521,11 @@ void VKContext::swapbuffers()
 /* -------------------------------------------------------------------- */
 /** \name Graphics pipeline
  * \{ */
-void VKContext::bind_graphics_pipeline()
+void VKContext::bind_graphics_pipeline(GPUPrimType prim_type, const VKVertexAttributeObject &vertex_attribute_object)
 {
   VKShader *shader = unwrap(this->shader);
   BLI_assert(shader);
-  shader->update_graphics_pipeline(*this);
+  shader->update_graphics_pipeline(*this,prim_type,vertex_attribute_object);
   command_buffer_get().bind(shader->pipeline_get(), VK_PIPELINE_BIND_POINT_GRAPHICS);
 }
 

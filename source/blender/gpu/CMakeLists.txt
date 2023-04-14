@@ -215,9 +215,9 @@ set(VULKAN_SRC
   vulkan/vk_framebuffer.cc
   vulkan/vk_index_buffer.cc
   vulkan/vk_immediate.cc
+  vulkan/vk_layout.cc
   vulkan/vk_memory_layout.cc
   vulkan/vk_memory.cc
-  vulkan/vk_memory_layout.cc
   vulkan/vk_pipeline.cc
   vulkan/vk_pipeline_state.cc
   vulkan/vk_pixel_buffer.cc
@@ -251,9 +251,9 @@ set(VULKAN_SRC
   vulkan/vk_framebuffer.hh
   vulkan/vk_index_buffer.hh
   vulkan/vk_immediate.hh
+  vulkan/vk_layout.hh
   vulkan/vk_memory_layout.hh
   vulkan/vk_memory.hh
-  vulkan/vk_memory_layout.hh
   vulkan/vk_pipeline.hh
   vulkan/vk_pipeline_state.hh
   vulkan/vk_pixel_buffer.hh

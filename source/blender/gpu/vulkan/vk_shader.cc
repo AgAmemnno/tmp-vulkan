@@ -1,6 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later
  * Copyright 2022 Blender Foundation */
- * Copyright 2022 Blender Foundation */
 
 /** \file
  * \ingroup gpu
@@ -1200,5 +1199,21 @@ const VKShaderInterface &VKShader::interface_get() const
                  "instance created in the finalize method.");
   return *static_cast<const VKShaderInterface *>(interface);
 }
+
+void VKShader::update_graphics_pipeline(VKContext &context,
+                                        const VKBatch &batch,
+                                        const VKVertexAttributeObject &vertex_attribute_object)
+{
+  BLI_assert(is_graphics_shader());
+  pipeline_get().finalize(
+      context, vertex_module_, fragment_module_, pipeline_layout_, batch, vertex_attribute_object);
+}
+
+void VKShader::update_graphics_pipeline(VKContext &context,GPUPrimType prim_type,const VKVertexAttributeObject &vertex_attribute_object)
+{
+  BLI_assert(is_graphics_shader());
+  pipeline_get().finalize(context, vertex_module_, fragment_module_, pipeline_layout_,prim_type,vertex_attribute_object);
+}
+
 
 }  // namespace blender::gpu

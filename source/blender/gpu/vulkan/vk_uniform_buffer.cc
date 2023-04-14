@@ -9,6 +9,7 @@
 #include "vk_context.hh"
 #include "vk_shader.hh"
 #include "vk_descriptor_set.hh"
+#include "vk_shader_interface.hh"
 
 namespace blender::gpu {
 

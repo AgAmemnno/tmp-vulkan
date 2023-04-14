@@ -249,7 +249,7 @@ static VkResult vulkan_dynamic_load(PFN_vkGetInstanceProcAddr &func)
 {
 
 #  if defined(_WIN32)
-  HMODULE vulkanDll = LoadLibraryA("D:\\blender\\lib\\win64_vc15\\vulkan\\bin\\vulkan-1-x64.dll");
+  HMODULE vulkanDll = LoadLibraryA("vulkan-1.dll");
   if (!vulkanDll) {
     return VK_ERROR_INITIALIZATION_FAILED;
   }

@@ -426,10 +426,10 @@ class SingletonDevice {
 
 class SingletonInstance {
  public:
-  SingletonInstance() : vk_instance_(VK_NULL_HANDLE)
-  {
-    //putenv("VK_LAYER_PATH=C:\\VulkanSDK\\1.3.243.0\\Bin");
-  };
+  SingletonInstance()
+      : vk_instance_(VK_NULL_HANDLE){
+            // putenv("VK_LAYER_PATH=C:\\VulkanSDK\\1.3.243.0\\Bin");
+        };
   ~SingletonInstance()
   {
     if (vk_instance_ != VK_NULL_HANDLE) {

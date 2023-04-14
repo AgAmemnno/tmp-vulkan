@@ -74,3 +74,4 @@ CMakePresets.json
 CMakeUserPresets.json
 
 /extern/Vulkan-ValidationLayers
+tmp-vulkan.code-workspace

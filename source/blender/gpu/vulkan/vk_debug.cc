@@ -1,19 +1,10 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2023 Blender Foundation. */
-
-/** \file
- * \ingroup gpu
- */
-
-#include "vk_debug.hh"
-#include "vk_backend.hh"
-#include "vk_context.hh"
-/* SPDX-License-Identifier: GPL-2.0-or-later
  * Copyright 2023 Blender Foundation. All rights reserved. */
 
 /** \file
  * \ingroup gpu
  */
+
 #include "BKE_global.h"
 #include "BLI_set.hh"
 #include "BLI_system.h"
@@ -23,8 +14,6 @@
 #include "vk_common.hh"
 #include "vk_context.hh"
 
-#include <mutex>
-
 #define VK_DEBUG_ENABLED 1
 
 #if defined(__unix__) || defined(__APPLE__)
@@ -33,16 +22,22 @@
 #  define GET_FUNC_ADDRESS dlsym
 #endif
 #if defined(_MSC_VER)
+#  define NOMINMAX
 #  define WINDOWS_LEAN_AND_MEAN
-#  include <VersionHelpers.h> /* This needs to be included after Windows.h. */
 #  include <Windows.h>
+
 #  include <io.h>
+
 #  if !defined(ENABLE_VIRTUAL_TERMINAL_PROCESSING)
 #    define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
 #  endif
 
 #  define GET_FUNC_ADDRESS (void *)GetProcAddress
 #endif
+
+
+
+#include <mutex>
 
 namespace blender::gpu {
 const char *to_vk_error_string(VkResult result)
@@ -559,9 +554,6 @@ VKDebuggingTools &VKDebuggingTools::operator=(VKDebuggingTools &tools)
 void object_label(VKContext *context, VkObjectType objType, uint64_t obj, const char *name)
 {
   if (G.debug & G_DEBUG_GPU) {
-    if (std::string("Buffer_15") == name) {
-      printf("");
-    }
     const VKDebuggingTools &tools = context->debugging_tools_get();
     if (tools.enabled) {
       VkDebugUtilsObjectNameInfoEXT info = {};

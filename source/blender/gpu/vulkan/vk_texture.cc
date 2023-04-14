@@ -5,8 +5,6 @@
  * \ingroup gpu
  */
 
-#include "DNA_userdef_types.h"
-
 #include "vk_texture.hh"
 
 #include "vk_buffer.hh"
@@ -28,12 +26,13 @@ VKTexture::~VKTexture()
 
   vmaDestroyImage(VKBackend::get().mem_allocator_get(), vk_image_, allocation_);
   vkDestroyImageView(VKBackend::get().mem_device_get(), vk_image_view_, vk_allocation_callbacks);
-}
 
-VkSampler VKTexture::samplers_cache_[GPU_SAMPLER_EXTEND_MODES_COUNT]
-                                    [GPU_SAMPLER_EXTEND_MODES_COUNT]
-                                    [GPU_SAMPLER_FILTERING_TYPES_COUNT] = {};
-VkSampler VKTexture::custom_samplers_cache_[GPU_SAMPLER_CUSTOM_TYPES_COUNT] = {};
+}
+/* Samplers cache VulkanObjects directly, not information. */
+VkSampler VKTexture::samplers_state_cache_[GPU_SAMPLER_EXTEND_MODES_COUNT]
+                                       [GPU_SAMPLER_EXTEND_MODES_COUNT]
+                                       [GPU_SAMPLER_FILTERING_TYPES_COUNT] = {};
+VkSampler VKTexture::custom_samplers_state_cache_[GPU_SAMPLER_CUSTOM_TYPES_COUNT] = {};
 
 static inline VkSamplerAddressMode to_vk(GPUSamplerExtendMode extend_mode)
 {
@@ -52,14 +51,10 @@ static inline VkSamplerAddressMode to_vk(GPUSamplerExtendMode extend_mode)
   }
 }
 
-void VKTexture::samplers_init(VKContext *context)
+void VKTexture::samplers_init()
 {
-  VkDevice vk_device = context->device_get();
 
   VkSamplerCreateInfo samplerCI = {VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
-  samplerCI.pNext = VK_NULL_HANDLE;
-  samplerCI.flags = 0;
-
   const float max_anisotropy = 16.f;
   const float aniso_filter = max_ff(max_anisotropy, U.anisotropic_filter);
 
@@ -79,97 +74,97 @@ void VKTexture::samplers_init(VKContext *context)
         samplerCI.mipmapMode = (filtering & GPU_SAMPLER_FILTERING_LINEAR) ?
                                    VK_SAMPLER_MIPMAP_MODE_LINEAR :
                                    VK_SAMPLER_MIPMAP_MODE_NEAREST;
-        samplerCI.maxAnisotropy = ((filtering & GPU_SAMPLER_FILTERING_MIPMAP) &&
-                                   (filtering & GPU_SAMPLER_FILTERING_ANISOTROPIC)) ?
-                                      aniso_filter :
-                                      1.f;
-        samplerCI.compareEnable = VK_FALSE;
-        samplerCI.compareOp = VK_COMPARE_OP_ALWAYS;
+        samplerCI.maxAnisotropy = (filtering & GPU_SAMPLER_FILTERING_MIPMAP) ? aniso_filter :
+                                                                               max_anisotropy;
+        samplerCI.compareEnable = (filtering & GPU_SAMPLER_COMPARE) ? VK_TRUE : VK_FALSE;
+        samplerCI.compareOp = (filtering & GPU_SAMPLER_COMPARE) ? VK_COMPARE_OP_EQUAL :
+                                                                  VK_COMPARE_OP_ALWAYS;
+
+        VkSampler &sampler = samplers_state_cache_[extend_yz_i][extend_x_i][filtering_i];
+
+
         samplerCI.addressModeU = extend_s;
         samplerCI.addressModeV = extend_t;
         samplerCI.addressModeW = extend_t;
         samplerCI.mipLodBias = 0.0f;
         samplerCI.minLod = -1000;
         samplerCI.maxLod = 1000;
-        samplerCI.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
-        samplerCI.unnormalizedCoordinates = VK_FALSE;
-
-        VkSampler &sampler = samplers_cache_[extend_yz_i][extend_x_i][filtering_i];
-        vkCreateSampler(vk_device, &samplerCI, nullptr, &sampler);
-
         const GPUSamplerState sampler_state = {filtering, extend_x, extend_yz};
         const std::string sampler_name = sampler_state.to_string();
-        debug::object_label(context, sampler, sampler_name.c_str());
+        debug::object_label(VKContext::get(), sampler, sampler_name.c_str());
       }
     }
   }
+  samplers_update();
+
+  glGenSamplers(GPU_SAMPLER_CUSTOM_TYPES_COUNT, custom_samplers_state_cache_);
 
   /* Compare sampler for depth textures. */
-  VkSampler &compare_sampler = custom_samplers_cache_[GPU_SAMPLER_CUSTOM_COMPARE];
-  samplerCI.minFilter = samplerCI.magFilter = VK_FILTER_LINEAR;
-  samplerCI.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-  samplerCI.maxAnisotropy = 1.f;
-  samplerCI.compareEnable = VK_TRUE;
-  samplerCI.compareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-  samplerCI.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-  samplerCI.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-  samplerCI.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-  samplerCI.mipLodBias = 0.0f;
-  samplerCI.minLod = -1000;
-  samplerCI.maxLod = 1000;
-  samplerCI.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
-  samplerCI.unnormalizedCoordinates = VK_FALSE;
-  vkCreateSampler(vk_device, &samplerCI, nullptr, &compare_sampler);
-  // glSamplerParameteri(compare_sampler, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-  debug::object_label(context, compare_sampler, "compare");
+  GLuint compare_sampler = custom_samplers_state_cache_[GPU_SAMPLER_CUSTOM_COMPARE];
+  glSamplerParameteri(compare_sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glSamplerParameteri(compare_sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glSamplerParameteri(compare_sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glSamplerParameteri(compare_sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glSamplerParameteri(compare_sampler, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+  glSamplerParameteri(compare_sampler, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+  glSamplerParameteri(compare_sampler, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+
+  debug::object_label(GL_SAMPLER, compare_sampler, "compare");
 
   /* Custom sampler for icons. The icon texture is sampled within the shader using a -0.5f LOD
    * bias. */
-  VkSampler &icon_sampler = custom_samplers_cache_[GPU_SAMPLER_CUSTOM_ICON];
-  samplerCI.mipLodBias = -0.5f;
-  samplerCI.minFilter = VK_FILTER_LINEAR;
-  samplerCI.magFilter = VK_FILTER_LINEAR;
-  samplerCI.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-  vkCreateSampler(vk_device, &samplerCI, nullptr, &icon_sampler);
-  debug::object_label(context, icon_sampler, "icons");
-}
+  GLuint icon_sampler = custom_samplers_state_cache_[GPU_SAMPLER_CUSTOM_ICON];
+  glSamplerParameteri(icon_sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+  glSamplerParameteri(icon_sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
+  debug::object_label(GL_SAMPLER, icon_sampler, "icons");
+}
+/** Reconstruction cannot be partially done with update. If device is destroyed, it needs
+ *to be rebuilt.
+ **/
 void VKTexture::samplers_update()
 {
-  samplers_free();
-  samplers_init(VKContext::get());
-}
+  /* TODO:*/ add capability `glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropy);` */
+  const float max_anisotropy = 16.f;
+  const float aniso_filter = max_ff(max_anisotropy, U.anisotropic_filter);
+  samplerCI.maxAnisotropy = (sampler_state.state & GPU_SAMPLER_MIPMAP) ? aniso_filter :
+                                                                         max_anisotropy;
 
-void VKTexture::samplers_free()
-{
-
-  VkDevice vk_device = VKContext::get()->device_get();
-  VkSampler &icon_sampler = custom_samplers_cache_[GPU_SAMPLER_CUSTOM_ICON];
-  VkSampler &compare_sampler = custom_samplers_cache_[GPU_SAMPLER_CUSTOM_COMPARE];
-  vkDestroySampler(vk_device, icon_sampler, VK_NULL_HANDLE);
-  vkDestroySampler(vk_device, compare_sampler, VK_NULL_HANDLE);
-  icon_sampler = compare_sampler = VK_NULL_HANDLE;
+  const float anisotropic_filter = min_ff(max_anisotropy, U.anisotropic_filter);
 
   for (int extend_yz_i = 0; extend_yz_i < GPU_SAMPLER_EXTEND_MODES_COUNT; extend_yz_i++) {
     for (int extend_x_i = 0; extend_x_i < GPU_SAMPLER_EXTEND_MODES_COUNT; extend_x_i++) {
       for (int filtering_i = 0; filtering_i < GPU_SAMPLER_FILTERING_TYPES_COUNT; filtering_i++) {
-        VkSampler &sampler = samplers_cache_[extend_yz_i][extend_x_i][filtering_i];
-        vkDestroySampler(vk_device, sampler, VK_NULL_HANDLE);
-        sampler = VK_NULL_HANDLE;
+        const GPUSamplerFiltering filtering = GPUSamplerFiltering(filtering_i);
+
+        if ((filtering & GPU_SAMPLER_FILTERING_ANISOTROPIC) &&
+            (filtering & GPU_SAMPLER_FILTERING_MIPMAP)) {
+          glSamplerParameterf(samplers_state_cache_[extend_yz_i][extend_x_i][filtering_i],
+                              GL_TEXTURE_MAX_ANISOTROPY_EXT,
+                              anisotropic_filter);
+        }
       }
     }
   }
+}
+
+void VKTexture::samplers_free()
+{
+  glDeleteSamplers(samplers_state_cache_count_, &samplers_state_cache_[0][0][0]);
+  glDeleteSamplers(GPU_SAMPLER_CUSTOM_TYPES_COUNT, custom_samplers_state_cache_);
 }
 
 VkSampler VKTexture::get_sampler(const GPUSamplerState &sampler_state)
 {
   /* Internal sampler states are signal values and do not correspond to actual samplers. */
-  BLI_assert(sampler_state.type != GPU_SAMPLER_STATE_TYPE_INTERNAL);
+BLI_assert(sampler_state.type != GPU_SAMPLER_STATE_TYPE_INTERNAL);
 
-  if (sampler_state.type == GPU_SAMPLER_STATE_TYPE_CUSTOM) {
-    return custom_samplers_cache_[sampler_state.custom_type];
+if (sampler_state.type == GPU_SAMPLER_STATE_TYPE_CUSTOM) {
+  return custom_samplers_state_cache_[sampler_state.custom_type];
   }
-  return samplers_cache_[sampler_state.extend_yz][sampler_state.extend_x][sampler_state.filtering];
+
+  return samplers_state_cache_[sampler_state.extend_yz][sampler_state.extend_x]
+                              [sampler_state.filtering];
 }
 
 void VKTexture::generate_mipmap() {}
@@ -181,7 +176,7 @@ void VKTexture::clear(eGPUDataFormat format, const void *data)
   if (!is_allocated()) {
     allocate();
   }
-  int c_mip = current_mip_;
+  int c_mip = current_mip_ ;
   current_mip_ = -1;
   VKContext &context = *VKContext::get();
   VKCommandBuffer &command_buffer = context.command_buffer_get();
@@ -194,7 +189,8 @@ void VKTexture::clear(eGPUDataFormat format, const void *data)
 
   command_buffer.clear(
       vk_image_, current_layout_get(), clear_color, Span<VkImageSubresourceRange>(&range, 1));
-  current_mip_ = c_mip;
+  current_mip_  = c_mip;
+
 }
 
 void VKTexture::swizzle_set(const char /*swizzle_mask*/[4]) {}
@@ -278,7 +274,8 @@ void VKTexture::update_sub(
   command_buffer.copy(*this, staging_buffer, Span<VkBufferImageCopy>(&region, 1));
   command_buffer.submit();
 
-  layout_ensure(context, VkTransitionState::VK_ENSURE_TEXTURE);
+  layout_ensure(context,VkTransitionState::VK_ENSURE_TEXTURE);
+
 }
 
 void VKTexture::update_sub(int /*offset*/[3],
@@ -335,8 +332,7 @@ static VkImageUsageFlagBits to_vk_image_usage(const eGPUTextureUsage usage,
     result = static_cast<VkImageUsageFlagBits>(result | VK_IMAGE_USAGE_SAMPLED_BIT);
   }
   if (usage & GPU_TEXTURE_USAGE_SHADER_WRITE) {
-    result = static_cast<VkImageUsageFlagBits>(result | VK_IMAGE_USAGE_STORAGE_BIT |
-                                               VK_IMAGE_USAGE_SAMPLED_BIT);
+    result = static_cast<VkImageUsageFlagBits>(result | VK_IMAGE_USAGE_STORAGE_BIT| VK_IMAGE_USAGE_SAMPLED_BIT);
   }
   if (usage & GPU_TEXTURE_USAGE_ATTACHMENT) {
     if (format_flag & (GPU_FORMAT_NORMALIZED_INTEGER | GPU_FORMAT_COMPRESSED)) {
@@ -380,7 +376,7 @@ bool VKTexture::allocate()
   image_info.format = to_vk_format(format_);
 
   current_layout_.resize(mipmaps_);
-  for (auto &layout : current_layout_) {
+  for(auto & layout :current_layout_){
     layout = VK_IMAGE_LAYOUT_UNDEFINED;
   };
   current_mip_ = 0;
@@ -426,7 +422,7 @@ bool VKTexture::allocate()
   }
 
   /* Promote image to the correct layout. */
-  // layout_ensure(context,VkTransitionState::VK_ENSURE_TEXTURE);
+  //layout_ensure(context,VkTransitionState::VK_ENSURE_TEXTURE);
 
   VK_ALLOCATION_CALLBACKS
   VkImageViewCreateInfo image_view_info = {};
@@ -457,9 +453,10 @@ void VKTexture::image_bind(int binding)
   shader->pipeline_get().descriptor_set_get().image_bind(*this, location);
 }
 
-void VKTexture::texture_bind(int binding, const GPUSamplerState &sampler_type)
-{
 
+void VKTexture::texture_bind(int binding,const GPUSamplerState& sampler_type)
+{
+  #if 0
   if (!is_allocated()) {
     allocate();
   }
@@ -470,13 +467,10 @@ void VKTexture::texture_bind(int binding, const GPUSamplerState &sampler_type)
 
   current_mip_ = -1;
   VKCommandBuffer &command_buffer = context.command_buffer_get();
-  command_buffer.image_transition(this,
-                                  VkTransitionState::VK_ENSURE_TEXTURE,
-                                  false,
-                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                  mipmaps_);
+  command_buffer.image_transition(this, VkTransitionState::VK_ENSURE_TEXTURE, false, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,mipmaps_);
 
   shader->pipeline_get().descriptor_set_get().texture_bind(*this, location, sampler_type);
+  #endif
 }
 
 /* -------------------------------------------------------------------- */
@@ -485,21 +479,21 @@ void VKTexture::texture_bind(int binding, const GPUSamplerState &sampler_type)
 
 VkImageLayout VKTexture::current_layout_get() const
 {
-  if (current_mip_ == -1) {
+  if(current_mip_ == -1){
     auto layout0 = current_layout_[0];
-    for (int i = 1; i < mipmaps_; i++) {
-      BLI_assert(layout0 == current_layout_[i]);
+    for(int i= 1;i<mipmaps_;i++){
+      BLI_assert(layout0 ==  current_layout_[i]);
     }
-    return layout0;
+    return  layout0;
   }
   return current_layout_[current_mip_];
 }
 
 void VKTexture::current_layout_set(const VkImageLayout new_layout)
 {
-  if (current_mip_ == -1) {
-    for (int i = 0; i < mipmaps_; i++) {
-      current_layout_[i] = new_layout;
+  if(current_mip_ == -1){
+    for(int i= 0;i<mipmaps_;i++){
+      current_layout_[i] =  new_layout;
     }
     return;
   }

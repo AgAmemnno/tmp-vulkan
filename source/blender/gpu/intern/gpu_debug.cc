@@ -88,7 +88,7 @@ void GPU_debug_capture_begin()
       printf("Failed to start GPU frame capture!\n");
     }
     /* Call GPU_finish to ensure all desired GPU commands occur within the capture boundary. */
-    //GPU_finish();
+    // GPU_finish();
     GPU_flush();
   }
 }

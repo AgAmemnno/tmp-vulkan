@@ -8,12 +8,15 @@
 #include "gpu_capabilities_private.hh"
 #include "gpu_platform_private.hh"
 
+#include "vk_backend.hh"
 #include "vk_batch.hh"
 #include "vk_context.hh"
+#include "vk_descriptor_pools.hh"
 #include "vk_drawlist.hh"
 #include "vk_fence.hh"
 #include "vk_framebuffer.hh"
 #include "vk_index_buffer.hh"
+#include "vk_memory.hh"
 #include "vk_pixel_buffer.hh"
 #include "vk_query.hh"
 #include "vk_shader.hh"
@@ -21,49 +24,48 @@
 #include "vk_texture.hh"
 #include "vk_uniform_buffer.hh"
 #include "vk_vertex_buffer.hh"
-#include "vk_memory.hh"
-#include "vk_backend.hh"
-#include "vk_descriptor_pools.hh"
-#include "vk_memory.hh"
-
 
 namespace blender::gpu {
 
-VKContext* VKBackend::gpuctx_ = nullptr;
- int     VKBackend::context_ref_count_  = 0;
+VKContext *VKBackend::gpuctx_ = nullptr;
+int VKBackend::context_ref_count_ = 0;
 VmaAllocator VKBackend::mem_allocator_ = VK_NULL_HANDLE;
-VkDevice  VKBackend::mem_device_ = VK_NULL_HANDLE;
-
-template<typename T>
-void VKBackend::desable_gpuctx(VKContext* context,T& descriptor_pools_){
+VkDevice VKBackend::mem_device_ = VK_NULL_HANDLE;
+VKBackend::VKBackend()
+{
+  context_ref_count_ = 0;
+  VKBackend::init_platform();
+}
+template<typename T> void VKBackend::desable_gpuctx(VKContext *context, T &descriptor_pools_)
+{
   context_ref_count_--;
-  if(context== gpuctx_){
+  if (context == gpuctx_) {
     gpuctx_ = nullptr;
   }
 
   static Vector<VkDescriptorPool> pools;
-  static debug::VKDebuggingTools  tools;
-  for(auto& pool :descriptor_pools_.pools_get()){
+  static debug::VKDebuggingTools tools;
+  for (auto &pool : descriptor_pools_.pools_get()) {
     pools.append(pool);
   }
-  auto& cur_tools = context->debugging_tools_get();
-  if(cur_tools.enabled){
+  auto &cur_tools = context->debugging_tools_get();
+  if (cur_tools.enabled) {
     tools = cur_tools;
   }
 
-  if(context_ref_count_==0){
+  if (context_ref_count_ == 0) {
     VK_ALLOCATION_CALLBACKS
-    for(auto& pool :pools){
-        vkDestroyDescriptorPool(context->device_get(), pool, vk_allocation_callbacks);
+    for (auto &pool : pools) {
+      vkDestroyDescriptorPool(context->device_get(), pool, vk_allocation_callbacks);
     }
+    VKTexture::samplers_free();
     vmaDestroyAllocator(mem_allocator_);
-    debug::destroy_callbacks(context,tools);
+    debug::destroy_callbacks(context, tools);
     pools.clear();
   }
-
 };
 
-template void VKBackend::desable_gpuctx(VKContext*, VKDescriptorPools&);
+template void VKBackend::desable_gpuctx(VKContext *, VKDescriptorPools &);
 
 void VKBackend::init_platform()
 {
@@ -91,7 +93,10 @@ void VKBackend::platform_exit()
   GPG.clear();
 }
 
-void VKBackend::delete_resources() {}
+void VKBackend::delete_resources()
+{
+  VKTexture::samplers_free();
+}
 
 void VKBackend::samplers_update() {}
 
@@ -120,20 +125,20 @@ Context *VKBackend::context_alloc(void *ghost_window, void *ghost_context)
   VKContext *context = new VKContext(ghost_window, ghost_context);
   context_ref_count_++;
   if (ghost_window) {
+    VKTexture::samplers_init(context);
     gpuctx_ = context;
     /* Initialize the memory allocator. */
     VmaAllocatorCreateInfo info = {};
     /* Should use same vulkan version as GHOST (1.2), but set to 1.0 as 1.2 requires
      * correct extensions and functions to be found by VMA, which isn't working as expected and
      * requires more research. To continue development we lower the API to version 1.0. */
-    mem_device_  = context->device_get();
+    mem_device_ = context->device_get();
     info.vulkanApiVersion = VK_API_VERSION_1_0;
-    info.physicalDevice =  context->physical_device_get();
-    info.device =   mem_device_;
+    info.physicalDevice = context->physical_device_get();
+    info.device = mem_device_;
     info.instance = context->instance_get();
     info.pAllocationCallbacks = vk_allocation_callbacks;
     vmaCreateAllocator(&info, &mem_allocator_);
-
   }
   return context;
 }
@@ -200,7 +205,7 @@ VertBuf *VKBackend::vertbuf_alloc()
 
 void VKBackend::render_begin()
 {
-  if(gpuctx_){
+  if (gpuctx_) {
     BLI_assert(gpuctx_->validate_frame());
   }
 }

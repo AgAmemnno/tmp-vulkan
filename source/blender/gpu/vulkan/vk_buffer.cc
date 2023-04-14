@@ -6,9 +6,9 @@
  */
 
 #include "vk_buffer.hh"
+#include "vk_backend.hh"
 #include "vk_command_buffer.hh"
 #include "vk_context.hh"
-#include "vk_backend.hh"
 
 namespace blender::gpu {
 
@@ -60,7 +60,7 @@ bool VKBuffer::create(VKContext &context,
   }
 
   size_in_bytes_ = size_in_bytes;
-  VKBackend& backend = VKBackend::get();
+  VKBackend &backend = VKBackend::get();
 
   VmaAllocator allocator = backend.mem_allocator_get();
   VkBufferCreateInfo create_info = {};
@@ -85,7 +85,7 @@ bool VKBuffer::create(VKContext &context,
   if (result != VK_SUCCESS) {
     return false;
   }
-  debug::object_label(&context,vk_buffer_,"Buffer");
+  debug::object_label(&context, vk_buffer_, "Buffer");
   /* All buffers are mapped to virtual memory. */
   return map(context);
 }
@@ -119,7 +119,7 @@ bool VKBuffer::is_mapped() const
   return mapped_memory_ != nullptr;
 }
 
-bool VKBuffer::map(VKContext &/*context*/)
+bool VKBuffer::map(VKContext & /*context*/)
 {
   BLI_assert(!is_mapped());
   VKBackend &backend = VKBackend::get();
@@ -128,7 +128,7 @@ bool VKBuffer::map(VKContext &/*context*/)
   return result == VK_SUCCESS;
 }
 
-void VKBuffer::unmap(VKContext &/*context*/)
+void VKBuffer::unmap(VKContext & /*context*/)
 {
   BLI_assert(is_mapped());
   VKBackend &backend = VKBackend::get();
@@ -139,7 +139,7 @@ void VKBuffer::unmap(VKContext &/*context*/)
 
 bool VKBuffer::free(VKContext &context)
 {
-  if(vk_buffer_!= VK_NULL_HANDLE){
+  if (vk_buffer_ != VK_NULL_HANDLE) {
     if (is_mapped()) {
       unmap(context);
     }

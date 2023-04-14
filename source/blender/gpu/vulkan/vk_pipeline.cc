@@ -5,10 +5,10 @@
  * \ingroup gpu
  */
 
-#include "vk_debug.hh"
 #include "vk_pipeline.hh"
 #include "vk_batch.hh"
 #include "vk_context.hh"
+#include "vk_debug.hh"
 #include "vk_framebuffer.hh"
 #include "vk_memory.hh"
 #include "vk_state_manager.hh"
@@ -34,8 +34,6 @@ VKPipeline::VKPipeline(VkPipeline vk_pipeline,
   vk_pipelines.clear();
 }
 
-
-
 VKPipeline::~VKPipeline()
 {
   VK_ALLOCATION_CALLBACKS
@@ -45,7 +43,7 @@ VKPipeline::~VKPipeline()
     vkDestroyPipeline(vk_device, vk_pipeline_, vk_allocation_callbacks);
   }
   */
-  for(auto& pipeline:vk_pipelines){
+  for (auto &pipeline : vk_pipelines) {
     vkDestroyPipeline(vk_device, pipeline, vk_allocation_callbacks);
   }
 }
@@ -143,9 +141,15 @@ void VKPipeline::finalize(VKContext &context,
   VkPipelineVertexInputStateCreateInfo vertex_input_state = {};
   vertex_input_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
   vertex_input_state.vertexBindingDescriptionCount = vertex_attribute_object.bindings.size();
-  vertex_input_state.pVertexBindingDescriptions = (vertex_input_state.vertexBindingDescriptionCount>0)?vertex_attribute_object.bindings.data():nullptr;
+  vertex_input_state.pVertexBindingDescriptions =
+      (vertex_input_state.vertexBindingDescriptionCount > 0) ?
+          vertex_attribute_object.bindings.data() :
+          nullptr;
   vertex_input_state.vertexAttributeDescriptionCount = vertex_attribute_object.attributes.size();
-  vertex_input_state.pVertexAttributeDescriptions = (vertex_input_state.vertexAttributeDescriptionCount>0)?vertex_attribute_object.attributes.data():nullptr;
+  vertex_input_state.pVertexAttributeDescriptions =
+      (vertex_input_state.vertexAttributeDescriptionCount > 0) ?
+          vertex_attribute_object.attributes.data() :
+          nullptr;
   pipeline_create_info.pVertexInputState = &vertex_input_state;
 
   /* Input assembly state. */
@@ -178,14 +182,15 @@ void VKPipeline::finalize(VKContext &context,
   pipeline_create_info.pRasterizationState = &state_manager.rasterization_state;
   pipeline_create_info.pDepthStencilState = &state_manager.depth_stencil_state;
 
- 
-
   vkCreateGraphicsPipelines(
       vk_device, VK_NULL_HANDLE, 1, &pipeline_create_info, vk_allocation_callbacks, &vk_pipeline_);
   vk_pipelines.append(vk_pipeline_);
-  debug::object_label(&context,vk_pipeline_,"BTCPipeline");
-  printf("Pipeline Create  renderpass %llx framebuffer(%f,%f)   pipeline %llx \n",(uintptr_t)pipeline_create_info.renderPass,viewport.width,viewport.height, (uintptr_t)vk_pipeline_);
-
+  debug::object_label(&context, vk_pipeline_, "BTCPipeline");
+  printf("Pipeline Create  renderpass %llx framebuffer(%f,%f)   pipeline %llx \n",
+         (uintptr_t)pipeline_create_info.renderPass,
+         viewport.width,
+         viewport.height,
+         (uintptr_t)vk_pipeline_);
 }
 
 void VKPipeline::finalize(VKContext &context,
@@ -232,9 +237,15 @@ void VKPipeline::finalize(VKContext &context,
   VkPipelineVertexInputStateCreateInfo vertex_input_state = {};
   vertex_input_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
   vertex_input_state.vertexBindingDescriptionCount = vertex_attribute_object.bindings.size();
-  vertex_input_state.pVertexBindingDescriptions = (vertex_input_state.vertexBindingDescriptionCount>0)?vertex_attribute_object.bindings.data():nullptr;
+  vertex_input_state.pVertexBindingDescriptions =
+      (vertex_input_state.vertexBindingDescriptionCount > 0) ?
+          vertex_attribute_object.bindings.data() :
+          nullptr;
   vertex_input_state.vertexAttributeDescriptionCount = vertex_attribute_object.attributes.size();
-  vertex_input_state.pVertexAttributeDescriptions = (vertex_input_state.vertexAttributeDescriptionCount>0)?vertex_attribute_object.attributes.data():nullptr;
+  vertex_input_state.pVertexAttributeDescriptions =
+      (vertex_input_state.vertexAttributeDescriptionCount > 0) ?
+          vertex_attribute_object.attributes.data() :
+          nullptr;
   pipeline_create_info.pVertexInputState = &vertex_input_state;
 
   /* Input assembly state. */
@@ -267,14 +278,15 @@ void VKPipeline::finalize(VKContext &context,
   pipeline_create_info.pRasterizationState = &state_manager.rasterization_state;
   pipeline_create_info.pDepthStencilState = &state_manager.depth_stencil_state;
 
- 
-
   vkCreateGraphicsPipelines(
       vk_device, VK_NULL_HANDLE, 1, &pipeline_create_info, vk_allocation_callbacks, &vk_pipeline_);
   vk_pipelines.append(vk_pipeline_);
-  debug::object_label(&context,vk_pipeline_,"BTCPipeline");
-  printf("Pipeline Create  renderpass %llx framebuffer(%f,%f)   pipeline %llx \n",(uintptr_t)pipeline_create_info.renderPass,viewport.width,viewport.height, (uintptr_t)vk_pipeline_);
-
+  debug::object_label(&context, vk_pipeline_, "BTCPipeline");
+  printf("Pipeline Create  renderpass %llx framebuffer(%f,%f)   pipeline %llx \n",
+         (uintptr_t)pipeline_create_info.renderPass,
+         viewport.width,
+         viewport.height,
+         (uintptr_t)vk_pipeline_);
 }
 
 }  // namespace blender::gpu

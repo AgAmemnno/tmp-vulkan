@@ -57,7 +57,8 @@ void VKDescriptorSetTracker::bind_as_ssbo(VKVertexBuffer &buffer,
   binding.buffer_size = buffer.size_used_get();
 }
 
-void VKDescriptorSetTracker::bind(VKUniformBuffer &buffer,const VKDescriptorSet::Location location)
+void VKDescriptorSetTracker::bind(VKUniformBuffer &buffer,
+                                  const VKDescriptorSet::Location location)
 {
   Binding &binding = ensure_location(location);
   binding.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -74,12 +75,14 @@ void VKDescriptorSetTracker::bind_as_ssbo(VKIndexBuffer &buffer,
   binding.buffer_size = buffer.size_get();
 }
 
-void VKDescriptorSetTracker:: texture_bind(VKTexture &texture, VKDescriptorSet::Location location,const GPUSamplerState& sampler_type)
+void VKDescriptorSetTracker::texture_bind(VKTexture &texture,
+                                          VKDescriptorSet::Location location,
+                                          const GPUSamplerState &sampler_type)
 {
   Binding &binding = ensure_location(location);
   binding.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
   binding.vk_image_view = texture.vk_image_view_handle();
-  binding.vk_sampler       = VKContext::get()->get_sampler_from_state(sampler_type);
+  binding.vk_sampler = VKTexture::get_sampler(sampler_type);
 }
 
 void VKDescriptorSetTracker::image_bind(VKTexture &texture,
@@ -88,7 +91,7 @@ void VKDescriptorSetTracker::image_bind(VKTexture &texture,
   Binding &binding = ensure_location(location);
   binding.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
   binding.vk_image_view = texture.vk_image_view_handle();
-  binding.vk_sampler       = VK_NULL_HANDLE;
+  binding.vk_sampler = VK_NULL_HANDLE;
 }
 
 VKDescriptorSetTracker::Binding &VKDescriptorSetTracker::ensure_location(
@@ -106,12 +109,12 @@ VKDescriptorSetTracker::Binding &VKDescriptorSetTracker::ensure_location(
   return bindings_.last();
 }
 
-
-void VKDescriptorSetTracker::bindcmd(VKCommandBuffer& command_buffer,VkPipelineLayout vk_pipeline_layout)
+void VKDescriptorSetTracker::bindcmd(VKCommandBuffer &command_buffer,
+                                     VkPipelineLayout vk_pipeline_layout)
 {
   std::unique_ptr<VKDescriptorSet> &descriptor_set = active_descriptor_set();
- 
-  command_buffer.bind(*descriptor_set.get(),vk_pipeline_layout,VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+  command_buffer.bind(*descriptor_set.get(), vk_pipeline_layout, VK_PIPELINE_BIND_POINT_GRAPHICS);
 }
 
 void VKDescriptorSetTracker::update(VKContext &context)
@@ -152,8 +155,9 @@ void VKDescriptorSetTracker::update(VKContext &context)
 
     VkDescriptorImageInfo image_info = {};
     image_info.imageView = binding.vk_image_view;
-    image_info.sampler     =  binding.vk_sampler;
-    image_info.imageLayout = (tex_t) ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_GENERAL;
+    image_info.sampler = binding.vk_sampler;
+    image_info.imageLayout = (tex_t) ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL :
+                                       VK_IMAGE_LAYOUT_GENERAL;
     image_infos.append(image_info);
 
     VkWriteDescriptorSet write_descriptor = {};

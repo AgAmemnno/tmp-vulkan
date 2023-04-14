@@ -1,7 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later
  * Copyright 2022 Blender Foundation */
 
-
 /** \file
  * \ingroup gpu
  */
@@ -15,7 +14,6 @@
 
 namespace blender::gpu {
 
-
 void VKBatch::draw(int v_first, int v_count, int i_first, int i_count)
 {
   if (flag & GPU_BATCH_DIRTY) {
@@ -27,11 +25,19 @@ void VKBatch::draw(int v_first, int v_count, int i_first, int i_count)
   static int CNT = 0;
   CNT++;
 
-  VKFrameBuffer* fb = context.active_framebuffer_get();
+  VKFrameBuffer *fb = context.active_framebuffer_get();
 
   int viewport[4];
   fb->viewport_get(viewport);
-  printf(">>>>>>>>>>>>>>>>>>>>>>VKBatch Draw<<<<<<<<<<<<< CNT[%d]  FrameBuffer %llx Viewport (%d %d %d %d) \n",CNT,(uintptr_t)fb->vk_framebuffer_get(),viewport[0],viewport[1],viewport[2],viewport[3]);
+  printf(
+      ">>>>>>>>>>>>>>>>>>>>>>VKBatch Draw<<<<<<<<<<<<< CNT[%d]  FrameBuffer %llx Viewport (%d %d "
+      "%d %d) \n",
+      CNT,
+      (uintptr_t)fb->vk_framebuffer_get(),
+      viewport[0],
+      viewport[1],
+      viewport[2],
+      viewport[3]);
 
   context.activate_framebuffer(*fb);
 
@@ -50,7 +56,7 @@ void VKBatch::draw(int v_first, int v_count, int i_first, int i_count)
   context.command_buffer_get().draw(v_first, v_count, i_first, i_count);
   context.command_buffer_get().submit(true, false);
   GPU_debug_capture_end();
-  if(CNT >= 1){
+  if (CNT >= 1) {
     system("pause");
   }
 }

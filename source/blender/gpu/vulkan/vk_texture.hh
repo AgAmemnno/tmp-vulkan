@@ -7,13 +7,11 @@
 
 #pragma once
 
-
 #include "gpu_texture_private.hh"
 
 #include "vk_command_buffer.hh"
 
 #include "vk_context.hh"
-
 
 namespace blender::gpu {
 
@@ -22,15 +20,25 @@ class VKTexture : public Texture {
   VkImageView vk_image_view_ = VK_NULL_HANDLE;
   VmaAllocation allocation_ = VK_NULL_HANDLE;
 
-  /* Last image layout of the texture. Framebuffer and barriers can alter/require the actual layout
-   * to be changed. During this it requires to set the current layout in order to know which
-   * conversion should happen. #current_layout_ keep track of the layout so the correct conversion
-   * can be done.*/
+  static VkSampler samplers_cache_[GPU_SAMPLER_EXTEND_MODES_COUNT][GPU_SAMPLER_EXTEND_MODES_COUNT]
+                                  [GPU_SAMPLER_FILTERING_TYPES_COUNT];
+  static const int samplers_cache_count_ = GPU_SAMPLER_EXTEND_MODES_COUNT *
+                                           GPU_SAMPLER_EXTEND_MODES_COUNT *
+                                           GPU_SAMPLER_FILTERING_TYPES_COUNT;
+
+  static VkSampler custom_samplers_cache_[GPU_SAMPLER_CUSTOM_TYPES_COUNT];
+
   Vector<VkImageLayout> current_layout_ = {VK_IMAGE_LAYOUT_UNDEFINED};
-  int                                  current_mip_     = 0;
+  int current_mip_ = 0;
+
  public:
   VKTexture(const char *name) : Texture(name) {}
   virtual ~VKTexture() override;
+
+  static void samplers_init(VKContext *context);
+  static void samplers_free();
+  static void samplers_update();
+  static VkSampler get_sampler(const GPUSamplerState &sampler_state);
 
   void generate_mipmap() override;
   void copy_to(Texture *tex) override;
@@ -50,7 +58,7 @@ class VKTexture : public Texture {
   uint gl_bindcode_get() const override;
 
   void image_bind(int location);
-  void texture_bind(int binding,const GPUSamplerState& sampler_type);
+  void texture_bind(int binding, const GPUSamplerState &sampler_type);
   VkImage vk_image_handle() const
   {
     BLI_assert(is_allocated());
@@ -65,9 +73,11 @@ class VKTexture : public Texture {
   }
 
   void ensure_allocated();
-  int current_mip_get(){
+  int current_mip_get()
+  {
     return current_mip_;
   };
+
  protected:
   bool init_internal() override;
   bool init_internal(GPUVertBuf *vbo) override;
@@ -111,7 +121,7 @@ class VKTexture : public Texture {
    *
    * When texture is already in the requested layout, nothing will be done.
    */
- 
+
   void layout_ensure(VKContext &context, const VkTransitionState requested_state);
 };
 

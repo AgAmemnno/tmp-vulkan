@@ -37,7 +37,8 @@ class VKPipeline : NonCopyable {
   VKDescriptorSetTracker descriptor_set_;
   VKPushConstants push_constants_;
   VKPipelineStateManager state_manager_;
-  Vector<VkPipeline>    vk_pipelines;
+  Vector<VkPipeline> vk_pipelines;
+
  public:
   VKPipeline() = default;
 
@@ -82,11 +83,11 @@ class VKPipeline : NonCopyable {
   bool is_valid() const;
 
   void finalize(VKContext &context,
-                          VkShaderModule vertex_module,
-                          VkShaderModule fragment_module,
-                          VkPipelineLayout &pipeline_layout,
-                          GPUPrimType topology,
-                          const VKVertexAttributeObject &vertex_attribute_object);
+                VkShaderModule vertex_module,
+                VkShaderModule fragment_module,
+                VkPipelineLayout &pipeline_layout,
+                GPUPrimType topology,
+                const VKVertexAttributeObject &vertex_attribute_object);
 
   void finalize(VKContext &context,
                 VkShaderModule vertex_module,

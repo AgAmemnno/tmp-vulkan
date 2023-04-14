@@ -11,8 +11,8 @@
 
 #include "vk_common.hh"
 
-#include <typeindex>
 #include <mutex>
+#include <typeindex>
 
 namespace blender {
 namespace gpu {
@@ -22,7 +22,6 @@ class VKContext;
 const char *to_string(VkObjectType type);
 
 namespace debug {
-
 
 struct VKDebuggingTools {
   /* Function pointer definitions .*/
@@ -48,19 +47,18 @@ struct VKDebuggingTools {
   std::mutex lists_mutex_;
 
   VKDebuggingTools();
-  VKDebuggingTools& operator =(VKDebuggingTools & tools);
+  VKDebuggingTools &operator=(VKDebuggingTools &tools);
   void clear();
   void add_ignore(int32_t id);
   void remove_ignore(int32_t id);
 };
-
 
 void raise_vk_error(const char *info);
 void check_vk_resources(const char *info);
 
 template<typename... Args> void raise_vk_info(const std::string &fmt, Args... args)
 {
-  VKDebuggingTools& tools = VKContext::get()->debugging_tools_get();
+  VKDebuggingTools &tools = VKContext::get()->debugging_tools_get();
   if (tools.enabled) {
     size_t len = std::snprintf(nullptr, 0, fmt.c_str(), args...);
     std::vector<char> info(len + 1);
@@ -86,8 +84,7 @@ template<typename... Args> void raise_vk_info(const std::string &fmt, Args... ar
  * This function needs to be called once per context.
  */
 bool init_callbacks(VKContext *context, PFN_vkGetInstanceProcAddr instload);
-void destroy_callbacks(VKContext *context,VKDebuggingTools& tools);
-
+void destroy_callbacks(VKContext *context, VKDebuggingTools &tools);
 
 template<typename T> void object_label(VKContext *context, T obj, const char *name)
 {
@@ -109,7 +106,6 @@ void pop_marker(VKContext *context, VkCommandBuffer cmd);
 void push_marker(VKContext *context, VkQueue queue, const char *name);
 void set_marker(VKContext *context, VkQueue queue, const char *name);
 void pop_marker(VKContext *context, VkQueue queue);
-
 
 }  // namespace debug
 }  // namespace gpu

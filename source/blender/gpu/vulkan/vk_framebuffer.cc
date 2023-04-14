@@ -101,7 +101,6 @@ void VKFrameBuffer::bind(bool /*enabled_srgb*/)
   update_attachments();
 
   context.activate_framebuffer(*this);
-
 }
 
 VkViewport VKFrameBuffer::vk_viewport_get() const
@@ -184,12 +183,13 @@ void VKFrameBuffer::build_clear_attachments_color(const float (*clear_colors)[4]
 
 VkFormat VKFrameBuffer::is_color(int slot) const
 {
-  if(immutable_){
-    return  (slot == 0)? vk_im_prop.format :VK_FORMAT_UNDEFINED;
+  if (immutable_) {
+    return (slot == 0) ? vk_im_prop.format : VK_FORMAT_UNDEFINED;
   }
-  if(attachments_[GPU_FB_COLOR_ATTACHMENT0 + slot].tex != nullptr){
-    VKTexture* texture  = reinterpret_cast<VKTexture*>(attachments_[GPU_FB_COLOR_ATTACHMENT0 + slot].tex);
-    return  to_vk_format(texture->format_get());
+  if (attachments_[GPU_FB_COLOR_ATTACHMENT0 + slot].tex != nullptr) {
+    VKTexture *texture = reinterpret_cast<VKTexture *>(
+        attachments_[GPU_FB_COLOR_ATTACHMENT0 + slot].tex);
+    return to_vk_format(texture->format_get());
   };
   return VK_FORMAT_UNDEFINED;
 };
@@ -489,8 +489,8 @@ void VKFrameBuffer::render_pass_create()
 
   vkCreateFramebuffer(
       context.device_get(), &framebuffer_create_info, vk_allocation_callbacks, &vk_framebuffer_);
-  debug::object_label(&context,vk_framebuffer_,"OffscreenFB");
-  debug::object_label(&context,image_views[0],"OffscreenIV");
+  debug::object_label(&context, vk_framebuffer_, "OffscreenFB");
+  debug::object_label(&context, image_views[0], "OffscreenIV");
 }
 
 void VKFrameBuffer::render_pass_free()

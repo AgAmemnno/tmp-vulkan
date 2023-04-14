@@ -253,36 +253,43 @@ class SingletonDevice {
     return GHOST_kFailure;
   }
   /*sascha williams sample dynamicstate.cpp*/
-	void getEnabledDynamicState(std::vector<const char *> &m_extensions_device)
-	{
-    void** pnext = &features2.pNext;
-		#ifdef VK_EXT_extended_dynamic_state
-    if (device_extensions_support(vk_physical_device_, {VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME})) {
+  void getEnabledDynamicState(std::vector<const char *> &m_extensions_device)
+  {
+    void **pnext = &features2.pNext;
+#ifdef VK_EXT_extended_dynamic_state
+    if (device_extensions_support(vk_physical_device_,
+                                  {VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME})) {
       m_extensions_device.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
-      static VkPhysicalDeviceExtendedDynamicStateFeaturesEXT pstruct =  { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT};
-		  pstruct.extendedDynamicState = VK_TRUE;
-			*pnext = &pstruct;
-      pnext  = &pstruct.pNext;
-      enable_ext  = EnabledDynamic::ENABLED_DYNAMIC;
+      static VkPhysicalDeviceExtendedDynamicStateFeaturesEXT pstruct = {
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT};
+      pstruct.extendedDynamicState = VK_TRUE;
+      *pnext = &pstruct;
+      pnext = &pstruct.pNext;
+      enable_ext = EnabledDynamic::ENABLED_DYNAMIC;
     }
-    #endif
-    #ifdef VK_EXT_extended_dynamic_state2
-    if (device_extensions_support(vk_physical_device_, {VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME})) {
+#endif
+#ifdef VK_EXT_extended_dynamic_state2
+    if (device_extensions_support(vk_physical_device_,
+                                  {VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME})) {
       m_extensions_device.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME);
-      static VkPhysicalDeviceExtendedDynamicState2FeaturesEXT pstruct =  { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT};
-		  pstruct.extendedDynamicState2 = VK_TRUE;
+      static VkPhysicalDeviceExtendedDynamicState2FeaturesEXT pstruct = {
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT};
+      pstruct.extendedDynamicState2 = VK_TRUE;
       pstruct.extendedDynamicState2LogicOp = VK_TRUE;
-      //pstruct.extendedDynamicState2PatchControlPoints = VK_TRUE;
-			*pnext = &pstruct;
-      pnext  = &pstruct.pNext;
-      enable_ext  = (EnabledDynamic)( (uint8_t)enable_ext | (uint8_t)EnabledDynamic::ENABLED_DYNAMIC2 );
+      // pstruct.extendedDynamicState2PatchControlPoints = VK_TRUE;
+      *pnext = &pstruct;
+      pnext = &pstruct.pNext;
+      enable_ext = (EnabledDynamic)((uint8_t)enable_ext |
+                                    (uint8_t)EnabledDynamic::ENABLED_DYNAMIC2);
     }
-    #endif
-    #ifdef VK_EXT_extended_dynamic_state3
-    if (device_extensions_support(vk_physical_device_, {VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME})) {
+#endif
+#ifdef VK_EXT_extended_dynamic_state3
+    if (device_extensions_support(vk_physical_device_,
+                                  {VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME})) {
       m_extensions_device.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME);
-      static VkPhysicalDeviceExtendedDynamicState3FeaturesEXT pstruct =  { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT};
-		  pstruct.extendedDynamicState3ColorBlendEnable = VK_TRUE;
+      static VkPhysicalDeviceExtendedDynamicState3FeaturesEXT pstruct = {
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT};
+      pstruct.extendedDynamicState3ColorBlendEnable = VK_TRUE;
       pstruct.extendedDynamicState3ColorWriteMask = VK_TRUE;
       pstruct.extendedDynamicState3DepthClampEnable = VK_TRUE;
       pstruct.extendedDynamicState3DepthClipEnable = VK_TRUE;
@@ -290,24 +297,27 @@ class SingletonDevice {
       pstruct.extendedDynamicState3LogicOpEnable = VK_TRUE;
       pstruct.extendedDynamicState3PolygonMode = VK_TRUE;
       pstruct.extendedDynamicState3ProvokingVertexMode = VK_TRUE;
-			*pnext = &pstruct;
-      pnext  = &pstruct.pNext;
-      enable_ext  = (EnabledDynamic)( (uint8_t)enable_ext | (uint8_t)EnabledDynamic::ENABLED_DYNAMIC3 );
+      *pnext = &pstruct;
+      pnext = &pstruct.pNext;
+      enable_ext = (EnabledDynamic)((uint8_t)enable_ext |
+                                    (uint8_t)EnabledDynamic::ENABLED_DYNAMIC3);
     }
-    #endif
+#endif
 
-    #ifdef VK_EXT_vertex_input_dynamic_state
-    if (device_extensions_support(vk_physical_device_, {VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME})) {
+#ifdef VK_EXT_vertex_input_dynamic_state
+    if (device_extensions_support(vk_physical_device_,
+                                  {VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME})) {
       m_extensions_device.push_back(VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME);
-      static VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT pstruct =  { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_INPUT_DYNAMIC_STATE_FEATURES_EXT};
-		  pstruct.vertexInputDynamicState = VK_TRUE;
-			*pnext = &pstruct;
-      pnext  = &pstruct.pNext;
-      enable_ext  = (EnabledDynamic)( (uint8_t)enable_ext | (uint8_t)EnabledDynamic::ENABLED_DYNAMIC_VERTEX );
+      static VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT pstruct = {
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_INPUT_DYNAMIC_STATE_FEATURES_EXT};
+      pstruct.vertexInputDynamicState = VK_TRUE;
+      *pnext = &pstruct;
+      pnext = &pstruct.pNext;
+      enable_ext = (EnabledDynamic)((uint8_t)enable_ext |
+                                    (uint8_t)EnabledDynamic::ENABLED_DYNAMIC_VERTEX);
     }
-    #endif
-
-	}
+#endif
+  }
 
   GHOST_TSuccess create(bool m_use_window_surface,
                         VkSurfaceKHR m_surface,
@@ -318,15 +328,16 @@ class SingletonDevice {
     /* According to the Vulkan specs, when `VK_KHR_portability_subset` is available it should be
      * enabled. See
      * https://vulkan.lunarg.com/doc/view/1.2.198.1/mac/1.2-extensions/vkspec.html#VUID-VkDeviceCreateInfo-pProperties-04451*/
-    if (device_extensions_support(vk_physical_device_, {VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME})) {
+    if (device_extensions_support(vk_physical_device_,
+                                  {VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME})) {
       extensions_device.push_back(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
     }
 #endif
-    vkGetPhysicalDeviceFeatures2(vk_physical_device_,&features2);
+    vkGetPhysicalDeviceFeatures2(vk_physical_device_, &features2);
 
-    #if ENABLE_DYNAMIC_STATE
+#if ENABLE_DYNAMIC_STATE
     getEnabledDynamicState(m_extensions_device);
-    #endif
+#endif
 
     vector<VkDeviceQueueCreateInfo> queue_create_infos;
     {
@@ -380,7 +391,7 @@ class SingletonDevice {
     device_create_info.ppEnabledLayerNames = m_layers_enabled.data();
     device_create_info.enabledExtensionCount = static_cast<uint32_t>(m_extensions_device.size());
     device_create_info.ppEnabledExtensionNames = m_extensions_device.data();
-    device_create_info.pEnabledFeatures = nullptr;//&device_features;
+    device_create_info.pEnabledFeatures = nullptr;  //&device_features;
     device_create_info.pNext = &features2;
     VK_CHECK(vkCreateDevice(vk_physical_device_, &device_create_info, NULL, &vk_device_));
 
@@ -402,20 +413,21 @@ class SingletonDevice {
   uint32_t vk_queue_family_graphic_;
   uint32_t vk_queue_family_present_;
   VkQueue vk_present_queue_, vk_graphic_queue_;
-  VkPhysicalDeviceFeatures2  features2 ={VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
-  enum class EnabledDynamic :uint8_t{
-    NOT_ENABLED          = 0,
+  VkPhysicalDeviceFeatures2 features2 = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+  enum class EnabledDynamic : uint8_t {
+    NOT_ENABLED = 0,
     ENABLED_DYNAMIC = 0b1,
     ENABLED_DYNAMIC2 = 0b10,
     ENABLED_DYNAMIC_VERTEX = 0b100,
     ENABLED_DYNAMIC3 = 0b1000,
   };
-  EnabledDynamic enable_ext =  EnabledDynamic::NOT_ENABLED;
+  EnabledDynamic enable_ext = EnabledDynamic::NOT_ENABLED;
 };
 
 class SingletonInstance {
  public:
-  SingletonInstance() : vk_instance_(VK_NULL_HANDLE){
+  SingletonInstance() : vk_instance_(VK_NULL_HANDLE)
+  {
     putenv("VK_LAYER_PATH=C:\\VulkanSDK\\1.3.243.0\\Bin");
   };
   ~SingletonInstance()
@@ -559,7 +571,6 @@ class SingletonInstance {
 
     std::lock_guard<std::mutex> lock(mtx_);
 
-
     if (ref_cnt_ == 0) {
       if (vk_instance_ != VK_NULL_HANDLE) {
         vkDestroyInstance(vk_instance_, NULL);
@@ -627,7 +638,7 @@ class SingletonInstance {
     uint32_t instanceVersion = VK_API_VERSION_1_0;
 
     assert(vkEnumerateInstanceVersion);
-    vkEnumerateInstanceVersion(&instanceVersion );
+    vkEnumerateInstanceVersion(&instanceVersion);
 
     // 3 macros to extract version info
     uint32_t major = VK_VERSION_MAJOR(instanceVersion);
@@ -723,28 +734,28 @@ GHOST_TSuccess GHOST_ContextVK::destroySwapchain()
   m_in_flight_images.resize(0);
 
   for (auto semaphore : m_image_available_semaphores) {
-    if(semaphore!=VK_NULL_HANDLE){
+    if (semaphore != VK_NULL_HANDLE) {
       vkDestroySemaphore(m_device, semaphore, NULL);
     }
   }
   m_image_available_semaphores.clear();
 
   for (auto semaphore : m_render_finished_semaphores) {
-    if(semaphore!=VK_NULL_HANDLE){
+    if (semaphore != VK_NULL_HANDLE) {
       vkDestroySemaphore(m_device, semaphore, NULL);
     }
   }
   m_render_finished_semaphores.clear();
 
   for (auto fence : m_in_flight_fences) {
-    if(fence !=VK_NULL_HANDLE){
+    if (fence != VK_NULL_HANDLE) {
       vkDestroyFence(m_device, fence, NULL);
     }
   }
   m_in_flight_fences.clear();
 
   for (auto framebuffer : m_swapchain_framebuffers) {
-    if(framebuffer != VK_NULL_HANDLE){
+    if (framebuffer != VK_NULL_HANDLE) {
       vkDestroyFramebuffer(m_device, framebuffer, NULL);
     }
   }
@@ -759,7 +770,7 @@ GHOST_TSuccess GHOST_ContextVK::destroySwapchain()
   m_command_buffers.clear();
 
   for (auto imageView : m_swapchain_image_views) {
-    if(imageView != VK_NULL_HANDLE){
+    if (imageView != VK_NULL_HANDLE) {
       vkDestroyImageView(m_device, imageView, NULL);
     }
   }
@@ -861,12 +872,14 @@ GHOST_TSuccess GHOST_ContextVK::swapBuffers()
     return GHOST_kFailure;
   }
 
-  printf(">>>>>>>>>>>>>  Aquire ImageIndex %d  Image %llx Frame %d  Semaphore wait[%llx]  finish[%llx] \n",
-         m_currentImage,
-         (uint64_t)m_swapchain_images[m_currentImage],
-         m_currentFrame,
-         (uint64_t)m_image_available_semaphores[m_currentFrame],
-         (uint64_t)m_render_finished_semaphores[m_currentFrame]);
+  printf(
+      ">>>>>>>>>>>>>  Aquire ImageIndex %d  Image %llx Frame %d  Semaphore wait[%llx]  "
+      "finish[%llx] \n",
+      m_currentImage,
+      (uint64_t)m_swapchain_images[m_currentImage],
+      m_currentFrame,
+      (uint64_t)m_image_available_semaphores[m_currentFrame],
+      (uint64_t)m_render_finished_semaphores[m_currentFrame]);
 
   return GHOST_kSuccess;
 }
@@ -1035,7 +1048,6 @@ GHOST_TSuccess GHOST_ContextVK::releaseDrawingContext()
 {
   return GHOST_kSuccess;
 }
-
 
 GHOST_TSuccess GHOST_ContextVK::pickPhysicalDevice(vector<const char *> required_exts)
 {
@@ -1494,4 +1506,3 @@ GHOST_TSuccess GHOST_ContextVK::releaseNativeHandles()
 {
   return GHOST_kSuccess;
 }
-

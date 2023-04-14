@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright 2022 Blender Foundation */
+ * Copyright 2022 Blender Foundation. All rights reserved. */
 
 /** \file
  * \ingroup gpu
@@ -9,11 +9,10 @@
 
 #include "gpu_context_private.hh"
 
-#include "vk_debug.hh"
 #include "vk_command_buffer.hh"
+#include "vk_debug.hh"
 #include "vk_descriptor_pools.hh"
 #include "vk_state_manager.hh"
-
 
 #define VK_MAX_TEXTURE_SLOTS 128
 #define VK_MAX_SAMPLER_SLOTS VK_MAX_TEXTURE_SLOTS
@@ -22,29 +21,35 @@
 #define VK_MAX_UNIFORM_BUFFER_BINDINGS 31
 #define VK_MAX_VERTEX_INPUT_ATTRIBUTES 31
 #define VK_MAX_UNIFORMS_PER_BLOCK 64
-namespace blender::gpu{
+namespace blender::gpu {
 struct VKSamplerState {
   bool initialized;
   GPUSamplerState state;
 
-  bool operator==(const VKSamplerState &other) const {
+  bool operator==(const VKSamplerState &other) const
+  {
     /* Add other parameters as needed. */
     return (this->state == other.state);
   }
 
-  #if 0
+#if 0
   operator uint() const { return uint(state); }
   operator uint64_t() const { return uint64_t(state); }
-  #endif
+#endif
 
-  VKSamplerState() { initialized = false; };
-  VKSamplerState(GPUSamplerState state_) : state(state_) {
+  VKSamplerState()
+  {
+    initialized = false;
+  };
+  VKSamplerState(GPUSamplerState state_) : state(state_)
+  {
     initialized = false;
   }
 };
 
-const VKSamplerState DEFAULT_SAMPLER_STATE = VKSamplerState();//GPU_SAMPLER_DEFAULT /*, 0, 9999*/);
-};
+const VKSamplerState DEFAULT_SAMPLER_STATE =
+    VKSamplerState();  // GPU_SAMPLER_DEFAULT /*, 0, 9999*/);
+};                     // namespace blender::gpu
 
 namespace blender::gpu {
 class VKFrameBuffer;
@@ -63,7 +68,7 @@ class VKContext : public Context {
   VkQueue vk_queue_ = VK_NULL_HANDLE;
 
   /** Allocator used for texture and buffers and other resources. */
-  //VmaAllocator mem_allocator_ = VK_NULL_HANDLE;
+  // VmaAllocator mem_allocator_ = VK_NULL_HANDLE;
   VKDescriptorPools descriptor_pools_;
 
   /** Limits of the device linked to this context. */
@@ -113,7 +118,8 @@ class VKContext : public Context {
 
   bool validate_image();
 
-  void bind_graphics_pipeline(GPUPrimType prim_type, const VKVertexAttributeObject &vertex_attribute_object);
+  void bind_graphics_pipeline(GPUPrimType prim_type,
+                              const VKVertexAttributeObject &vertex_attribute_object);
 
   static VKContext *get(void)
   {
@@ -167,7 +173,6 @@ class VKContext : public Context {
     return descriptor_pools_;
   }
 
-  
   debug::VKDebuggingTools &debugging_tools_get()
   {
     return debugging_tools_;
@@ -193,29 +198,15 @@ class VKContext : public Context {
 
   uint8_t semaphore_get(VkSemaphore &wait, VkSemaphore &finish);
 
- uint8_t current_image_id_get(){
-   return 1&vk_fb_id_;
-   }
+  uint8_t current_image_id_get()
+  {
+    return 1 & vk_fb_id_;
+  }
 
   void swapbuffers();
 
-  VkSampler get_default_sampler_state();
-
-  VkSampler get_sampler_from_state(VKSamplerState sampler_state);
-
  private:
   void init_physical_device_limits();
-  struct SamplerStateBindingCached {
-    VKSamplerState binding_state;
-    VkSampler sampler_state;
-    bool is_arg_buffer_binding;
-  };
-  VkSampler sampler_state_cache_[512];//GPU_SAMPLER_MAX];
-  VkSampler default_sampler_state_;
-  SamplerStateBindingCached  cached_vertex_sampler_state_bindings[VK_MAX_TEXTURE_SLOTS];
-  SamplerStateBindingCached cached_fragment_sampler_state_bindings[VK_MAX_TEXTURE_SLOTS];
-  VkSampler generate_sampler_from_state(VKSamplerState sampler_state);
-
 };
 
 }  // namespace blender::gpu

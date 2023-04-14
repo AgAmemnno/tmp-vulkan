@@ -91,20 +91,24 @@ struct VKVertexInput {
     divisorInfo.pVertexBindingDivisors = NULL;
   }
 
-  void clear(){
+  void clear()
+  {
     vertexInputBindings.clear();
     vertexInputAttributes.clear();
     divisors.clear();
   };
 
-  void append(VkVertexInputBindingDescription& bind){
-     vertexInputBindings.append(bind);
+  void append(VkVertexInputBindingDescription &bind)
+  {
+    vertexInputBindings.append(bind);
   }
 
-  void append(VkVertexInputAttributeDescription& bind){
-     vertexInputAttributes.append(bind);
+  void append(VkVertexInputAttributeDescription &bind)
+  {
+    vertexInputAttributes.append(bind);
   }
-  VkPipelineVertexInputStateCreateInfo& get() {
+  VkPipelineVertexInputStateCreateInfo &get()
+  {
     info.flags = 0;
     info.pNext = VK_NULL_HANDLE;
     info.pVertexAttributeDescriptions = vertexInputAttributes.data();
@@ -113,8 +117,6 @@ struct VKVertexInput {
     info.vertexBindingDescriptionCount = vertexInputBindings.size();
     return info;
   }
-
-
 };
 /**
  * Update the Attribute Binding of the currently bound VAO.
@@ -127,7 +129,7 @@ void update_bindings(VKVao &vao,
 /**
  * Another version of update_bindings for Immediate mode.
  */
-void update_bindings(VKVertexInput& input,
+void update_bindings(VKVertexInput &input,
                      uint v_first,
                      const GPUVertFormat *format,
                      const ShaderInterface *interface);

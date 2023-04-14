@@ -13,8 +13,8 @@
 #  include "renderdoc_api.hh"
 #endif
 
-#include "vk_debug.hh"
 #include "vk_common.hh"
+#include "vk_debug.hh"
 
 #include "shaderc/shaderc.hpp"
 
@@ -28,22 +28,17 @@ class VKBackend : public GPUBackend {
 #ifdef WITH_RENDERDOC
   renderdoc::api::Renderdoc renderdoc_api_;
 #endif
-    /** Allocator used for texture and buffers and other resources. */
+  /** Allocator used for texture and buffers and other resources. */
   static VmaAllocator mem_allocator_;
-  static int                  context_ref_count_ ;
-  static VkDevice        mem_device_;
+  static int context_ref_count_;
+  static VkDevice mem_device_;
 
-
-  public:
-  VKBackend()
-  {
-    context_ref_count_  = 0;
-    VKBackend::init_platform();
-  }
+ public:
+  VKBackend();
 
   virtual ~VKBackend()
   {
-    BLI_assert(context_ref_count_  == 0);
+    BLI_assert(context_ref_count_ == 0);
     VKBackend::platform_exit();
   }
 
@@ -79,11 +74,13 @@ class VKBackend : public GPUBackend {
 
   shaderc::Compiler &get_shaderc_compiler();
 
-  VmaAllocator &mem_allocator_get(){
+  VmaAllocator &mem_allocator_get()
+  {
     return mem_allocator_;
   };
 
-  VkDevice &mem_device_get(){
+  VkDevice &mem_device_get()
+  {
     return mem_device_;
   };
 
@@ -94,8 +91,7 @@ class VKBackend : public GPUBackend {
     return *static_cast<VKBackend *>(GPUBackend::get());
   }
 
-  template<typename T>
-  static void desable_gpuctx(VKContext* context,T& descriptor_pools_);
+  template<typename T> static void desable_gpuctx(VKContext *context, T &descriptor_pools_);
 
  private:
   static void init_platform();

@@ -855,10 +855,10 @@ static VkDescriptorSetLayoutBinding create_descriptor_set_layout_binding(
 
 static void add_descriptor_set_layout_bindings(
     const VKShaderInterface &interface,
-    const Vector<const shader::ShaderCreateInfo::Resource*> &resources,
+    const Vector<const shader::ShaderCreateInfo::Resource *> &resources,
     Vector<VkDescriptorSetLayoutBinding> &r_bindings)
 {
-  for (const shader::ShaderCreateInfo::Resource* resource : resources) {
+  for (const shader::ShaderCreateInfo::Resource *resource : resources) {
     const VKDescriptorSet::Location location = interface.descriptor_set_location(resource);
     r_bindings.append(create_descriptor_set_layout_binding(location, resource));
   }
@@ -872,7 +872,7 @@ static void add_descriptor_set_layout_bindings(
 
 static VkDescriptorSetLayoutCreateInfo create_descriptor_set_layout(
     const VKShaderInterface &interface,
-    const Vector<const shader::ShaderCreateInfo::Resource*> &resources,
+    const Vector<const shader::ShaderCreateInfo::Resource *> &resources,
     Vector<VkDescriptorSetLayoutBinding> &r_bindings)
 {
   add_descriptor_set_layout_bindings(interface, resources, r_bindings);
@@ -907,11 +907,11 @@ bool VKShader::finalize_descriptor_set_layouts(VkDevice vk_device,
    * for #Frequency::PASS/BATCH. This isn't possible as areas expect that the binding location is
    * static and predictable (EEVEE-NEXT) or the binding location can be mapped to a single number
    * (Python). */
-  Vector<const ShaderCreateInfo::Resource*> all_resources;
-  for(int i=0;i<info.pass_resources_.size();i++) {
+  Vector<const ShaderCreateInfo::Resource *> all_resources;
+  for (int i = 0; i < info.pass_resources_.size(); i++) {
     all_resources.append(&info.pass_resources_[i]);
   }
-  for(int i=0;i<info.batch_resources_.size();i++) {
+  for (int i = 0; i < info.batch_resources_.size(); i++) {
     all_resources.append(&info.batch_resources_[i]);
   }
 
@@ -950,9 +950,7 @@ void VKShader::bind()
    * into account. GPU state can be changed after binding the shader. */
 }
 
-void VKShader::unbind()
-{
-}
+void VKShader::unbind() {}
 
 void VKShader::uniform_float(int location, int comp_len, int array_size, const float *data)
 {
@@ -1209,11 +1207,17 @@ void VKShader::update_graphics_pipeline(VKContext &context,
       context, vertex_module_, fragment_module_, pipeline_layout_, batch, vertex_attribute_object);
 }
 
-void VKShader::update_graphics_pipeline(VKContext &context,GPUPrimType prim_type,const VKVertexAttributeObject &vertex_attribute_object)
+void VKShader::update_graphics_pipeline(VKContext &context,
+                                        GPUPrimType prim_type,
+                                        const VKVertexAttributeObject &vertex_attribute_object)
 {
   BLI_assert(is_graphics_shader());
-  pipeline_get().finalize(context, vertex_module_, fragment_module_, pipeline_layout_,prim_type,vertex_attribute_object);
+  pipeline_get().finalize(context,
+                          vertex_module_,
+                          fragment_module_,
+                          pipeline_layout_,
+                          prim_type,
+                          vertex_attribute_object);
 }
-
 
 }  // namespace blender::gpu

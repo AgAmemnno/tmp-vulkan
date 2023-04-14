@@ -118,7 +118,7 @@ class VKDescriptorSetTracker : protected VKResourceTracker<VKDescriptorSet> {
     VkDeviceSize buffer_size = 0;
 
     VkImageView vk_image_view = VK_NULL_HANDLE;
-    VkSampler      vk_sampler      = VK_NULL_HANDLE;
+    VkSampler vk_sampler = VK_NULL_HANDLE;
     Binding()
     {
       location.binding = 0;
@@ -136,7 +136,8 @@ class VKDescriptorSetTracker : protected VKResourceTracker<VKDescriptorSet> {
 
     bool is_texture() const
     {
-      return ELEM(type, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ,VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+      return ELEM(
+          type, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
     }
   };
 
@@ -155,9 +156,11 @@ class VKDescriptorSetTracker : protected VKResourceTracker<VKDescriptorSet> {
   void bind(VKStorageBuffer &buffer, VKDescriptorSet::Location location);
   void bind(VKUniformBuffer &buffer, VKDescriptorSet::Location location);
   void image_bind(VKTexture &texture, VKDescriptorSet::Location location);
-  void texture_bind(VKTexture &texture, VKDescriptorSet::Location location,const GPUSamplerState& sampler_type);
+  void texture_bind(VKTexture &texture,
+                    VKDescriptorSet::Location location,
+                    const GPUSamplerState &sampler_type);
 
-  void bindcmd(VKCommandBuffer& command_buffer,VkPipelineLayout pipeline_layout);
+  void bindcmd(VKCommandBuffer &command_buffer, VkPipelineLayout pipeline_layout);
   /**
    * Update the descriptor set on the device.
    */

@@ -19,32 +19,30 @@
 #include "BLI_system.h"
 #include "CLG_log.h"
 
-#include "vk_common.hh"
 #include "vk_backend.hh"
+#include "vk_common.hh"
 #include "vk_context.hh"
 
 #include <mutex>
 
 #define VK_DEBUG_ENABLED 1
 
-
-#  if defined(__unix__) || defined(__APPLE__)
-#    include <sys/time.h>
-#    include <unistd.h>
-#    define GET_FUNC_ADDRESS dlsym
-#  endif
-#  if defined(_MSC_VER)
-#    define  WINDOWS_LEAN_AND_MEAN
-#    include <Windows.h>
-#    include <VersionHelpers.h> /* This needs to be included after Windows.h. */
-#    include <io.h>
-#    if !defined(ENABLE_VIRTUAL_TERMINAL_PROCESSING)
-#      define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
-#    endif
-
-#    define GET_FUNC_ADDRESS (void *)GetProcAddress
+#if defined(__unix__) || defined(__APPLE__)
+#  include <sys/time.h>
+#  include <unistd.h>
+#  define GET_FUNC_ADDRESS dlsym
+#endif
+#if defined(_MSC_VER)
+#  define WINDOWS_LEAN_AND_MEAN
+#  include <VersionHelpers.h> /* This needs to be included after Windows.h. */
+#  include <Windows.h>
+#  include <io.h>
+#  if !defined(ENABLE_VIRTUAL_TERMINAL_PROCESSING)
+#    define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
 #  endif
 
+#  define GET_FUNC_ADDRESS (void *)GetProcAddress
+#endif
 
 namespace blender::gpu {
 const char *to_vk_error_string(VkResult result)
@@ -125,7 +123,6 @@ void VKDebuggingTools::remove_ignore(int32_t id)
   dbgIgnoreMessages.remove(id);
   lists_mutex_.unlock();
 }
-
 
 /*for creating breakpoints.*/
 extern inline void VK_ERROR_CHECK(VkResult r, const char *name)
@@ -248,50 +245,49 @@ const char *to_string(VkObjectType type)
   }
   return "NotFound";
 };
-static  VkResult vulkan_dynamic_load(PFN_vkGetInstanceProcAddr& func)
-  {
+static VkResult vulkan_dynamic_load(PFN_vkGetInstanceProcAddr &func)
+{
 
 #  if defined(_WIN32)
-    HMODULE vulkanDll = LoadLibraryA("vulkan-1.dll");
-    if (!vulkanDll) {
-      return VK_ERROR_INITIALIZATION_FAILED;
-    }
+  HMODULE vulkanDll = LoadLibraryA("D:\\blender\\lib\\win64_vc15\\vulkan\\bin\\vulkan-1-x64.dll");
+  if (!vulkanDll) {
+    return VK_ERROR_INITIALIZATION_FAILED;
+  }
 #  elif defined(__APPLE__)
-    void *vulkanDll = dlopen("libvulkan.dylib", RTLD_NOW | RTLD_LOCAL);
-    if (!vulkanDll) {
-      vulkanDll = dlopen("libvulkan.1.dylib", RTLD_NOW | RTLD_LOCAL);
-    }
-    if (!vulkanDll) {
-      vulkanDll = dlopen("libMoltenVK.dylib", RTLD_NOW | RTLD_LOCAL);
-    }
-    if (!vulkanDll) {
-      return VK_ERROR_INITIALIZATION_FAILED;
-    }
+  void *vulkanDll = dlopen("libvulkan.dylib", RTLD_NOW | RTLD_LOCAL);
+  if (!vulkanDll) {
+    vulkanDll = dlopen("libvulkan.1.dylib", RTLD_NOW | RTLD_LOCAL);
+  }
+  if (!vulkanDll) {
+    vulkanDll = dlopen("libMoltenVK.dylib", RTLD_NOW | RTLD_LOCAL);
+  }
+  if (!vulkanDll) {
+    return VK_ERROR_INITIALIZATION_FAILED;
+  }
 
 #  else
-    void *vulkanDll = dlopen("libvulkan.so.1", RTLD_NOW | RTLD_LOCAL);
-    if (!vulkanDll) {
-      vulkanDll = dlopen("libvulkan.so", RTLD_NOW | RTLD_LOCAL);
-    }
-    if (!vulkanDll) {
-      return VK_ERROR_INITIALIZATION_FAILED;
-    }
+  void *vulkanDll = dlopen("libvulkan.so.1", RTLD_NOW | RTLD_LOCAL);
+  if (!vulkanDll) {
+    vulkanDll = dlopen("libvulkan.so", RTLD_NOW | RTLD_LOCAL);
+  }
+  if (!vulkanDll) {
+    return VK_ERROR_INITIALIZATION_FAILED;
+  }
 #  endif
 
 #  define LOAD(name) GET_FUNC_ADDRESS(vulkanDll, name)
 
-    func = (PFN_vkGetInstanceProcAddr)LOAD("vkGetInstanceProcAddr");
-    //vkGetDeviceProcAddr = (PFN_vkGetDeviceProcAddr)INSTLOAD(instance,"vkGetDeviceProcAddr");
+  func = (PFN_vkGetInstanceProcAddr)LOAD("vkGetInstanceProcAddr");
+  // vkGetDeviceProcAddr = (PFN_vkGetDeviceProcAddr)INSTLOAD(instance,"vkGetDeviceProcAddr");
 #  undef LOAD
 
-    return VK_SUCCESS;
-  }
+  return VK_SUCCESS;
+}
 
-
-static void vulkan_dynamic_debug_functions(VKContext *context, PFN_vkGetInstanceProcAddr/* instload_*/)
+static void vulkan_dynamic_debug_functions(VKContext *context,
+                                           PFN_vkGetInstanceProcAddr /* instload_*/)
 {
   VKDebuggingTools &tools = context->debugging_tools_get();
-
 
   VkInstance instance = context->instance_get();
   tools.instance = instance;
@@ -322,8 +318,10 @@ static void vulkan_dynamic_debug_functions(VKContext *context, PFN_vkGetInstance
         instance, "vkSetDebugUtilsObjectTagEXT");
     tools.vkSubmitDebugUtilsMessageEXT_r = (PFN_vkSubmitDebugUtilsMessageEXT)instload(
         instance, "vkSubmitDebugUtilsMessageEXT");
-    tools.vkCreateDebugUtilsMessengerEXT_r = (PFN_vkCreateDebugUtilsMessengerEXT )instload(instance,"vkCreateDebugUtilsMessengerEXT");
-    tools.vkDestroyDebugUtilsMessengerEXT_r = (PFN_vkDestroyDebugUtilsMessengerEXT )instload(instance,"vkDestroyDebugUtilsMessengerEXT");
+    tools.vkCreateDebugUtilsMessengerEXT_r = (PFN_vkCreateDebugUtilsMessengerEXT)instload(
+        instance, "vkCreateDebugUtilsMessengerEXT");
+    tools.vkDestroyDebugUtilsMessengerEXT_r = (PFN_vkDestroyDebugUtilsMessengerEXT)instload(
+        instance, "vkDestroyDebugUtilsMessengerEXT");
     if (tools.vkCmdBeginDebugUtilsLabelEXT_r) {
       tools.enabled = true;
       vk_instance_s = instance;
@@ -344,9 +342,6 @@ static void vulkan_dynamic_debug_functions(VKContext *context, PFN_vkGetInstance
     tools.enabled = false;
   }
 }
-
-
-
 
 VKAPI_ATTR VkBool32 VKAPI_CALL
 debugUtilsCB(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -541,7 +536,7 @@ bool init_callbacks(VKContext *context, PFN_vkGetInstanceProcAddr instload)
   return false;
 }
 
-void destroy_callbacks(VKContext *context,VKDebuggingTools& tools)
+void destroy_callbacks(VKContext *context, VKDebuggingTools &tools)
 {
   if (tools.enabled) {
     vulkan_dynamic_debug_functions(context, nullptr);
@@ -550,7 +545,8 @@ void destroy_callbacks(VKContext *context,VKDebuggingTools& tools)
   }
 }
 
-VKDebuggingTools& VKDebuggingTools::operator =(VKDebuggingTools & tools){
+VKDebuggingTools &VKDebuggingTools::operator=(VKDebuggingTools &tools)
+{
 
   this->instance = tools.instance;
   this->dbgMessenger = tools.dbgMessenger;
@@ -560,16 +556,13 @@ VKDebuggingTools& VKDebuggingTools::operator =(VKDebuggingTools & tools){
   return *this;
 }
 
-void object_label(VKContext *context,
-                     VkObjectType objType,
-                     uint64_t obj,
-                     const char *name)
+void object_label(VKContext *context, VkObjectType objType, uint64_t obj, const char *name)
 {
   if (G.debug & G_DEBUG_GPU) {
-    if( std::string("Buffer_15") == name ){
+    if (std::string("Buffer_15") == name) {
       printf("");
     }
-    const VKDebuggingTools& tools = context->debugging_tools_get();
+    const VKDebuggingTools &tools = context->debugging_tools_get();
     if (tools.enabled) {
       VkDebugUtilsObjectNameInfoEXT info = {};
       info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -584,7 +577,7 @@ void object_label(VKContext *context,
 void push_marker(VKContext *context, VkCommandBuffer cmd, const char *name)
 {
   if (G.debug & G_DEBUG_GPU) {
-    const VKDebuggingTools& tools = context->debugging_tools_get();
+    const VKDebuggingTools &tools = context->debugging_tools_get();
     if (tools.enabled) {
       VkDebugUtilsLabelEXT info = {};
       info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
@@ -597,7 +590,7 @@ void push_marker(VKContext *context, VkCommandBuffer cmd, const char *name)
 void set_marker(VKContext *context, VkCommandBuffer cmd, const char *name)
 {
   if (G.debug & G_DEBUG_GPU) {
-    const VKDebuggingTools& tools = context->debugging_tools_get();
+    const VKDebuggingTools &tools = context->debugging_tools_get();
     if (tools.enabled) {
       VkDebugUtilsLabelEXT info = {};
       info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
@@ -610,7 +603,7 @@ void set_marker(VKContext *context, VkCommandBuffer cmd, const char *name)
 void pop_marker(VKContext *context, VkCommandBuffer cmd)
 {
   if (G.debug & G_DEBUG_GPU) {
-    const VKDebuggingTools& tools = context->debugging_tools_get();
+    const VKDebuggingTools &tools = context->debugging_tools_get();
     if (tools.enabled) {
       tools.vkCmdEndDebugUtilsLabelEXT_r(cmd);
     }
@@ -620,7 +613,7 @@ void pop_marker(VKContext *context, VkCommandBuffer cmd)
 void push_marker(VKContext *context, VkQueue queue, const char *name)
 {
   if (G.debug & G_DEBUG_GPU) {
-    const VKDebuggingTools& tools = context->debugging_tools_get();
+    const VKDebuggingTools &tools = context->debugging_tools_get();
     if (tools.enabled) {
       VkDebugUtilsLabelEXT info = {};
       info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
@@ -633,7 +626,7 @@ void push_marker(VKContext *context, VkQueue queue, const char *name)
 void set_marker(VKContext *context, VkQueue queue, const char *name)
 {
   if (G.debug & G_DEBUG_GPU) {
-    const VKDebuggingTools& tools = context->debugging_tools_get();
+    const VKDebuggingTools &tools = context->debugging_tools_get();
     if (tools.enabled) {
       VkDebugUtilsLabelEXT info = {};
       info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
@@ -646,7 +639,7 @@ void set_marker(VKContext *context, VkQueue queue, const char *name)
 void pop_marker(VKContext *context, VkQueue queue)
 {
   if (G.debug & G_DEBUG_GPU) {
-    const VKDebuggingTools& tools = context->debugging_tools_get();
+    const VKDebuggingTools &tools = context->debugging_tools_get();
     if (tools.enabled) {
       tools.vkQueueEndDebugUtilsLabelEXT_r(queue);
     }

@@ -25,7 +25,8 @@ namespace blender::gpu {
  * \{ */
 
 /** Returns enabled vertex pointers as a bit-flag (one bit per attribute). */
-static uint16_t vbo_bind(VKVertArray::VKVertexInput& vk_input,const ShaderInterface *interface,
+static uint16_t vbo_bind(VKVertArray::VKVertexInput &vk_input,
+                         const ShaderInterface *interface,
                          const GPUVertFormat *format,
                          uint /*v_first*/,
                          uint v_len,
@@ -37,17 +38,16 @@ static uint16_t vbo_bind(VKVertArray::VKVertexInput& vk_input,const ShaderInterf
   const uint attr_len = format->attr_len;
   uint stride = format->stride;
   uint offset = 0;
- 
 
   VkVertexInputBindingDescription vk_bindings;
   vk_bindings.binding = 0;
-  vk_bindings.inputRate = (use_instancing)? VK_VERTEX_INPUT_RATE_INSTANCE:VK_VERTEX_INPUT_RATE_VERTEX;
+  vk_bindings.inputRate = (use_instancing) ? VK_VERTEX_INPUT_RATE_INSTANCE :
+                                             VK_VERTEX_INPUT_RATE_VERTEX;
   vk_bindings.stride = 0;
 
   VkVertexInputAttributeDescription vk_attrib;
   vk_attrib.binding = 0;
-  //VkVertexInputBindingDivisorDescriptionEXT divisors;
- 
+  // VkVertexInputBindingDivisorDescriptionEXT divisors;
 
   for (uint a_idx = 0; a_idx < attr_len; a_idx++) {
     const GPUVertAttr *a = &format->attrs[a_idx];
@@ -63,7 +63,7 @@ static uint16_t vbo_bind(VKVertArray::VKVertexInput& vk_input,const ShaderInterf
     vk_attrib.offset = offset;
 
     /* This is in fact an offset in memory. */
-    //const GLvoid *pointer = (const GLubyte *)intptr_t(offset + v_first * stride);
+    // const GLvoid *pointer = (const GLubyte *)intptr_t(offset + v_first * stride);
     const VkFormat type = to_vk(static_cast<GPUVertCompType>(a->comp_type), a->size);
     vk_attrib.format = type;
 
@@ -75,35 +75,30 @@ static uint16_t vbo_bind(VKVertArray::VKVertexInput& vk_input,const ShaderInterf
         continue;
       }
 
-     vk_attrib.location = input->location;
+      vk_attrib.location = input->location;
 
-     enabled_attrib |= (1 << input->location);
+      enabled_attrib |= (1 << input->location);
 
-     vk_input.append(vk_attrib);
-     vk_bindings.stride += a->size;
-
-
+      vk_input.append(vk_attrib);
+      vk_bindings.stride += a->size;
     }
-
-
   }
 
-  if(enabled_attrib){
+  if (enabled_attrib) {
     vk_input.append(vk_bindings);
   }
 
   return enabled_attrib;
 }
 
-
-void VKVertArray::update_bindings(VKVertexInput& input,
+void VKVertArray::update_bindings(VKVertexInput &input,
                                   const uint v_first,
                                   const GPUVertFormat *format,
                                   const ShaderInterface *interface)
 {
   /*#glBindVertexArray(vao);*/
-  vbo_bind(input,interface, format, v_first, 0, false);
-  //VKContext::get()->state_manager_get().set_vertex_input(input);
+  vbo_bind(input, interface, format, v_first, 0, false);
+  // VKContext::get()->state_manager_get().set_vertex_input(input);
   BLI_assert_unreachable();
 }
 

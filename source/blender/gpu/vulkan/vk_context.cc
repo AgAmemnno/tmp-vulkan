@@ -39,13 +39,13 @@ VKContext::VKContext(void *ghost_window, void *ghost_context)
                          &vk_queue_family_,
                          &vk_queue_);
 
-  debug::init_callbacks(this,vkGetInstanceProcAddr);
+  debug::init_callbacks(this, vkGetInstanceProcAddr);
 
   ((GHOST_ContextVK *)(ghost_context_))->initializeDevice(vk_device_, vk_queue_, vk_queue_family_);
 
   init_physical_device_limits();
-  /*Issue Memory Leak */
-  #if 0 
+/*Issue Memory Leak */
+#if 0
   /* Initialize the memory allocator. */
   VmaAllocatorCreateInfo info = {};
   /* Should use same vulkan version as GHOST (1.2), but set to 1.0 as 1.2 requires
@@ -57,7 +57,7 @@ VKContext::VKContext(void *ghost_window, void *ghost_context)
   info.instance = vk_instance_;
   info.pAllocationCallbacks = vk_allocation_callbacks;
   vmaCreateAllocator(&info, &mem_allocator_);
-  #endif
+#endif
   descriptor_pools_.init(vk_device_);
 
   VKBackend::capabilities_init(*this);
@@ -70,111 +70,20 @@ VKContext::VKContext(void *ghost_window, void *ghost_context)
   active_fb = back_left;
   vk_swap_chain_images_.resize(vk_im_prop.nums);
 
-  #if 0
+#if 0
     /* Initialize samplers. */
   for (uint i = 0; i < GPU_SAMPLER_MAX; i++) {
     VKSamplerState state;
     state.state = static_cast<eGPUSamplerState>(i);
     sampler_state_cache_[i] = this->generate_sampler_from_state(state);
   }
-  #endif
-  vk_in_frame_ = false;
-}
-
-VkSampler VKContext::generate_sampler_from_state(VKSamplerState sampler_state) {
-    #if 0
-  /* Check if sampler already exists for given state. */
-  VkSamplerCreateInfo samplerCI = {VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
-
-  VkSamplerAddressMode clamp_type =
-      (sampler_state.state & GPU_SAMPLER_CLAMP_BORDER)
-          ? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER
-          : VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-  VkSamplerAddressMode repeat_type =
-      (sampler_state.state & GPU_SAMPLER_MIRROR_REPEAT)
-          ? VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT
-          : VK_SAMPLER_ADDRESS_MODE_REPEAT;
-  samplerCI.addressModeU =
-      (sampler_state.state & GPU_SAMPLER_REPEAT_R) ? repeat_type : clamp_type;
-  samplerCI.addressModeV =
-      (sampler_state.state & GPU_SAMPLER_REPEAT_S) ? repeat_type : clamp_type;
-  samplerCI.addressModeW =
-      (sampler_state.state & GPU_SAMPLER_REPEAT_T) ? repeat_type : clamp_type;
-  samplerCI.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK; // VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-                                                                   // //
-
-  samplerCI.unnormalizedCoordinates =
-      VK_FALSE; /// descriptor.normalizedCoordinates = true;
-
-  samplerCI.minFilter = (sampler_state.state & GPU_SAMPLER_FILTER)
-                            ? VK_FILTER_LINEAR
-                            : VK_FILTER_NEAREST;
-
-  samplerCI.magFilter = (sampler_state.state & GPU_SAMPLER_FILTER)
-                            ? VK_FILTER_LINEAR
-                            : VK_FILTER_NEAREST;
-
-  samplerCI.mipmapMode = (sampler_state.state & GPU_SAMPLER_MIPMAP)
-                             ? VK_SAMPLER_MIPMAP_MODE_LINEAR
-                             : VK_SAMPLER_MIPMAP_MODE_NEAREST;
-
-  samplerCI.mipLodBias = 0.0f;
-
-  samplerCI.minLod = -1000;
-  samplerCI.maxLod = 1000;
-
-  float aniso_filter = max_ff(16, U.anisotropic_filter);
-  samplerCI.maxAnisotropy =
-      (sampler_state.state & GPU_SAMPLER_MIPMAP) ? aniso_filter : 1;
-  samplerCI.compareEnable =
-      (sampler_state.state & GPU_SAMPLER_COMPARE) ? VK_TRUE : VK_FALSE;
-  samplerCI.compareOp = (sampler_state.state & GPU_SAMPLER_COMPARE)
-                            ? VK_COMPARE_OP_EQUAL
-                            : VK_COMPARE_OP_ALWAYS;
-
-  /* Custom sampler for icons. */
-  if (sampler_state.state == GPU_SAMPLER_ICON) {
-    samplerCI.mipLodBias = -0.5f;
-    samplerCI.minFilter = VK_FILTER_LINEAR;
-    samplerCI.magFilter = VK_FILTER_LINEAR;
-    samplerCI.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-  }
-
-
-  vkCreateSampler(  vk_device_, &samplerCI, nullptr,
-                            &sampler_state_cache_[(uint)sampler_state]);
-
-  return sampler_state_cache_[(uint)sampler_state];
-  #endif
-  return VK_NULL_HANDLE;
-}
-
-VkSampler VKContext::get_default_sampler_state() {
-if (default_sampler_state_ == VK_NULL_HANDLE) {
-  default_sampler_state_ =
-      this->get_sampler_from_state(DEFAULT_SAMPLER_STATE);
-}
-return default_sampler_state_;
-}
-
-VkSampler VKContext::get_sampler_from_state(VKSamplerState sampler_state) {
-  #if 0
-BLI_assert((uint)sampler_state >= 0 &&
-            ((uint)sampler_state) < GPU_SAMPLER_MAX);
-return sampler_state_cache_[(uint)sampler_state];
 #endif
-return VK_NULL_HANDLE;
+  vk_in_frame_ = false;
 }
 
 VKContext::~VKContext()
 {
-  #if 0 
-  for (int i = 0; i < GPU_SAMPLER_MAX; i++) {
-    if (sampler_state_cache_[i] != VK_NULL_HANDLE)
-      vkDestroySampler(vk_device_, sampler_state_cache_[i], nullptr);
-  };
-  #endif
-  VKBackend::desable_gpuctx(this,descriptor_pools_);
+  VKBackend::desable_gpuctx(this, descriptor_pools_);
 }
 
 void VKContext::init_physical_device_limits()
@@ -222,8 +131,12 @@ void VKContext::activate()
     if (current_im == 1) {
       std::swap(back_left, front_left);
     }
-    
-    printf("FRAMEBUFER Reallocate  >>>>>>>>>>>>>>>>>>>> back %llx (%s) front %llx (%s) \n",(uint64_t)back_left,back_left->name_get(),(uint64_t)front_left,front_left->name_get());
+
+    printf("FRAMEBUFER Reallocate  >>>>>>>>>>>>>>>>>>>> back %llx (%s) front %llx (%s) \n",
+           (uint64_t)back_left,
+           back_left->name_get(),
+           (uint64_t)front_left,
+           front_left->name_get());
 
     active_fb = back_left;
     back_left->bind(false);
@@ -384,8 +297,8 @@ bool VKContext::validate_frame()
     BLI_assert_unreachable();
   }
 
-  uint8_t backleft_id  = ((VKFrameBuffer *)back_left)->get_image_id();
-  uint8_t current_im  = (fb_id) & 1;
+  uint8_t backleft_id = ((VKFrameBuffer *)back_left)->get_image_id();
+  uint8_t current_im = (fb_id)&1;
 
   if (current_im != backleft_id) {
     std::swap(back_left, front_left);
@@ -397,7 +310,11 @@ bool VKContext::validate_frame()
   if (!active_fb) {
     active_fb = back_left;
   }
- printf("FRAMEBUFER Validate  >>>>>>>>>>>>>>>>>>>> back %llx (%s) front %llx (%s) \n",(uint64_t)back_left,back_left->name_get(),(uint64_t)front_left,front_left->name_get());
+  printf("FRAMEBUFER Validate  >>>>>>>>>>>>>>>>>>>> back %llx (%s) front %llx (%s) \n",
+         (uint64_t)back_left,
+         back_left->name_get(),
+         (uint64_t)front_left,
+         front_left->name_get());
 
   BLI_assert(((VKFrameBuffer *)back_left)->get_image_id() == current_im);
 
@@ -409,9 +326,7 @@ void VKContext::swapchains()
   GHOST_SwapWindowBuffers((GHOST_WindowHandle)ghost_window_);
 };
 
-void VKContext::memory_statistics_get(int * /*total_mem*/, int * /*free_mem*/)
-{
-}
+void VKContext::memory_statistics_get(int * /*total_mem*/, int * /*free_mem*/) {}
 
 uint8_t VKContext::semaphore_get(VkSemaphore &wait, VkSemaphore &finish)
 {
@@ -470,17 +385,15 @@ void VKContext::activate_framebuffer(VKFrameBuffer &framebuffer)
     begin_frame();
   }
 
-
-  if(command_buffer_.ensure_render_pass()){
-      active_fb = &framebuffer;
-      return;
+  if (command_buffer_.ensure_render_pass()) {
+    active_fb = &framebuffer;
+    return;
   };
 
-  VKFrameBuffer* new_fb = reinterpret_cast<VKFrameBuffer*>(active_fb);
+  VKFrameBuffer *new_fb = reinterpret_cast<VKFrameBuffer *>(active_fb);
 
   if (new_fb->is_immutable()) {
-    BLI_assert(
-        command_buffer_.begin_render_pass(*new_fb, vk_swap_chain_images_[vk_fb_id_ & 1]));
+    BLI_assert(command_buffer_.begin_render_pass(*new_fb, vk_swap_chain_images_[vk_fb_id_ & 1]));
   }
   else {
     VKTexture &tex = (*(VKTexture *)new_fb->color_tex(0));
@@ -488,7 +401,6 @@ void VKContext::activate_framebuffer(VKFrameBuffer &framebuffer)
   }
 
   active_fb = new_fb;
-
 }
 
 VKFrameBuffer *VKContext::active_framebuffer_get() const
@@ -521,11 +433,12 @@ void VKContext::swapbuffers()
 /* -------------------------------------------------------------------- */
 /** \name Graphics pipeline
  * \{ */
-void VKContext::bind_graphics_pipeline(GPUPrimType prim_type, const VKVertexAttributeObject &vertex_attribute_object)
+void VKContext::bind_graphics_pipeline(GPUPrimType prim_type,
+                                       const VKVertexAttributeObject &vertex_attribute_object)
 {
   VKShader *shader = unwrap(this->shader);
   BLI_assert(shader);
-  shader->update_graphics_pipeline(*this,prim_type,vertex_attribute_object);
+  shader->update_graphics_pipeline(*this, prim_type, vertex_attribute_object);
   command_buffer_get().bind(shader->pipeline_get(), VK_PIPELINE_BIND_POINT_GRAPHICS);
 }
 
@@ -540,8 +453,7 @@ void VKContext::bind_graphics_pipeline(const VKBatch &batch,
 
   VKDescriptorSetTracker &descriptor_set = shader->pipeline_get().descriptor_set_get();
   descriptor_set.update(*this);
-  descriptor_set.bindcmd( command_buffer_,shader->vk_pipeline_layout_get());
-
+  descriptor_set.bindcmd(command_buffer_, shader->vk_pipeline_layout_get());
 }
 /** \} */
 

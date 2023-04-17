@@ -891,6 +891,10 @@ static void wm_draw_window_offscreen(bContext *C, wmWindow *win, bool stereo)
   /* Draw screen areas into own frame buffer. */
   ED_screen_areas_iter (win, screen, area) {
     CTX_wm_area_set(C, area);
+    if(area->spacetype == SPACE_VIEW3D)
+    {
+      break;
+    }
     GPU_debug_group_begin(wm_area_name(area));
 
     /* Compute UI layouts for dynamically size regions. */
@@ -968,13 +972,11 @@ static void wm_draw_window_offscreen(bContext *C, wmWindow *win, bool stereo)
 
       region->do_draw = false;
       CTX_wm_region_set(C, NULL);
-      break;
     }
 
     CTX_wm_area_set(C, NULL);
 
     GPU_debug_group_end();
-    break;
   }
   return;
   /* Draw menus into their own frame-buffer. */

@@ -62,7 +62,13 @@ void VKVertexBuffer::bind_as_texture(uint /*binding*/) {}
 
 void VKVertexBuffer::wrap_handle(uint64_t /*handle*/) {}
 
-void VKVertexBuffer::update_sub(uint /*start*/, uint /*len*/, const void * /*data*/) {}
+void VKVertexBuffer::update_sub(uint start, uint len, const void * data) {
+  if (!buffer_.is_allocated()) {
+    VKContext &context = *VKContext::get();
+    allocate(context);
+  }
+  buffer_.update_sub(start, len, data);
+}
 
 void VKVertexBuffer::read(void *data) const
 {

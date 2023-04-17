@@ -23,6 +23,8 @@
 
 namespace blender::gpu {
 
+bool VKContext::base_instance_support = false;
+
 VKContext::VKContext(void *ghost_window, void *ghost_context)
 {
   VK_ALLOCATION_CALLBACKS;
@@ -440,6 +442,12 @@ void VKContext::bind_graphics_pipeline(GPUPrimType prim_type,
   BLI_assert(shader);
   shader->update_graphics_pipeline(*this, prim_type, vertex_attribute_object);
   command_buffer_get().bind(shader->pipeline_get(), VK_PIPELINE_BIND_POINT_GRAPHICS);
+  shader->pipeline_get().push_constants_get().update(*this);
+  VKDescriptorSetTracker &descriptor_set = shader->pipeline_get().descriptor_set_get();
+  if(descriptor_set.update(*this))
+  {
+    descriptor_set.bindcmd(command_buffer_, shader->vk_pipeline_layout_get());
+  }
 }
 
 void VKContext::bind_graphics_pipeline(const VKBatch &batch,
@@ -452,8 +460,10 @@ void VKContext::bind_graphics_pipeline(const VKBatch &batch,
   shader->pipeline_get().push_constants_get().update(*this);
 
   VKDescriptorSetTracker &descriptor_set = shader->pipeline_get().descriptor_set_get();
-  descriptor_set.update(*this);
-  descriptor_set.bindcmd(command_buffer_, shader->vk_pipeline_layout_get());
+  if(descriptor_set.update(*this))
+  {
+    descriptor_set.bindcmd(command_buffer_, shader->vk_pipeline_layout_get());
+  }
 }
 /** \} */
 

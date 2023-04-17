@@ -182,11 +182,12 @@ void VKPipeline::finalize(VKContext &context,
   pipeline_create_info.pRasterizationState = &state_manager.rasterization_state;
   pipeline_create_info.pDepthStencilState = &state_manager.depth_stencil_state;
 
-  vkCreateGraphicsPipelines(
+  VkResult res = vkCreateGraphicsPipelines(
       vk_device, VK_NULL_HANDLE, 1, &pipeline_create_info, vk_allocation_callbacks, &vk_pipeline_);
   vk_pipelines.append(vk_pipeline_);
   debug::object_label(&context, vk_pipeline_, "BTCPipeline");
-  printf("Pipeline Create  renderpass %llx framebuffer(%f,%f)   pipeline %llx \n",
+  printf("Pipeline Create  VkResult %s renderpass %llx framebuffer(%f,%f)   pipeline %llx \n",
+         to_vk_error_string(res),
          (uintptr_t)pipeline_create_info.renderPass,
          viewport.width,
          viewport.height,

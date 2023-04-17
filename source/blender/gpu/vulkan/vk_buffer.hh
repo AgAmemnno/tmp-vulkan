@@ -37,6 +37,7 @@ class VKBuffer {
               VkBufferUsageFlagBits buffer_usage);
   void clear(VKContext &context, uint32_t clear_value);
   void update(const void *data) const;
+	void update_sub(uint start, uint len, const void * data);
   void read(void *data) const;
   bool free(VKContext &context);
   void copy(VKCommandBuffer *cmd, VKBuffer &dst, VkBufferCopy vbCopyRegion);

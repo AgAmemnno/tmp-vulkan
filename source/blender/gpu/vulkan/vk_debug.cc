@@ -652,6 +652,21 @@ bool VKContext::debug_capture_begin()
   return VKBackend::get().debug_capture_begin(vk_instance_);
 }
 
+void VKContext::debug_capture_title(const char* title)
+{
+  VKBackend::get().debug_capture_title(title);
+}
+
+void VKBackend::debug_capture_title(const char* title)
+{
+#ifdef WITH_RENDERDOC
+  return renderdoc_api_.set_capture_title(title);
+#else
+  UNUSED_VARS(vk_instance);
+  return false;
+#endif
+};
+
 bool VKBackend::debug_capture_begin(VkInstance vk_instance)
 {
 #ifdef WITH_RENDERDOC

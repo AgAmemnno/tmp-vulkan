@@ -31,6 +31,7 @@ class Renderdoc {
  public:
   bool start_frame_capture(RENDERDOC_DevicePointer device_handle,
                            RENDERDOC_WindowHandle window_handle);
+  void set_capture_title(const char* title);
   void end_frame_capture(RENDERDOC_DevicePointer device_handle,
                          RENDERDOC_WindowHandle window_handle);
 

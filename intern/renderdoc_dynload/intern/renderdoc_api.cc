@@ -21,6 +21,12 @@ bool Renderdoc::start_frame_capture(RENDERDOC_DevicePointer device_handle,
   renderdoc_api_->StartFrameCapture(device_handle, window_handle);
   return true;
 }
+void Renderdoc::set_capture_title(const char* title){
+  if (!check_loaded()) {
+    return ;
+  }
+  renderdoc_api_->SetCaptureTitle(title);
+}
 
 void Renderdoc::end_frame_capture(RENDERDOC_DevicePointer device_handle,
                                   RENDERDOC_WindowHandle window_handle)

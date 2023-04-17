@@ -96,6 +96,13 @@ void VKBuffer::update(const void *data) const
   memcpy(mapped_memory_, data, size_in_bytes_);
 }
 
+void VKBuffer::update_sub(uint start, uint len, const void * data)
+{
+  BLI_assert_msg(is_mapped(), "Cannot update a non-mapped buffer.");
+  BLI_assert(len + start <= size_in_bytes_);
+  memcpy((uint8_t*)mapped_memory_ + start, data, len);
+}
+
 void VKBuffer::clear(VKContext &context, uint32_t clear_value)
 {
   VKCommandBuffer &command_buffer = context.command_buffer_get();

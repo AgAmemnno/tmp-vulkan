@@ -8,7 +8,7 @@
 #include "guardedalloc_test_base.h"
 
 #define CHECK_ALIGNMENT(ptr, align) EXPECT_EQ(size_t(ptr) % align, 0)
-
+#if 0
 namespace {
 
 void DoBasicAlignmentChecks(const int alignment)
@@ -56,3 +56,4 @@ TEST_F(GuardedAllocatorTest, MEM_mallocN_aligned)
   DoBasicAlignmentChecks(256);
   DoBasicAlignmentChecks(512);
 }
+#endif

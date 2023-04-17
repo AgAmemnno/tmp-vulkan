@@ -20,7 +20,7 @@ namespace gpu {
 class VKContext;
 
 const char *to_string(VkObjectType type);
-
+const char *to_vk_error_string(VkResult result);
 namespace debug {
 
 struct VKDebuggingTools {
@@ -119,3 +119,19 @@ namespace tests {
 void test_create();
 }
 }  // namespace  blender
+
+namespace blender {
+namespace gpu {
+namespace print {
+    template<typename T>
+    void gpu_shader_2D_widget_base(const T &info,std::string& /* pre_main*/,std::string& post_main){
+        if ("gpu_shader_2D_widget_base" == info.name_) {
+                post_main += "debugPrintfEXT(\"Here gl_Position  %v4f  WID %i   "
+                             " butCo %f discardFac %f  triaCenter %v4f   VID  %i  "
+                             "\",gl_Position,int(widgetID), butCo,discardFac,parameters[widgetID * MAX_PARAM + "
+                             "9].xyzw,int(gl_VertexIndex));\n\n";
+          }
+      };
+  };
+}
+}

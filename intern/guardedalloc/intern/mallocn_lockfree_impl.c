@@ -77,7 +77,9 @@ void MEM_lockfree_freeN(void *vmemh)
   if (UNLIKELY(leak_detector_has_run)) {
     print_error("%s\n", free_after_leak_detection_message);
   }
-
+  #ifdef STACK_TRACE
+    MEM_PopInfo(vmemh);
+  #endif
   if (UNLIKELY(vmemh == NULL)) {
     print_error("Attempt to free NULL pointer\n");
 #ifdef WITH_ASSERT_ABORT
@@ -210,7 +212,9 @@ void *MEM_lockfree_callocN(size_t len, const char *str)
   if (LIKELY(memh)) {
     memh->len = len;
     memory_usage_block_alloc(len);
-
+    #ifdef STACK_TRACE
+      MEM_StackInfo(PTR_FROM_MEMHEAD(memh), str, len);
+    #endif
     return PTR_FROM_MEMHEAD(memh);
   }
   print_error("Calloc returns null: len=" SIZET_FORMAT " in %s, total " SIZET_FORMAT "\n",
@@ -253,7 +257,9 @@ void *MEM_lockfree_mallocN(size_t len, const char *str)
 
     memh->len = len;
     memory_usage_block_alloc(len);
-
+    #ifdef STACK_TRACE
+      MEM_StackInfo(PTR_FROM_MEMHEAD(memh), str, len);
+    #endif
     return PTR_FROM_MEMHEAD(memh);
   }
   print_error("Malloc returns null: len=" SIZET_FORMAT " in %s, total " SIZET_FORMAT "\n",
@@ -322,7 +328,9 @@ void *MEM_lockfree_mallocN_aligned(size_t len, size_t alignment, const char *str
     memh->len = len | (size_t)MEMHEAD_ALIGN_FLAG;
     memh->alignment = (short)alignment;
     memory_usage_block_alloc(len);
-
+    #ifdef STACK_TRACE
+      MEM_StackInfo(PTR_FROM_MEMHEAD(memh), str, len);
+    #endif
     return PTR_FROM_MEMHEAD(memh);
   }
   print_error("Malloc returns null: len=" SIZET_FORMAT " in %s, total " SIZET_FORMAT "\n",

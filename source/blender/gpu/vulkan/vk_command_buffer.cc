@@ -430,6 +430,11 @@ void VKCommandBuffer::draw(int v_first, int v_count, int i_first, int i_count)
   vkCmdDraw(vk_command_buffer_, v_count, i_count, v_first, i_first);
 }
 
+void VKCommandBuffer::draw_indexed(int idx_count, int i_count, int idx_first,int v_first, int i_first)
+{
+  vkCmdDrawIndexed(vk_command_buffer_, idx_count, i_count, idx_first, v_first, i_first);
+}
+
 void VKCommandBuffer::bind_vertex_buffers(uint32_t firstBinding,
                                           uint32_t bindingCount,
                                           const VkBuffer *pBuffers)

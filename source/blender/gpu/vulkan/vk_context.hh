@@ -84,6 +84,9 @@ class VKContext : public Context {
   debug::VKDebuggingTools debugging_tools_;
 
  public:
+
+ static bool base_instance_support;
+
   VKContext(void *ghost_window, void *ghost_context);
   virtual ~VKContext();
 
@@ -105,6 +108,7 @@ class VKContext : public Context {
   void *debug_capture_scope_create(const char *name) override;
   bool debug_capture_scope_begin(void *scope) override;
   void debug_capture_scope_end(void *scope) override;
+  void debug_capture_title(const char* title);
 
   bool has_active_framebuffer() const;
   void activate_framebuffer(VKFrameBuffer &framebuffer);

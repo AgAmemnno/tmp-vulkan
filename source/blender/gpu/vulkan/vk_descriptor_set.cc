@@ -117,8 +117,12 @@ void VKDescriptorSetTracker::bindcmd(VKCommandBuffer &command_buffer,
   command_buffer.bind(*descriptor_set.get(), vk_pipeline_layout, VK_PIPELINE_BIND_POINT_GRAPHICS);
 }
 
-void VKDescriptorSetTracker::update(VKContext &context)
+bool VKDescriptorSetTracker::update(VKContext &context)
 {
+  bool bindings_exist = bindings_.size() > 0;
+  if(!bindings_exist){
+    return false;
+  }
   tracked_resource_for(context, !bindings_.is_empty());
   std::unique_ptr<VKDescriptorSet> &descriptor_set = active_descriptor_set();
   VkDescriptorSet vk_descriptor_set = descriptor_set->vk_handle();
@@ -179,6 +183,7 @@ void VKDescriptorSetTracker::update(VKContext &context)
       vk_device, descriptor_writes.size(), descriptor_writes.data(), 0, nullptr);
 
   bindings_.clear();
+   return true;
 }
 
 std::unique_ptr<VKDescriptorSet> VKDescriptorSetTracker::create_resource(VKContext &context)

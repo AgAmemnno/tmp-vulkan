@@ -71,6 +71,7 @@ class VKBackend : public GPUBackend {
 
   bool debug_capture_begin(VkInstance vk_instance);
   void debug_capture_end(VkInstance vk_instance);
+  void debug_capture_title(const char* title);
 
   shaderc::Compiler &get_shaderc_compiler();
 
@@ -85,6 +86,7 @@ class VKBackend : public GPUBackend {
   };
 
   static void capabilities_init(VKContext &context);
+  static bool device_extensions_support( const char * extension_needed,Vector<VkExtensionProperties>& vk_extension_properties_);
 
   static VKBackend &get()
   {

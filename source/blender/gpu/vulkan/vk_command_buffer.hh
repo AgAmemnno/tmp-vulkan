@@ -433,6 +433,7 @@ class VKCommandBuffer : NonCopyable, NonMovable {
   void fill(VKBuffer &buffer, uint32_t data);
 
   void draw(int v_first, int v_count, int i_first, int i_count);
+  void draw_indexed(int idx_count, int i_count, int idx_first,int v_first, int i_first);
 
   void bind(const VKPipeline &vk_pipeline, VkPipelineBindPoint bind_point);
   void bind(const VKDescriptorSet &descriptor_set,

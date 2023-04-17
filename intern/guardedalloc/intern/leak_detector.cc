@@ -25,6 +25,9 @@ class MemLeakPrinter {
  public:
   ~MemLeakPrinter()
   {
+    #ifdef STACK_TRACE
+        MEM_PrintInfo();
+    #endif
     if (ignore_memleak) {
       return;
     }

@@ -5,8 +5,10 @@
  * \ingroup gpu
  */
 
+
 #include "vk_shader.hh"
 
+#include "vk_debug.hh"
 #include "vk_backend.hh"
 #include "vk_memory.hh"
 #include "vk_shader_interface.hh"
@@ -494,11 +496,19 @@ static char *glsl_patch_get()
   STR_CONCAT(patch, slen, "#version 450\n");
   STR_CONCAT(patch, slen, "#define gl_VertexID gl_VertexIndex\n");
   STR_CONCAT(patch, slen, "#define gpu_BaseInstance (0)\n");
+
+
   STR_CONCAT(patch, slen, "#define gpu_InstanceIndex (gl_InstanceIndex)\n");
   STR_CONCAT(patch, slen, "#define GPU_ARB_texture_cube_map_array\n");
 
-  STR_CONCAT(patch, slen, "#define gl_InstanceID gpu_InstanceIndex\n");
-
+  if (VKContext::base_instance_support) {
+    STR_CONCAT(patch, slen, "#extension GL_ARB_shader_draw_parameters : enable\n");
+    STR_CONCAT(patch, slen, "#define GPU_ARB_shader_draw_parameters\n");
+    /* https://stackoverflow.com/questions/35638512/instanced-glsl-shaders-in-vulkan*/
+    STR_CONCAT(patch, slen, "#define gl_InstanceID  (gl_InstanceIndex - gl_BaseInstanceARB)\n");
+  }else{
+    STR_CONCAT(patch, slen, "#define gpu_BaseInstance 0\n");
+  }
   STR_CONCAT(patch, slen, "#define DFDX_SIGN 1.0\n");
   STR_CONCAT(patch, slen, "#define DFDY_SIGN 1.0\n");
 
@@ -1013,6 +1023,8 @@ std::string VKShader::vertex_interface_declare(const shader::ShaderCreateInfo &i
 {
   std::stringstream ss;
   std::string post_main;
+  ss << "#extension GL_EXT_debug_printf : enable \n ";
+  //ss << "#define gl_VertexID gl_VertexIndex \n";
 
   ss << "\n/* Inputs. */\n";
   for (const ShaderCreateInfo::VertIn &attr : info.vertex_inputs_) {
@@ -1033,8 +1045,14 @@ std::string VKShader::vertex_interface_declare(const shader::ShaderCreateInfo &i
   }
   ss << "\n";
 
+  std::string pre_main = "";
+  post_main += "gl_PointSize = 10.0f; \n";
+
+  print::gpu_shader_2D_widget_base(info,pre_main,post_main);
+
+  post_main += "gl_Position.z = (gl_Position.z + gl_Position.w) / 2.0;\n";
+
   if (post_main.empty() == false) {
-    std::string pre_main;
     ss << main_function_wrapper(pre_main, post_main);
   }
   return ss.str();

@@ -30,7 +30,7 @@
 /* Set to 0 to allow devices that do not have the required features.
  * This allows development on OSX until we really needs these features. */
 #define STRICT_REQUIREMENTS 1
-#define ENABLE_DYNAMIC_STATE 1
+
 
 using namespace std;
 
@@ -140,6 +140,9 @@ static bool device_extensions_support(VkPhysicalDevice device, vector<const char
   }
   return true;
 }
+
+#define VK_ENABLE_DYNAMIC_STATE 1
+#define VK_ENABLE_DEBUG_PRINTF 1
 
 class SingletonDevice {
  public:
@@ -252,6 +255,7 @@ class SingletonDevice {
     fprintf(stderr, "Couldn't find any Present queue family on selected device\n");
     return GHOST_kFailure;
   }
+
   /*sascha williams sample dynamicstate.cpp*/
   void getEnabledDynamicState(std::vector<const char *> &m_extensions_device)
   {
@@ -318,6 +322,18 @@ class SingletonDevice {
     }
 #endif
   }
+  void getEnabledDebugPrintf(std::vector<const char *> &m_extensions_device){
+    m_extensions_device.push_back(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME);
+  }
+
+  /* Use gl_BaseInstanceARB  	Device coverage 89.74%	 First seen 	2017-01-22 */
+  void getEnabledDrawparameters(std::vector<const char *> &m_extensions_device){
+    if (device_extensions_support(vk_physical_device_,{VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME}))
+    {
+      enable_shader_ext = (EnabledShaderExtension)((uint8_t)enable_shader_ext | (uint8_t)EnabledShaderExtension::ENABLED_DRAW_PARAMETERS);
+      m_extensions_device.push_back(VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME);
+    }
+  }
 
   GHOST_TSuccess create(bool m_use_window_surface,
                         VkSurfaceKHR m_surface,
@@ -335,9 +351,15 @@ class SingletonDevice {
 #endif
     vkGetPhysicalDeviceFeatures2(vk_physical_device_, &features2);
 
-#if ENABLE_DYNAMIC_STATE
+#if VK_ENABLE_DYNAMIC_STATE
     getEnabledDynamicState(m_extensions_device);
 #endif
+ #if VK_ENABLE_DEBUG_PRINTF
+    getEnabledDebugPrintf(m_extensions_device);
+#endif
+
+    getEnabledDrawparameters(m_extensions_device);
+
 
     vector<VkDeviceQueueCreateInfo> queue_create_infos;
     {
@@ -422,13 +444,21 @@ class SingletonDevice {
     ENABLED_DYNAMIC3 = 0b1000,
   };
   EnabledDynamic enable_ext = EnabledDynamic::NOT_ENABLED;
+
+  enum class EnabledShaderExtension : uint8_t {
+    NOT_ENABLED = 0,
+    ENABLED_DRAW_PARAMETERS  = 0b1,
+  };
+  EnabledShaderExtension enable_shader_ext = EnabledShaderExtension::NOT_ENABLED;
+  
 };
 
 class SingletonInstance {
+
  public:
   SingletonInstance()
       : vk_instance_(VK_NULL_HANDLE){
-            // putenv("VK_LAYER_PATH=C:\\VulkanSDK\\1.3.243.0\\Bin");
+           putenv("VK_LAYER_PATH=C:\\VulkanSDK\\1.2.198.1\\Bin");
         };
   ~SingletonInstance()
   {
@@ -578,7 +608,32 @@ class SingletonInstance {
       }
     }
   }
+  void print_version(){
 
+    uint32_t instanceVersion = VK_API_VERSION_1_0;
+    assert(vkEnumerateInstanceVersion);
+    vkEnumerateInstanceVersion(&instanceVersion);
+
+    // 3 macros to extract version info
+    uint32_t major = VK_VERSION_MAJOR(instanceVersion);
+    uint32_t minor = VK_VERSION_MINOR(instanceVersion);
+    uint32_t patch = VK_VERSION_PATCH(instanceVersion);
+
+    cout << "Vulkan Version:" << major << "." << minor << "." << patch << endl;
+  }
+  void validation_config(VkInstanceCreateInfo& create_info){
+#ifdef VK_ENABLE_DEBUG_PRINTF
+  static VkValidationFeatureEnableEXT printenables[] = {VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT}; 
+  static VkValidationFeaturesEXT features = {};
+  features.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
+  features.enabledValidationFeatureCount = 1;
+  features.disabledValidationFeatureCount = 0;
+  features.pEnabledValidationFeatures = printenables;
+  features.pDisabledValidationFeatures = nullptr;
+  features.pNext = create_info.pNext;
+  create_info.pNext = &features;
+#endif
+  }
   GHOST_TSuccess create(bool m_use_window_surface,
                         bool m_debug,
                         const int m_context_major_version,
@@ -617,6 +672,7 @@ class SingletonInstance {
         extensions_available, extensions_enabled, "VK_KHR_get_physical_device_properties2");
 #endif
 
+
     VkApplicationInfo app_info = {};
     app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     app_info.pApplicationName = "Blender";
@@ -632,20 +688,10 @@ class SingletonInstance {
     create_info.ppEnabledLayerNames = m_layers_enabled.data();
     create_info.enabledExtensionCount = static_cast<uint32_t>(extensions_enabled.size());
     create_info.ppEnabledExtensionNames = extensions_enabled.data();
-
+    validation_config(create_info);
     VK_CHECK(vkCreateInstance(&create_info, NULL, &vk_instance_));
+    print_version();
 
-    uint32_t instanceVersion = VK_API_VERSION_1_0;
-
-    assert(vkEnumerateInstanceVersion);
-    vkEnumerateInstanceVersion(&instanceVersion);
-
-    // 3 macros to extract version info
-    uint32_t major = VK_VERSION_MAJOR(instanceVersion);
-    uint32_t minor = VK_VERSION_MINOR(instanceVersion);
-    uint32_t patch = VK_VERSION_PATCH(instanceVersion);
-
-    cout << "Vulkan Version:" << major << "." << minor << "." << patch << endl;
     return GHOST_kSuccess;
   }
 
@@ -883,94 +929,6 @@ GHOST_TSuccess GHOST_ContextVK::swapBuffers()
 
   return GHOST_kSuccess;
 }
-
-#if 0
-GHOST_TSuccess GHOST_ContextVK::swapBuffers()
-{
-  if (m_swapchain == VK_NULL_HANDLE) {
-    return GHOST_kFailure;
-  }
-
-  uint32_t cmd_id = m_currentImage;
-
-  //vkWaitForFences(m_device, 1, &m_in_flight_fences[m_currentFrame], VK_TRUE, UINT64_MAX);
-
-  VkResult result = vkAcquireNextImageKHR(m_device,
-                                          m_swapchain,
-                                          UINT64_MAX,
-                                          m_image_available_semaphores[m_currentFrame],
-                                          VK_NULL_HANDLE,
-                                          &m_currentImage);
-
-  if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
-    /* Swap-chain is out of date. Recreate swap-chain and skip this frame. */
-    destroySwapchain();
-    createSwapchain();
-    return GHOST_kSuccess;
-  }
-  else if (result != VK_SUCCESS) {
-    fprintf(stderr,
-            "Error: Failed to acquire swap chain image : %s\n",
-            vulkan_error_as_string(result));
-    return GHOST_kFailure;
-  }
-
-  /* Check if a previous frame is using this image (i.e. there is its fence to wait on) */
-  if (m_in_flight_images[m_currentImage] != VK_NULL_HANDLE) {
-    vkWaitForFences(m_device, 1, &m_in_flight_images[m_currentImage], VK_TRUE, UINT64_MAX);
-  }
-  m_in_flight_images[m_currentImage] = m_in_flight_fences[m_currentFrame];
-
-  VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT};
-
-  VkSubmitInfo submit_info = {};
-  submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  submit_info.waitSemaphoreCount = 1;
-  submit_info.pWaitSemaphores = &m_image_available_semaphores[m_currentFrame];
-  submit_info.pWaitDstStageMask = wait_stages;
-  submit_info.commandBufferCount = 1;
-  submit_info.pCommandBuffers = &m_command_buffers[cmd_id];
-  submit_info.signalSemaphoreCount = 1;
-  submit_info.pSignalSemaphores = &m_render_finished_semaphores[m_currentFrame];
-
-  vkResetFences(m_device, 1, &m_in_flight_fences[m_currentFrame]);
-
-  VK_CHECK(vkQueueSubmit(m_graphic_queue, 1, &submit_info, m_in_flight_fences[m_currentFrame]));
-  do {
-    result = vkWaitForFences(m_device, 1, &m_in_flight_fences[m_currentFrame], VK_TRUE, 10000);
-  } while (result == VK_TIMEOUT);
-
-  VK_CHECK(vkQueueWaitIdle(m_graphic_queue));
-
-  VkPresentInfoKHR present_info = {};
-  present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-  present_info.waitSemaphoreCount = 1;
-  present_info.pWaitSemaphores = &m_render_finished_semaphores[m_currentFrame];
-  present_info.swapchainCount = 1;
-  present_info.pSwapchains = &m_swapchain;
-  present_info.pImageIndices = &m_currentImage;
-  present_info.pResults = NULL;
-
-  result = vkQueuePresentKHR(m_present_queue, &present_info);
-
-  if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
-    /* Swap-chain is out of date. Recreate swap-chain and skip this frame. */
-    destroySwapchain();
-    createSwapchain();
-    return GHOST_kSuccess;
-  }
-  else if (result != VK_SUCCESS) {
-    fprintf(stderr,
-            "Error: Failed to present swap chain image : %s\n",
-            vulkan_error_as_string(result));
-    return GHOST_kFailure;
-  }
-
-  m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-
-  return GHOST_kSuccess;
-}
-#endif
 
 GHOST_TSuccess GHOST_ContextVK::getVulkanBackbuffer(
     void *image, void *framebuffer, void *render_pass, void *extent, uint32_t *fb_id, int index)

@@ -192,4 +192,15 @@ void MEM_guarded_name_ptr_set(void *vmemh, const char *str);
 }
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#define STACK_TRACE
+extern void MEM_PrintInfo();
+extern void MEM_StackInfo(void *ptr, const char *str, uint64_t len);
+extern void MEM_PopInfo(void *ptr);
+#ifdef __cplusplus
+};
+#endif
+
 #endif /* __MALLOCN_INTERN_H__ */

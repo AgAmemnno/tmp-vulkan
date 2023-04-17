@@ -34,7 +34,9 @@
 #include "CLG_log.h"
 
 static CLG_LogRef LOG = {"makesrna"};
-
+void MEM_StackInfo(void *ptr, const char *str, uint64_t len) {}
+void MEM_PopInfo(void *ptr){};
+void MEM_PrintInfo(){};
 /**
  * Variable to control debug output of makesrna.
  * debugSRNA:

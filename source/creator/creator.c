@@ -268,6 +268,157 @@ void gmp_blender_init_allocator()
 /** \name Main Function
  * \{ */
 
+#define STACK_TRACE
+#ifdef STACK_TRACE
+
+#include "dbghelp.h"
+#pragma comment(lib, "DbgHelp.lib ")
+#define MAX_INFO 200000
+#define MAX_INFO_MSG 256
+
+//#include <pthread.h>
+// static pthread_mutex_t _thread_lock = ((pthread_mutex_t)(size_t)-1);
+
+typedef struct MEM_info {
+  uintptr_t ptr;
+  bool is_free;
+  size_t len;
+  char msg[MAX_INFO_MSG];
+} MEM_info;
+static MEM_info *minfo;
+static int minfo_alloc = 0;
+static int minfo_id = -1;
+static int push_cnt_id = 0;
+static int pop_cnt_id = 0;
+static pthread_mutex_t thread_lock = PTHREAD_MUTEX_INITIALIZER;
+
+static void mem_lock_thread(void) { pthread_mutex_lock(&thread_lock); }
+
+static void mem_unlock_thread(void) { pthread_mutex_unlock(&thread_lock); }
+static DWORD thread_main;
+void MEM_StackInfo(void *ptr, const char *str, uint64_t len) {
+  // printStack();
+#if 1
+  mem_lock_thread();
+  if (push_cnt_id == 0) {
+    {
+      thread_main = GetCurrentThreadId();
+      minfo = (MEM_info *)malloc(MAX_INFO * sizeof(MEM_info));
+      for (int j = 0; j < MAX_INFO; j++) {
+        minfo[j].is_free = true;
+        minfo[j].len = 0;
+        minfo[j].ptr = 1;
+      };
+      minfo_alloc = MAX_INFO;
+    };
+  }
+  DWORD thread_id = GetCurrentThreadId();
+  if (thread_main != thread_id) {
+  }
+
+  minfo_id = -1;
+  for (int i = 0; i < minfo_alloc; i++) {
+    if (minfo[i].is_free) {
+      minfo_id = i;
+      push_cnt_id++;
+      break;
+    }
+  }
+
+  if (minfo_id == -1) {
+    exit(-1);
+  }
+
+  minfo[minfo_id].ptr = (uintptr_t)ptr;
+  minfo[minfo_id].len = len;
+  minfo[minfo_id].is_free = false;
+  unsigned int i;
+#define STACK_NUMS 30
+  void *stack[STACK_NUMS];
+  unsigned short frames;
+
+  HANDLE process;
+
+  process = GetCurrentProcess();
+
+  SymInitialize(process, NULL, TRUE);
+  memset(&stack, 0, sizeof(uintptr_t) * STACK_NUMS);
+
+  frames = CaptureStackBackTrace(0, STACK_NUMS, stack, NULL);
+
+  char *dst = &minfo[minfo_id].msg[0];
+  memset(minfo[minfo_id].msg, 0, MAX_INFO_MSG);
+  int total = 0;
+  SYMBOL_INFO *symbol =
+      (SYMBOL_INFO *)calloc(sizeof(SYMBOL_INFO) + 256 * sizeof(char), 1);
+  symbol->MaxNameLen = 255;
+  symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+  static int CALLEE_CNT = 0;
+  CALLEE_CNT++;
+
+  for (i = 0; i < frames; i++) {
+    if (!stack[i])
+      break;
+    // mem_lock_thread();
+    SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
+    // mem_unlock_thread();
+    if (total + symbol->NameLen > MAX_INFO_MSG) {
+      break;
+    }
+    memcpy(dst, symbol->Name, symbol->NameLen);
+    dst[symbol->NameLen] = '\n';
+    dst += (symbol->NameLen + 1);
+    total += (symbol->NameLen + 1);
+    if (strcmp(symbol->Name, "main") == 0) {
+      break;
+    }
+    /*  printf("%i: %s - 0x%0X\n", frames - i - 1, symbol->Name,
+     * symbol->Address); */
+  }
+  free(symbol);
+
+#endif
+
+  mem_unlock_thread();
+}
+void MEM_PopInfo(void *ptr) {
+
+  mem_lock_thread();
+
+  uintptr_t p = (uintptr_t)ptr;
+  for (int i = 0; i < minfo_alloc; i++) {
+    if (minfo[i].ptr == p) {
+      minfo[i].is_free = true;
+      minfo[i].ptr = 0;
+      minfo[i].len = 0;
+      pop_cnt_id++;
+      break;
+    }
+  }
+  mem_unlock_thread();
+};
+
+void MEM_PrintInfo() {
+
+  int cnt = 0;
+  for (int i = 0; i < minfo_alloc; i++) {
+    if (!minfo[i].is_free) {
+      cnt++;
+      //printf("Memory leak  found ADR %llx   size  %zu  \n  %s\n",minfo[i].ptr, minfo[i].len, minfo[i].msg);
+    }
+  }
+  //printf("Memory  push  %d   pop   %d  leak %d  \n", push_cnt_id,pop_cnt_id,cnt);
+
+  free(minfo);
+  minfo_alloc = 0;
+  minfo_id = -1;
+  push_cnt_id = 0;
+  pop_cnt_id = 0;
+};
+#else
+void MEM_PrintInfo() {}
+#endif
+
 /**
  * Blender's main function responsibilities are:
  * - setup subsystems.

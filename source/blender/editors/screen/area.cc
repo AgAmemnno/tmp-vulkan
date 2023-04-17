@@ -565,7 +565,7 @@ void ED_region_do_draw(bContext *C, ARegion *region)
     immUnbindProgram();
     GPU_blend(GPU_BLEND_NONE);
   }
-  return;
+
   memset(&region->drawrct, 0, sizeof(region->drawrct));
 
   UI_blocklist_free_inactive(C, region);

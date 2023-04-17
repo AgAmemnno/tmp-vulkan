@@ -164,7 +164,7 @@ class VKDescriptorSetTracker : protected VKResourceTracker<VKDescriptorSet> {
   /**
    * Update the descriptor set on the device.
    */
-  void update(VKContext &context);
+  bool update(VKContext &context);
 
   std::unique_ptr<VKDescriptorSet> &active_descriptor_set()
   {

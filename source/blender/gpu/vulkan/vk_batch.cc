@@ -14,18 +14,8 @@
 
 namespace blender::gpu {
 
-void VKBatch::draw(int v_first, int v_count, int i_first, int i_count)
-{
-  if (flag & GPU_BATCH_DIRTY) {
-    vao_cache_.clear();
-    flag &= ~GPU_BATCH_DIRTY;
-  }
-  GPU_debug_capture_begin();
-  VKContext &context = *VKContext::get();
-  static int CNT = 0;
-  CNT++;
-
-  VKFrameBuffer *fb = context.active_framebuffer_get();
+static void activate(VKContext& context,int CNT){
+VKFrameBuffer *fb = context.active_framebuffer_get();
 
   int viewport[4];
   fb->viewport_get(viewport);
@@ -38,8 +28,25 @@ void VKBatch::draw(int v_first, int v_count, int i_first, int i_count)
       viewport[1],
       viewport[2],
       viewport[3]);
-
   context.activate_framebuffer(*fb);
+
+}
+
+void VKBatch::draw(int v_first, int v_count, int i_first, int i_count)
+{
+  if (flag & GPU_BATCH_DIRTY) {
+    vao_cache_.clear();
+    flag &= ~GPU_BATCH_DIRTY;
+  }
+  static int CNT = 0;
+  CNT++;
+
+  GPU_debug_capture_begin();
+  VKContext::get()->debug_capture_title( (std::string("BTC") + std::to_string(CNT)).c_str());
+  VKContext &context = *VKContext::get();
+
+
+  activate(context,CNT);
 
   context.state_manager->apply_state();
   VKVertexAttributeObject &vao = vao_cache_.vao_get(this);
@@ -51,12 +58,16 @@ void VKBatch::draw(int v_first, int v_count, int i_first, int i_count)
   if (index_buffer) {
     index_buffer->upload_data();
     index_buffer->bind(context);
+    context.command_buffer_get().draw_indexed( index_buffer->index_len_get(),i_count, index_buffer->index_base_get(),v_first, i_first);
+  }
+  else
+  {
+    context.command_buffer_get().draw(v_first, v_count, i_first, i_count);
   }
 
-  context.command_buffer_get().draw(v_first, v_count, i_first, i_count);
   context.command_buffer_get().submit(true, false);
   GPU_debug_capture_end();
-  if (CNT >= 1) {
+  if (CNT >= 174) {
     system("pause");
   }
 }

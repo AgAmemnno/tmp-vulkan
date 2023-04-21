@@ -21,6 +21,12 @@ class VKContext;
 
 const char *to_string(VkObjectType type);
 const char *to_vk_error_string(VkResult result);
+enum class VKDebugGroupID
+{
+  DebugGroupTest,
+  DebugGroupShader,
+  DebugGroupAll
+};
 namespace debug {
 
 struct VKDebuggingTools {
@@ -43,14 +49,14 @@ struct VKDebuggingTools {
   VkInstance instance = VK_NULL_HANDLE;
   VkDevice device = VK_NULL_HANDLE;
   VkDebugUtilsMessengerEXT dbgMessenger = nullptr;
-  Set<int32_t> dbgIgnoreMessages;
+  Set<VKDebugGroupID> dbgIgnoreMessages;
   std::mutex lists_mutex_;
 
   VKDebuggingTools();
   VKDebuggingTools &operator=(VKDebuggingTools &tools);
   void clear();
-  void add_ignore(int32_t id);
-  void remove_ignore(int32_t id);
+  void add_group(const char* group_name);
+  void remove_group(const char* group_name);
 };
 
 void raise_vk_error(const char *info);
@@ -77,6 +83,29 @@ template<typename... Args> void raise_vk_info(const std::string &fmt, Args... ar
                                          VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT,
                                          VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
                                          &cbdata);
+  }
+}
+template<typename... Args> void raise_message(int32_t id_number,VkDebugUtilsMessageSeverityFlagBitsEXT vk_severity_flag_bits,const char* fmt, Args... args)
+{
+  VKContext* context = VKContext::get();
+  VKDebuggingTools &tools = context->debugging_tools_get();
+  if (tools.enabled)
+  {
+    char* info = BLI_sprintfN(fmt, args...);
+    static VkDebugUtilsMessengerCallbackDataEXT vk_call_back_data;
+    vk_call_back_data.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CALLBACK_DATA_EXT;
+    vk_call_back_data.pNext = VK_NULL_HANDLE;
+    vk_call_back_data.messageIdNumber = id_number;
+    vk_call_back_data.pMessageIdName  = "RaiseMessage";
+    vk_call_back_data.objectCount = 0;
+    vk_call_back_data.flags            = 0;
+    vk_call_back_data.pObjects     = VK_NULL_HANDLE;
+    vk_call_back_data.pMessage    = info;
+    tools.vkSubmitDebugUtilsMessageEXT_r( context->instance_get(),
+                                         vk_severity_flag_bits,
+                                         VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT,
+                                         &vk_call_back_data);
+    MEM_freeN((void*)info);
   }
 }
 

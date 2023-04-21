@@ -136,7 +136,7 @@ static void do_push_constants_test(const char *info_name, const int num_calls_si
     std::cout << "Skipping test: platform not supported";
     return;
   }
-
+  
   static constexpr uint SIZE = 16;
 
   Shader shader;

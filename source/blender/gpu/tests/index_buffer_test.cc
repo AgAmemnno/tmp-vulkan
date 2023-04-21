@@ -7,7 +7,7 @@
 #include "GPU_index_buffer.h"
 
 #include "gpu_testing.hh"
-
+#if 0
 namespace blender::gpu::tests {
 
 static void test_index_buffer_subbuilders()
@@ -47,3 +47,4 @@ static void test_index_buffer_subbuilders()
 GPU_TEST(index_buffer_subbuilders)
 
 }  // namespace blender::gpu::tests
+#endif

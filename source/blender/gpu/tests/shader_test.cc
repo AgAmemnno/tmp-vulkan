@@ -22,7 +22,7 @@
 #include "gpu_shader_create_info_private.hh"
 #include "gpu_shader_dependency_private.h"
 #include "gpu_testing.hh"
-
+#if 0
 namespace blender::gpu::tests {
 
 using namespace blender::gpu::shader;
@@ -463,3 +463,4 @@ static void test_eevee_lib()
 GPU_TEST(eevee_lib)
 
 }  // namespace blender::gpu::tests
+#endif

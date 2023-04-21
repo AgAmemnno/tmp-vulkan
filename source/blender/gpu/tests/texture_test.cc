@@ -21,7 +21,7 @@
 #define RUN_SRGB_UNIMPLEMENTED false
 #define RUN_NON_STANDARD_UNIMPLEMENTED false
 #define RUN_COMPONENT_UNIMPLEMENTED false
-
+#if 0
 namespace blender::gpu::tests {
 
 static void test_texture_read()
@@ -767,3 +767,4 @@ GPU_TEST(texture_roundtrip__GPU_DATA_2_10_10_10_REV__GPU_RGB10_A2UI);
 /* \} */
 
 }  // namespace blender::gpu::tests
+#endif

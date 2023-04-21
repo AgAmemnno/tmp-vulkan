@@ -85,6 +85,14 @@ VKContext::VKContext(void *ghost_window, void *ghost_context)
 
 VKContext::~VKContext()
 {
+  if(imm){
+    delete imm;
+    imm = nullptr;
+  }
+  if(back_left){
+    delete back_left;
+    back_left = nullptr;
+  }
   VKBackend::desable_gpuctx(this, descriptor_pools_);
 }
 
@@ -153,23 +161,22 @@ void VKContext::deactivate()
 
 void VKContext::begin_frame()
 {
-
-  if (vk_in_frame_) {
+  if (vk_in_frame_ ) {
     return;
   }
-
-  vk_in_frame_ = true;
-  BLI_assert(validate_frame());
-
   VkCommandBuffer command_buffer = VK_NULL_HANDLE;
   GHOST_GetVulkanCommandBuffer(static_cast<GHOST_ContextHandle>(ghost_context_), &command_buffer);
 
   BLI_assert(command_buffer_.init(vk_device_, vk_queue_, command_buffer));
-  BLI_assert(validate_image());
-
-  // command_buffer_.begin_recording();
-
   descriptor_pools_.reset();
+  vk_in_frame_ = true;
+
+  if(!VKBackend::exist_window()){
+    return;
+  };
+  BLI_assert(validate_frame());
+  BLI_assert(validate_image());
+  // command_buffer_.begin_recording();
 }
 
 void VKContext::end_frame()
@@ -399,6 +406,10 @@ void VKContext::activate_framebuffer(VKFrameBuffer &framebuffer)
   }
   else {
     VKTexture &tex = (*(VKTexture *)new_fb->color_tex(0));
+    if(&tex ==nullptr){
+      active_fb = nullptr;
+      return;
+    }
     BLI_assert(command_buffer_.begin_render_pass(*new_fb, tex));
   }
 

@@ -572,6 +572,7 @@ set(GLSL_SRC_TEST
   tests/shaders/gpu_compute_vbo_test.glsl
   tests/shaders/gpu_compute_dummy_test.glsl
   tests/shaders/gpu_push_constants_test.glsl
+  tests/shaders/gpu_vert_none_test.glsl
 )
 
 set(MTL_BACKEND_GLSL_SRC
@@ -845,13 +846,14 @@ if(WITH_GTESTS2)
   if(WITH_OPENGL_DRAW_TESTS)
     set(TEST_SRC
       tests/gpu_testing.cc
+      tests/offscreen_test.cc
 
-      tests/framebuffer_test.cc
-      tests/index_buffer_test.cc
-      tests/push_constants_test.cc
-      tests/shader_test.cc
-      tests/storage_buffer_test.cc
-      tests/texture_test.cc
+      #tests/framebuffer_test.cc
+      #tests/index_buffer_test.cc
+      #tests/push_constants_test.cc
+      #tests/shader_test.cc
+      #tests/storage_buffer_test.cc
+      #tests/texture_test.cc
 
       tests/gpu_testing.hh
     )

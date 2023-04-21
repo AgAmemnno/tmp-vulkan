@@ -32,12 +32,15 @@ static void activate(VKContext& context,int CNT){
    context.activate_framebuffer(*fb);
 }
 VKImmediate::VKImmediate() {}
-VKImmediate::~VKImmediate() {}
+VKImmediate::~VKImmediate()
+{
+  buffer_.free(*VKContext::get());
+}
   static int CNT = 0;
 uchar *VKImmediate::begin()
 {
   GPU_debug_capture_begin();
- 
+
   VKContext &context = *VKContext::get();
 
   activate(context,CNT);

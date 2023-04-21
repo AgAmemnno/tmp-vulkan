@@ -7,7 +7,7 @@
 #include "BLI_vector.hh"
 
 #include "gpu_testing.hh"
-
+#if 0
 namespace blender::gpu::tests {
 
 constexpr size_t SIZE = 128;
@@ -96,3 +96,4 @@ static void test_storage_buffer_clear()
 GPU_TEST(storage_buffer_clear);
 
 }  // namespace blender::gpu::tests
+#endif

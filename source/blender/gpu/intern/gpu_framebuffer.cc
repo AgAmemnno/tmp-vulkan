@@ -684,7 +684,7 @@ GPUOffScreen *GPU_offscreen_create(
   }
 
   GPUFrameBuffer *fb = gpu_offscreen_fb_get(ofs);
-
+  
   /* check validity at the very end! */
   if (!GPU_framebuffer_check_valid(fb, err_out)) {
     GPU_offscreen_free(ofs);

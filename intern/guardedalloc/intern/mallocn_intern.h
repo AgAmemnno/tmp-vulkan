@@ -191,11 +191,12 @@ void MEM_guarded_name_ptr_set(void *vmemh, const char *str);
 #ifdef __cplusplus
 }
 #endif
-
+//#define STACK_TRACE
+#ifdef STACK_TRACE
 #ifdef __cplusplus
 extern "C" {
 #endif
-#define STACK_TRACE
+
 extern void MEM_PrintInfo();
 extern void MEM_StackInfo(void *ptr, const char *str, uint64_t len);
 extern void MEM_PopInfo(void *ptr);
@@ -203,4 +204,5 @@ extern void MEM_PopInfo(void *ptr);
 };
 #endif
 
+#endif /* STACK_TRACE */
 #endif /* __MALLOCN_INTERN_H__ */

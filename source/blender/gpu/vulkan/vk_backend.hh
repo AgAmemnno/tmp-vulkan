@@ -62,7 +62,7 @@ class VKBackend : public GPUBackend {
   UniformBuf *uniformbuf_alloc(int size, const char *name) override;
   StorageBuf *storagebuf_alloc(int size, GPUUsageType usage, const char *name) override;
   VertBuf *vertbuf_alloc() override;
-
+  VmaAllocator* vma_alloc(VKContext* context);
   /* Render Frame Coordination --
    * Used for performing per-frame actions globally */
   void render_begin() override;
@@ -75,10 +75,7 @@ class VKBackend : public GPUBackend {
 
   shaderc::Compiler &get_shaderc_compiler();
 
-  VmaAllocator &mem_allocator_get()
-  {
-    return mem_allocator_;
-  };
+  VmaAllocator &mem_allocator_get();
 
   VkDevice &mem_device_get()
   {
@@ -94,7 +91,7 @@ class VKBackend : public GPUBackend {
   }
 
   template<typename T> static void desable_gpuctx(VKContext *context, T &descriptor_pools_);
-
+  static bool exist_window();
  private:
   static void init_platform();
   static void platform_exit();

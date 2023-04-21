@@ -7,8 +7,12 @@
 
 #include "BKE_global.h"
 #include "BLI_set.hh"
+#include "BLI_map.hh"
 #include "BLI_system.h"
 #include "CLG_log.h"
+
+
+
 
 #include "vk_backend.hh"
 #include "vk_common.hh"
@@ -48,6 +52,7 @@ const char *to_vk_error_string(VkResult result)
   }
 
   switch (result) {
+    FORMAT_ERROR(VK_SUCCESS);
     FORMAT_ERROR(VK_NOT_READY);
     FORMAT_ERROR(VK_TIMEOUT);
     FORMAT_ERROR(VK_EVENT_SET);
@@ -90,9 +95,18 @@ const char *to_vk_error_string(VkResult result)
   }
 }
 
+
+
+const std::unordered_map<const char*,VKDebugGroupID> VKDebugGroupMap ={
+    {"DebugGroupTest",VKDebugGroupID::DebugGroupTest},
+    {"DebugGroupShader",VKDebugGroupID::DebugGroupShader},
+    {"DebugGroupAll",VKDebugGroupID::DebugGroupAll}
+};
+
 namespace debug {
 #if defined(VK_DEBUG_ENABLED)
 static VkInstance vk_instance_s = VK_NULL_HANDLE;
+
 
 VKDebuggingTools::VKDebuggingTools()
 {
@@ -106,18 +120,21 @@ void VKDebuggingTools::clear()
   dbgMessenger = nullptr;
   enabled = false;
 }
-void VKDebuggingTools::add_ignore(int32_t id)
+void VKDebuggingTools::add_group(const char* group_name)
 {
   lists_mutex_.lock();
-  dbgIgnoreMessages.add(id);
+  VKDebugGroupID group_id = VKDebugGroupMap.at(group_name);
+  dbgIgnoreMessages.add(group_id);
   lists_mutex_.unlock();
 }
-void VKDebuggingTools::remove_ignore(int32_t id)
+void VKDebuggingTools::remove_group(const char* group_name)
 {
   lists_mutex_.lock();
-  dbgIgnoreMessages.remove(id);
+  VKDebugGroupID group_id = VKDebugGroupMap.at(group_name);
+  dbgIgnoreMessages.remove(group_id);
   lists_mutex_.unlock();
 }
+
 
 /*for creating breakpoints.*/
 extern inline void VK_ERROR_CHECK(VkResult r, const char *name)
@@ -346,7 +363,7 @@ debugUtilsCB(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 {
 
   VKDebuggingTools *ctx = reinterpret_cast<VKDebuggingTools *>(userData);
-  if (ctx->dbgIgnoreMessages.contains(callbackData->messageIdNumber)) {
+  if (ctx->dbgIgnoreMessages.contains( VKDebugGroupID(callbackData->messageIdNumber))) {
     return VK_FALSE;
   }
 
@@ -508,6 +525,10 @@ static VkResult DestroyDebugUtils(VKDebuggingTools &deb)
 
 static bool CreateDebug(VKDebuggingTools &deb)
 {
+  if(!deb.enabled)
+  {
+    return false;
+  }
   /*Associate flag settings with interfaces?*/
   VkDebugUtilsMessageSeverityFlagsEXT flag = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
                                              VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
@@ -643,7 +664,10 @@ void pop_marker(VKContext *context, VkQueue queue)
 }  // namespace blender::gpu
 
 namespace blender::gpu {
-void VKContext::debug_group_begin(const char *, int) {}
+void VKContext::debug_group_begin(const char * group_name, int id) {
+  debug::VKDebuggingTools &tools = this->debugging_tools_get();
+  //tools.add_ignore();
+}
 
 void VKContext::debug_group_end() {}
 

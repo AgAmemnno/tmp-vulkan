@@ -237,13 +237,15 @@ const VKDescriptorSet::Location VKShaderInterface::descriptor_set_location(
  *used. For example, this function makes sense if we associate a bind type with a set number.
  **/
 const VKDescriptorSet::Location VKShaderInterface::descriptor_set_location(
-    const shader::ShaderCreateInfo::Resource::BindType &bind_type, int binding) const
+    const shader::ShaderCreateInfo::Resource::BindType &/*bind_type*/, int binding) const
 {
+  return binding;
+  /*
   BLI_assert(false);
   const ShaderInput *shader_input = shader_input_get(bind_type, binding);
   BLI_assert(shader_input);
   // return descriptor_set_location(shader_input);
-  return 0;
+  */
 }
 
 const ShaderInput *VKShaderInterface::shader_input_get(

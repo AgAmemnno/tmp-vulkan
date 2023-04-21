@@ -5,6 +5,9 @@
  * \ingroup gpu
  */
 
+#ifndef VK_PIPELINE_STATE
+#define VK_PIPELINE_STATE
+
 #include "gpu_state_private.hh"
 
 #include "vk_common.hh"
@@ -28,6 +31,7 @@ class VKPipelineStateManager {
 
   void set_state(const GPUState &state, const GPUStateMutable &mutable_state);
   void force_state(const GPUState &state, const GPUStateMutable &mutable_state);
+  void set_raster_discard(bool);
 
  private:
   void set_blend(eGPUBlend blend);
@@ -41,6 +45,8 @@ class VKPipelineStateManager {
   void set_backface_culling(eGPUFaceCullTest test);
   void set_provoking_vert(eGPUProvokingVertex vert);
   void set_shadow_bias(bool enable);
+
 };
 
 }  // namespace blender::gpu
+#endif

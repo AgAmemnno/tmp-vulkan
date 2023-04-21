@@ -13,6 +13,10 @@
 
 #include "BKE_global.h"
 
+void MEM_StackInfo(void *ptr, const char *str, unsigned __int64 len) {}
+void MEM_PopInfo(void *ptr){};
+void MEM_PrintInfo(){};
+
 namespace blender::gpu {
 
 void GPUTest::SetUp()

@@ -203,6 +203,8 @@ class SingletonDevice {
       if (vk_device_ != VK_NULL_HANDLE) {
         vkDestroyDevice(vk_device_, NULL);
         vk_device_ = VK_NULL_HANDLE;
+        vk_physical_device_ = VK_NULL_HANDLE;
+        vk_instance_ = VK_NULL_HANDLE;
       }
     }
   }

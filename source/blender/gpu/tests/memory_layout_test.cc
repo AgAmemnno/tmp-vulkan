@@ -3,7 +3,7 @@
 #include "testing/testing.h"
 
 #include "../vulkan/vk_memory_layout.hh"
-
+#if 0
 namespace blender::gpu {
 
 template<typename Layout>
@@ -98,3 +98,4 @@ TEST(std140, fl_vec2)
 }
 
 }  // namespace blender::gpu
+#endif

@@ -5,7 +5,13 @@
  * \ingroup gpu
  */
 
+#include "GPU_state.h"
+
 #include "vk_pipeline_state.hh"
+
+#include "vk_context.hh"
+#include "vk_shader.hh"
+
 
 namespace blender::gpu {
 VKPipelineStateManager::VKPipelineStateManager()
@@ -364,4 +370,15 @@ void VKPipelineStateManager::set_shadow_bias(const bool enable)
   }
 }
 
+void VKPipelineStateManager::set_raster_discard(bool discard)
+{
+  rasterization_state.rasterizerDiscardEnable = (discard)?VK_TRUE:VK_FALSE;
+};
 }  // namespace blender::gpu
+
+void GPU_raster_discard(bool discard){
+  using namespace blender::gpu;
+  VKShader &shader = unwrap(*(VKContext::get()->shader));
+  VKPipeline &pipeline = shader.pipeline_get();
+  pipeline.state_manager_get().set_raster_discard(discard);
+};

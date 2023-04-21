@@ -15,6 +15,8 @@
 
 #include "BLI_string_ref.hh"
 
+#include <functional>
+
 namespace blender::gpu {
 class VKShaderInterface;
 
@@ -76,6 +78,8 @@ class VKShader : public Shader {
   void update_graphics_pipeline(VKContext &context,
                                 const VKBatch &batch,
                                 const VKVertexAttributeObject &vertex_attribute_object);
+
+  static std::function<std::string(void)>  debug_print;
 
  private:
   Vector<uint32_t> compile_glsl_to_spirv(Span<const char *> sources, shaderc_shader_kind kind);

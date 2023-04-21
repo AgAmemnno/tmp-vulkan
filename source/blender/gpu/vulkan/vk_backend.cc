@@ -60,6 +60,7 @@ template<typename T> void VKBackend::desable_gpuctx(VKContext *context, T &descr
     }
     VKTexture::samplers_free();
     vmaDestroyAllocator(mem_allocator_);
+    mem_allocator_ = VK_NULL_HANDLE;
     debug::destroy_callbacks(context, tools);
     pools.clear();
   }
@@ -119,28 +120,50 @@ void VKBackend::compute_dispatch(int groups_x_len, int groups_y_len, int groups_
 
 void VKBackend::compute_dispatch_indirect(StorageBuf * /*indirect_buf*/) {}
 
-Context *VKBackend::context_alloc(void *ghost_window, void *ghost_context)
+VmaAllocator* VKBackend::vma_alloc(VKContext* context)
 {
   VK_ALLOCATION_CALLBACKS;
+  VmaAllocatorCreateInfo info = {};
+  /* Should use same vulkan version as GHOST (1.2), but set to 1.0 as 1.2 requires
+    * correct extensions and functions to be found by VMA, which isn't working as expected and
+    * requires more research. To continue development we lower the API to version 1.0. */
+  mem_device_ = context->device_get();
+  info.vulkanApiVersion = VK_API_VERSION_1_0;
+  info.physicalDevice = context->physical_device_get();
+  info.device = mem_device_;
+  info.instance = context->instance_get();
+  info.pAllocationCallbacks = vk_allocation_callbacks;
+  vmaCreateAllocator(&info, &mem_allocator_);
+  return &mem_allocator_;
+}
+
+Context *VKBackend::context_alloc(void *ghost_window, void *ghost_context)
+{
   VKContext *context = new VKContext(ghost_window, ghost_context);
   context_ref_count_++;
   if (ghost_window) {
+    vma_alloc(context);
     VKTexture::samplers_init(context);
-    gpuctx_ = context;
-    /* Initialize the memory allocator. */
-    VmaAllocatorCreateInfo info = {};
-    /* Should use same vulkan version as GHOST (1.2), but set to 1.0 as 1.2 requires
-     * correct extensions and functions to be found by VMA, which isn't working as expected and
-     * requires more research. To continue development we lower the API to version 1.0. */
-    mem_device_ = context->device_get();
-    info.vulkanApiVersion = VK_API_VERSION_1_0;
-    info.physicalDevice = context->physical_device_get();
-    info.device = mem_device_;
-    info.instance = context->instance_get();
-    info.pAllocationCallbacks = vk_allocation_callbacks;
-    vmaCreateAllocator(&info, &mem_allocator_);
+    VKBackend::gpuctx_ = context;
   }
   return context;
+}
+
+VmaAllocator &VKBackend::mem_allocator_get()
+{
+  if(!mem_allocator_){
+    vma_alloc(VKContext::get());
+  }
+  return mem_allocator_;
+};
+
+bool VKBackend::exist_window()
+{
+  if(gpuctx_ )
+  {
+    return  true;
+  }
+  return false;
 }
 
 Batch *VKBackend::batch_alloc()

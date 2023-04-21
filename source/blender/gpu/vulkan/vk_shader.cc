@@ -24,7 +24,7 @@ using namespace blender::gpu::shader;
 extern "C" char datatoc_glsl_shader_defines_glsl[];
 
 namespace blender::gpu {
-
+std::function<std::string(void)>  VKShader::debug_print = nullptr;
 /* -------------------------------------------------------------------- */
 /** \name Create Info
  * \{ */
@@ -1047,7 +1047,10 @@ std::string VKShader::vertex_interface_declare(const shader::ShaderCreateInfo &i
 
   std::string pre_main = "";
   post_main += "gl_PointSize = 10.0f; \n";
-
+  if(debug_print)
+  {
+    post_main +=  debug_print();
+  }
   print::gpu_shader_2D_widget_base(info,pre_main,post_main);
 
   post_main += "gl_Position.z = (gl_Position.z + gl_Position.w) / 2.0;\n";

@@ -19,6 +19,7 @@ VKFrameBuffer::VKFrameBuffer(const char *name) : FrameBuffer(name)
 {
   immutable_ = false;
   size_set(1, 1);
+  dirty_attachments_ = false;
 }
 
 VKFrameBuffer::VKFrameBuffer(const char *name,

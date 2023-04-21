@@ -267,8 +267,10 @@ bool VKCommandBuffer::begin_recording()
   if (in_toggle_) {
     return true;
   }
-
-  BLI_assert(VKContext::get()->validate_frame());
+  if(VKBackend::exist_window()){
+    BLI_assert(VKContext::get()->validate_frame());
+  };
+  
   in_flight_receive();
 
   vkResetFences(vk_device_, 1, &vk_fence_);

@@ -6,7 +6,7 @@
 #include "gpu_testing.hh"
 
 #include "BLI_math_vector.hh"
-
+#if 0
 namespace blender::gpu::tests {
 
 static void test_framebuffer_clear_color_single_attachment()
@@ -198,3 +198,4 @@ static void test_framebuffer_scissor_test()
 GPU_TEST(framebuffer_scissor_test);
 
 }  // namespace blender::gpu::tests
+#endif

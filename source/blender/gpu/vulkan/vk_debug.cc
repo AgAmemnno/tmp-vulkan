@@ -367,6 +367,12 @@ debugUtilsCB(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     return VK_FALSE;
   }
 
+  if(-1841738615== callbackData->messageIdNumber){
+    if(ctx->post_proc){
+      ctx->post_proc(callbackData->pMessage);
+      return VK_TRUE;
+    }
+  }
   const bool use_color = CLG_color_support_get(&LOG);
   bool enabled = false;
   if ((messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) ||
@@ -374,13 +380,14 @@ debugUtilsCB(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 
     // if ((LOG.type->flag & CLG_FLAG_USE) && (LOG.type->level >= CLG_SEVERITY_INFO)) {
     if (true) {
-      const char *format = use_color ? CONSOLE_COLOR_FINE "% s\n %s " CONSOLE_COLOR_RESET :
-                                       " % s\n %s ";
+      const char *format = use_color ? CONSOLE_COLOR_FINE "{Id%d}% s\n %s " CONSOLE_COLOR_RESET :
+                                       "{Id%d}% s\n %s ";
       CLG_logf(LOG.type,
                CLG_SEVERITY_INFO,
                "",
                "",
                format,
+               callbackData->messageIdNumber,
                callbackData->pMessageIdName,
                callbackData->pMessage);
       enabled = true;

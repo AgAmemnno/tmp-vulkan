@@ -154,6 +154,7 @@ class VKContext : public Context {
   {
     return command_buffer_;
   }
+  void command_buffer_init();
 
   VKStateManager &state_manager_get()
   {

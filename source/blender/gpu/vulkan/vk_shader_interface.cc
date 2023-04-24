@@ -80,12 +80,25 @@ void VKShaderInterface::init(const shader::ShaderCreateInfo &info)
   uint32_t name_buffer_offset = 0;
 
   /* Attributes */
+  int attr_loc  = 0;
+  int attr_bind= 0;
   for (const ShaderCreateInfo::VertIn &attr : info.vertex_inputs_) {
     copy_input_name(input, attr.name, name_buffer_, name_buffer_offset);
-    input->location = input->binding = attr.index;
+
+    input->binding  =attr_bind++;
+    if(attr.index == 15){
+      input->location =  15;
+    }else{
+      input->location =  attr_loc;
+    }
+    if(attr.type == Type::MAT4){
+      attr_loc += 4;
+    }else{
+      attr_loc++;
+    }
+
     if (input->location != -1) {
       enabled_attr_mask_ |= (1 << input->location);
-
       /* Used in `GPU_shader_get_attribute_info`. */
       attr_types_[input->location] = uint8_t(attr.type);
     }

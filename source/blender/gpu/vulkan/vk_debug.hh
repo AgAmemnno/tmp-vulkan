@@ -51,7 +51,7 @@ struct VKDebuggingTools {
   VkDebugUtilsMessengerEXT dbgMessenger = nullptr;
   Set<VKDebugGroupID> dbgIgnoreMessages;
   std::mutex lists_mutex_;
-
+  std::function<void(const char* message)> post_proc;
   VKDebuggingTools();
   VKDebuggingTools &operator=(VKDebuggingTools &tools);
   void clear();

@@ -268,11 +268,14 @@ bool VKCommandBuffer::begin_recording()
     return true;
   }
   if(VKBackend::exist_window()){
-    BLI_assert(VKContext::get()->validate_frame());
+    BLI_assert(VKBackend::get().validate_frame());
   };
   
   in_flight_receive();
-
+  if(vk_device_==VK_NULL_HANDLE)
+  {
+    VKContext::get()->command_buffer_init();
+  }
   vkResetFences(vk_device_, 1, &vk_fence_);
   end_recording();
   vkResetCommandBuffer(vk_command_buffer_, 0);

@@ -72,6 +72,7 @@ class VKFrameBuffer : public FrameBuffer {
                                    eGPUStoreOp store_action) override;
 
   void apply_state();
+  void set_color_blend(VkPipelineColorBlendStateCreateInfo& pipeline_color_blend_state);
 
   void read(eGPUFrameBufferBits planes,
             eGPUDataFormat format,

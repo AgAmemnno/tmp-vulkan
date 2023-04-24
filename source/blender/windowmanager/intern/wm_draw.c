@@ -893,7 +893,7 @@ static void wm_draw_window_offscreen(bContext *C, wmWindow *win, bool stereo)
     CTX_wm_area_set(C, area);
     if(area->spacetype == SPACE_VIEW3D)
     {
-      break;
+      //break;
     }
     GPU_debug_group_begin(wm_area_name(area));
 

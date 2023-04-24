@@ -159,19 +159,22 @@ void VKContext::deactivate()
   immDeactivate();
 }
 
+void VKContext::command_buffer_init(){
+  VkCommandBuffer command_buffer = VK_NULL_HANDLE;
+  GHOST_GetVulkanCommandBuffer(static_cast<GHOST_ContextHandle>(ghost_context_), &command_buffer);
+
+  BLI_assert(command_buffer_.init(vk_device_, vk_queue_, command_buffer));
+}
 void VKContext::begin_frame()
 {
   if (vk_in_frame_ ) {
     return;
   }
-  VkCommandBuffer command_buffer = VK_NULL_HANDLE;
-  GHOST_GetVulkanCommandBuffer(static_cast<GHOST_ContextHandle>(ghost_context_), &command_buffer);
-
-  BLI_assert(command_buffer_.init(vk_device_, vk_queue_, command_buffer));
+  command_buffer_init();
   descriptor_pools_.reset();
   vk_in_frame_ = true;
-
-  if(!VKBackend::exist_window()){
+  
+  if(!ghost_window_){
     return;
   };
   BLI_assert(validate_frame());
@@ -277,7 +280,6 @@ bool VKContext::validate_image()
 
 bool VKContext::validate_frame()
 {
-
   VkSemaphore wait = VK_NULL_HANDLE, fin = VK_NULL_HANDLE;
 
   uint8_t fb_id = semaphore_get(wait, fin);

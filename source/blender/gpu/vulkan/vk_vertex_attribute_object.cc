@@ -134,7 +134,9 @@ void VKVertexAttributeObject::update_bindings(const GPUVertFormat &vertex_format
   }
 
   uint32_t offset = 0;
-  uint32_t stride = vertex_format.stride;
+  uint32_t _stride =  vertex_format.stride;
+  uint32_t stride  = 0;
+
 
   /** When there is only one buffer, this method uses multiple bindings by offsetting them.
   *     In other words, the number of locations == the number of bindings.
@@ -174,12 +176,21 @@ void VKVertexAttributeObject::update_bindings(const GPUVertFormat &vertex_format
       attribute_description.location = shader_input->location;
       attribute_description.offset   = offset;
       attribute_description.format  = to_vk_format(static_cast<GPUVertCompType>(attribute.comp_type), attribute.size,(GPUVertFetchMode)attribute.fetch_mode);
-      attributes.append(attribute_description);
+      if(attribute.comp_len == 16){
+        for(uint32_t  j =0;j<4;j++)
+        {
+          attribute_description.location = shader_input->location + j;
+          attribute_description.offset   = offset +  j*(uint32_t)attribute.size/4;
+          attributes.append(attribute_description);
+        }
+      }else{
+        attributes.append(attribute_description);
+      }
     }
     if (attribute_used_by_shader) {
       VkVertexInputBindingDescription vk_binding_descriptor = {};
       vk_binding_descriptor.binding = ++binding;
-      vk_binding_descriptor.stride   = stride;
+      vk_binding_descriptor.stride   = _stride;
       vk_binding_descriptor.inputRate = use_instancing ? VK_VERTEX_INPUT_RATE_INSTANCE :
                                                          VK_VERTEX_INPUT_RATE_VERTEX;
       bindings.append(vk_binding_descriptor);
@@ -191,6 +202,12 @@ void VKVertexAttributeObject::update_bindings(const GPUVertFormat &vertex_format
       }
     }
   }
+
+  for(auto desc : attributes){
+    printf("Attribute Input  ===== Binding %d  Location %d  Offset %f  Format %s    \n",desc.binding,desc.location,desc.offset,to_string(desc.format));
+    printf("                                               =======stride  %d  input Rate %d ",bindings[desc.binding].stride,(int)bindings[desc.binding].inputRate);
+  }
+
 }
 
 }  // namespace blender::gpu

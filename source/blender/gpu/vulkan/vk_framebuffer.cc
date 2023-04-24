@@ -509,6 +509,19 @@ void VKFrameBuffer::render_pass_free()
   vk_framebuffer_ = VK_NULL_HANDLE;
 }
 
+void VKFrameBuffer::set_color_blend(VkPipelineColorBlendStateCreateInfo& pipeline_color_blend_state){
+  int color_nums = 0;
+  for (int color_slot = 0; color_slot < GPU_FB_MAX_COLOR_ATTACHMENT; color_slot++) {
+    const GPUAttachment &attachment = attachments_[GPU_FB_COLOR_ATTACHMENT0 + color_slot];
+    if (attachment.tex == nullptr) {
+      continue;
+    }
+    color_nums++;
+  }
+  
+  pipeline_color_blend_state.attachmentCount = (color_nums==0)?1:color_nums;
+
+}
 /** \} */
 
 }  // namespace blender::gpu

@@ -51,9 +51,14 @@ void immAttr2f(uint attr_id, float x, float y);
 void immAttr3f(uint attr_id, float x, float y, float z);
 void immAttr4f(uint attr_id, float x, float y, float z, float w);
 
+void immAttr16f(uint attr_id, float v[16]);
+
+void immAttr1i(uint attr_id, int x);
 void immAttr2i(uint attr_id, int x, int y);
 
 void immAttr1u(uint attr_id, uint x);
+void immAttr2u(uint attr_id, uint x,uint y);
+void immAttr4u(uint attr_id, uint x,uint y, uint z,uint w);
 
 void immAttr2s(uint attr_id, short x, short y);
 
@@ -61,11 +66,14 @@ void immAttr2fv(uint attr_id, const float data[2]);
 void immAttr3fv(uint attr_id, const float data[3]);
 void immAttr4fv(uint attr_id, const float data[4]);
 
+void immAttr1ub(uint attr_id,  unsigned char r);
+void immAttr2ub(uint attr_id,  unsigned char r,  unsigned char g);
 void immAttr3ub(uint attr_id, unsigned char r, unsigned char g, unsigned char b);
 void immAttr4ub(uint attr_id, unsigned char r, unsigned char g, unsigned char b, unsigned char a);
 
 void immAttr3ubv(uint attr_id, const unsigned char data[3]);
 void immAttr4ubv(uint attr_id, const unsigned char data[4]);
+void immAttr16ubv(uint attr_id, const  unsigned char data[16]);
 
 /* Explicitly skip an attribute.
  * This advanced option kills automatic value copying for this attr_id. */

@@ -67,7 +67,7 @@ void VKBatch::draw(int v_first, int v_count, int i_first, int i_count)
 
   context.command_buffer_get().submit(true, false);
   GPU_debug_capture_end();
-  if (CNT >= 174) {
+  if (CNT == 200) {
     system("pause");
   }
 }

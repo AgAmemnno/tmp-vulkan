@@ -95,6 +95,8 @@ class VKPipeline : NonCopyable {
                 VkPipelineLayout &pipeline_layout,
                 const VKBatch &batch,
                 const VKVertexAttributeObject &vertex_attribute_object);
+
+
 };
 
 }  // namespace blender::gpu

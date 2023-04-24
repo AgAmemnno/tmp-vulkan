@@ -21,7 +21,7 @@ static void activate(VKContext& context,int CNT){
   int viewport[4];
   fb->viewport_get(viewport);
   printf(
-      ">>>>>>>>>>>>>>>>>>>>>>VKBatch Draw<<<<<<<<<<<<< CNT[%d]  FrameBuffer %llx Viewport (%d %d "
+      ">>>>>>>>>>>>>>>>>>>>>>VKImmediate Draw<<<<<<<<<<<<< CNT[%d]  FrameBuffer %llx Viewport (%d %d "
       "%d %d) \n",
       CNT,
       (uintptr_t)fb->vk_framebuffer_get(),
@@ -29,6 +29,9 @@ static void activate(VKContext& context,int CNT){
       viewport[1],
       viewport[2],
       viewport[3]);
+  if(CNT ==59){
+    system("pause");
+  }
    context.activate_framebuffer(*fb);
 }
 VKImmediate::VKImmediate() {}

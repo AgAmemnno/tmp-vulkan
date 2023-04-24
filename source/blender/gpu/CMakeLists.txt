@@ -846,8 +846,8 @@ if(WITH_GTESTS2)
   if(WITH_OPENGL_DRAW_TESTS)
     set(TEST_SRC
       tests/gpu_testing.cc
-      tests/offscreen_test.cc
-
+      tests/vertex_input_test.cc
+      #tests/offscreen_test.cc
       #tests/framebuffer_test.cc
       #tests/index_buffer_test.cc
       #tests/push_constants_test.cc

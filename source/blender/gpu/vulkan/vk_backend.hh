@@ -81,6 +81,7 @@ class VKBackend : public GPUBackend {
   {
     return mem_device_;
   };
+  bool validate_frame();
 
   static void capabilities_init(VKContext &context);
   static bool device_extensions_support( const char * extension_needed,Vector<VkExtensionProperties>& vk_extension_properties_);

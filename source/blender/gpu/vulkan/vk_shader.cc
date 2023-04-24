@@ -969,7 +969,10 @@ void VKShader::uniform_float(int location, int comp_len, int array_size, const f
 
 void VKShader::uniform_int(int location, int comp_len, int array_size, const int *data)
 {
-  pipeline_get().push_constants_get().push_constant_set(location, comp_len, array_size, data);
+  if(location > 1023)
+  {
+    pipeline_get().push_constants_get().push_constant_set(location, comp_len, array_size, data);
+  }
 }
 
 std::string VKShader::resources_declare(const shader::ShaderCreateInfo &info) const

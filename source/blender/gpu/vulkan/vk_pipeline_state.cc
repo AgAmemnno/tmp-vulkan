@@ -30,13 +30,7 @@ VKPipelineStateManager::VKPipelineStateManager()
 void VKPipelineStateManager::set_state(const GPUState &state, const GPUStateMutable &mutable_state)
 {
   /* TODO should be extracted from current framebuffer and should not be done here and now. */
-  color_blend_attachments.clear();
-  VkPipelineColorBlendAttachmentState color_blend_attachment = {};
-  color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-                                          VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-  color_blend_attachments.append(color_blend_attachment);
-  pipeline_color_blend_state.attachmentCount = color_blend_attachments.size();
-  pipeline_color_blend_state.pAttachments = color_blend_attachments.data();
+
 
   GPUState changed = state ^ current_;
   if (changed.blend) {
@@ -82,9 +76,11 @@ void VKPipelineStateManager::force_state(const GPUState &state,
 
 void VKPipelineStateManager::set_blend(const eGPUBlend blend)
 {
+  color_blend_attachments.resize(1);
   VkPipelineColorBlendStateCreateInfo &cb = pipeline_color_blend_state;
   VkPipelineColorBlendAttachmentState &att_state = color_blend_attachments.last();
-
+  att_state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                                          VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
   att_state.blendEnable = VK_TRUE;
   att_state.alphaBlendOp = VK_BLEND_OP_ADD;
   att_state.colorBlendOp = VK_BLEND_OP_ADD;
@@ -186,6 +182,21 @@ void VKPipelineStateManager::set_blend(const eGPUBlend blend)
   else {
     att_state.blendEnable = VK_FALSE;
   }
+
+  if(VKContext::get()->active_fb)
+  {
+    VKFrameBuffer* frame_buffer = reinterpret_cast<VKFrameBuffer*>(VKContext::get()->active_fb);
+    frame_buffer->set_color_blend(pipeline_color_blend_state);
+    
+    for(int i =1;i<pipeline_color_blend_state.attachmentCount;i++)
+    {
+       color_blend_attachments.append(att_state);
+    }
+    pipeline_color_blend_state.pAttachments = color_blend_attachments.data();
+    return;
+  }
+  pipeline_color_blend_state.pAttachments = color_blend_attachments.data();
+  pipeline_color_blend_state.attachmentCount = color_blend_attachments.size();
 }
 
 void VKPipelineStateManager::set_write_mask(const eGPUWriteMask write_mask)

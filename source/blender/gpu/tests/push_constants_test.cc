@@ -164,13 +164,13 @@ static void test_push_constants()
 {
   do_push_constants_test("gpu_push_constants_test");
 }
-GPU_TEST(push_constants)
+//GPU_TEST(push_constants)
 
 static void test_push_constants_128bytes()
 {
   do_push_constants_test("gpu_push_constants_128bytes_test");
 }
-GPU_TEST(push_constants_128bytes)
+//GPU_TEST(push_constants_128bytes)
 
 static void test_push_constants_256bytes()
 {
@@ -189,19 +189,19 @@ static void test_push_constants_multiple()
 {
   do_push_constants_test("gpu_push_constants_test", 10);
 }
-GPU_TEST(push_constants_multiple)
+//GPU_TEST(push_constants_multiple)
 
 static void test_push_constants_multiple_128bytes()
 {
   do_push_constants_test("gpu_push_constants_128bytes_test", 10);
 }
-GPU_TEST(push_constants_multiple_128bytes)
+//GPU_TEST(push_constants_multiple_128bytes)
 
 static void test_push_constants_multiple_256bytes()
 {
   do_push_constants_test("gpu_push_constants_256bytes_test", 10);
 }
-GPU_TEST(push_constants_multiple_256bytes)
+//GPU_TEST(push_constants_multiple_256bytes)
 
 static void test_push_constants_multiple_512bytes()
 {

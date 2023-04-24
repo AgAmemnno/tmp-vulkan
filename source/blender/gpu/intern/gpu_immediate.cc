@@ -14,6 +14,7 @@
 #include "GPU_immediate.h"
 #include "GPU_matrix.h"
 #include "GPU_texture.h"
+#include "GPU_vertex_format.h"
 
 #include "gpu_context_private.hh"
 #include "gpu_immediate_private.hh"
@@ -51,6 +52,8 @@ void immBindShader(GPUShader *shader)
     VertexFormat_pack(&imm->vertex_format);
     imm->enabled_attr_bits = 0xFFFFu & ~(0xFFFFu << imm->vertex_format.attr_len);
   }
+
+  printf("Vertex Format >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   Stride %d  \n",imm->vertex_format.stride);
 
   GPU_shader_bind(shader);
   GPU_matrix_bind(shader);
@@ -354,6 +357,22 @@ void immAttr4f(uint attr_id, float x, float y, float z, float w)
   data[3] = w;
 }
 
+void immAttr16f(uint attr_id, float v[16])
+{
+  GPUVertAttr *attr = &imm->vertex_format.attrs[attr_id];
+  BLI_assert(attr_id < imm->vertex_format.attr_len);
+  BLI_assert(attr->comp_type == GPU_COMP_F32);
+  BLI_assert(attr->comp_len == 16);
+  BLI_assert(imm->vertex_idx < imm->vertex_len);
+  BLI_assert(imm->prim_type != GPU_PRIM_NONE); /* make sure we're between a Begin/End pair */
+  setAttrValueBit(attr_id);
+
+  float *data = (float *)(imm->vertex_data + attr->offset);
+  // printf("%s %td %p\n", __FUNCTION__, (GLubyte*)data - imm->buffer_data, data);
+  memcpy(data,v,sizeof(float)*16);
+
+}
+
 void immAttr1u(uint attr_id, uint x)
 {
   GPUVertAttr *attr = &imm->vertex_format.attrs[attr_id];
@@ -369,6 +388,61 @@ void immAttr1u(uint attr_id, uint x)
   data[0] = x;
 }
 
+void immAttr2u(uint attr_id, uint x,uint y)
+{
+  GPUVertAttr *attr = &imm->vertex_format.attrs[attr_id];
+  BLI_assert(attr_id < imm->vertex_format.attr_len);
+  BLI_assert(attr->comp_type == GPU_COMP_U32);
+  BLI_assert(attr->comp_len == 2);
+  BLI_assert(imm->vertex_idx < imm->vertex_len);
+  BLI_assert(imm->prim_type != GPU_PRIM_NONE); /* make sure we're between a Begin/End pair */
+  setAttrValueBit(attr_id);
+
+  uint *data = (uint *)(imm->vertex_data + attr->offset);
+
+  data[0] = x;
+  data[1] = y;
+}
+
+void immAttr4u(uint attr_id, uint x,uint y, uint z,uint w)
+{
+  GPUVertAttr *attr = &imm->vertex_format.attrs[attr_id];
+  BLI_assert(attr_id < imm->vertex_format.attr_len);
+  BLI_assert(attr->comp_type == GPU_COMP_U32);
+  BLI_assert(attr->comp_len == 4);
+  BLI_assert(imm->vertex_idx < imm->vertex_len);
+  BLI_assert(imm->prim_type != GPU_PRIM_NONE); /* make sure we're between a Begin/End pair */
+  setAttrValueBit(attr_id);
+
+  uint *data = (uint *)(imm->vertex_data + attr->offset);
+
+  data[0] = x;
+  data[1] = y;
+  data[2] = z;
+  data[3] = w;
+}
+
+void immAttr1i(uint attr_id, int x)
+{
+  GPUVertAttr *attr = &imm->vertex_format.attrs[attr_id];
+  BLI_assert(attr_id < imm->vertex_format.attr_len);
+  BLI_assert(attr->comp_type == GPU_COMP_I32);
+  BLI_assert(attr->comp_len == 1);
+  BLI_assert(imm->vertex_idx < imm->vertex_len);
+  BLI_assert(imm->prim_type != GPU_PRIM_NONE); /* make sure we're between a Begin/End pair */
+  setAttrValueBit(attr_id);
+   
+  if(attr->fetch_mode == GPU_FETCH_INT_TO_FLOAT){
+   float *data = (float*)(imm->vertex_data + attr->offset);
+   data[0] = (float)x;
+   return;
+   }
+ 
+  int *data = (int *)(imm->vertex_data + attr->offset);
+  data[0] = x;
+
+}
+
 void immAttr2i(uint attr_id, int x, int y)
 {
   GPUVertAttr *attr = &imm->vertex_format.attrs[attr_id];
@@ -378,11 +452,20 @@ void immAttr2i(uint attr_id, int x, int y)
   BLI_assert(imm->vertex_idx < imm->vertex_len);
   BLI_assert(imm->prim_type != GPU_PRIM_NONE); /* make sure we're between a Begin/End pair */
   setAttrValueBit(attr_id);
+  #ifdef WITH_VULKAN_BACKEND
+  if(attr->fetch_mode == GPU_FETCH_INT_TO_FLOAT){
+   float *data = (float*)(imm->vertex_data + attr->offset);
+   data[0] = (float)x;
+   data[1] = (float)y;
+   return;
+   }
+  #endif
 
   int *data = (int *)(imm->vertex_data + attr->offset);
 
   data[0] = x;
   data[1] = y;
+  
 }
 
 void immAttr2s(uint attr_id, short x, short y)
@@ -414,6 +497,41 @@ void immAttr3fv(uint attr_id, const float data[3])
 void immAttr4fv(uint attr_id, const float data[4])
 {
   immAttr4f(attr_id, data[0], data[1], data[2], data[3]);
+}
+
+void immAttr1ub(uint attr_id, uchar r)
+{
+  GPUVertAttr *attr = &imm->vertex_format.attrs[attr_id];
+  BLI_assert(attr_id < imm->vertex_format.attr_len);
+  BLI_assert(attr->comp_type == GPU_COMP_U8);
+  BLI_assert(attr->comp_len == 1);
+  BLI_assert(imm->vertex_idx < imm->vertex_len);
+  BLI_assert(imm->prim_type != GPU_PRIM_NONE); /* make sure we're between a Begin/End pair */
+  setAttrValueBit(attr_id);
+
+  uchar *data = imm->vertex_data + attr->offset;
+  // printf("%s %td %p\n", __FUNCTION__, data - imm->buffer_data, data);
+
+  data[0] = r;
+
+}
+
+void immAttr2ub(uint attr_id, uchar r, uchar g)
+{
+  GPUVertAttr *attr = &imm->vertex_format.attrs[attr_id];
+  BLI_assert(attr_id < imm->vertex_format.attr_len);
+  BLI_assert(attr->comp_type == GPU_COMP_U8);
+  BLI_assert(attr->comp_len == 2);
+  BLI_assert(imm->vertex_idx < imm->vertex_len);
+  BLI_assert(imm->prim_type != GPU_PRIM_NONE); /* make sure we're between a Begin/End pair */
+  setAttrValueBit(attr_id);
+
+  uchar *data = imm->vertex_data + attr->offset;
+  // printf("%s %td %p\n", __FUNCTION__, data - imm->buffer_data, data);
+
+  data[0] = r;
+  data[1] = g;
+
 }
 
 void immAttr3ub(uint attr_id, uchar r, uchar g, uchar b)
@@ -461,6 +579,20 @@ void immAttr3ubv(uint attr_id, const uchar data[3])
 void immAttr4ubv(uint attr_id, const uchar data[4])
 {
   immAttr4ub(attr_id, data[0], data[1], data[2], data[3]);
+}
+void immAttr16ubv(uint attr_id, const uchar data[16])
+{
+  GPUVertAttr *attr = &imm->vertex_format.attrs[attr_id];
+  BLI_assert(attr_id < imm->vertex_format.attr_len);
+  BLI_assert(attr->comp_type == GPU_COMP_U8);
+  BLI_assert(attr->comp_len == 16);
+  BLI_assert(imm->vertex_idx < imm->vertex_len);
+  BLI_assert(imm->prim_type != GPU_PRIM_NONE); /* make sure we're between a Begin/End pair */
+  setAttrValueBit(attr_id);
+
+  uchar *dst = imm->vertex_data + attr->offset;
+  memcpy(dst,data,16);
+
 }
 
 void immAttrSkip(uint attr_id)

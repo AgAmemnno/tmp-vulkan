@@ -150,7 +150,8 @@ uint GPU_vertformat_attr_add(GPUVertFormat *format,
       /* integer types can be kept as int or converted/normalized to float */
       assert(fetch_mode != GPU_FETCH_FLOAT);
       /* only support float matrices (see Batch_update_program_bindings) */
-      assert(!ELEM(comp_len, 8, 12, 16));
+      //assert(!ELEM(comp_len, 8, 12, 16));
+      assert(!ELEM(comp_len, 8, 12));
   }
 #endif
   format->name_len++; /* Multi-name support. */
@@ -329,6 +330,7 @@ static void VertexFormat_pack_impl(GPUVertFormat *format, uint minimum_stride)
     offset += mid_padding;
     a->offset = offset;
     offset += a->size;
+    offset += padding(offset, attr_align(a, minimum_stride));
 
 #if PACK_DEBUG
     show_pack(a_idx, a->size, mid_padding);

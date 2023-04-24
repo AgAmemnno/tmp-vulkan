@@ -306,4 +306,11 @@ void VKBackend::capabilities_init(VKContext &context)
   GCaps.max_compute_shader_storage_blocks = limits.maxPerStageDescriptorStorageBuffers;
 }
 
+bool VKBackend::validate_frame()
+{
+  if(gpuctx_){
+    return gpuctx_->validate_frame();
+  }
+  return false;
+};
 }  // namespace blender::gpu

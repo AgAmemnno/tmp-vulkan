@@ -25,25 +25,20 @@
 namespace blender::gpu {
 
 template<typename T>
-bool VKCommandBuffer::begin_render_pass(const VKFrameBuffer &framebuffer, T &sfim)
+bool VKCommandBuffer::begin_render_pass(const VKFrameBuffer &framebuffer, T *sfim)
 {
-#if 0
-  if (begin_rp_) {
-    return true;
+  if(sfim)
+  {
+    image_transition(sfim,
+                  VkTransitionState::VK_BEFORE_RENDER_PASS,
+                  true,VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL );
+   debug::raise_vk_info("=========== ImageTransition Render Pass ========= imageLayout %d  Image %llx \n",
+                       sfim->current_layout_get(),
+                       (uintptr_t)sfim->vk_image_handle());
   }
-  if(in_submit_){
-    submit(true,false);
+  else{
+    image_transition_from_framebuffer(framebuffer);
   }
-  if (!in_toggle_) {
-    if (!begin_recording()) {
-      return false;
-    };
-  }
-#endif
-  image_transition(&sfim,
-                   VkTransitionState::VK_BEFORE_RENDER_PASS,
-                   true,
-                   framebuffer.vk_render_pass_init_layout_get());
 
   VkRenderPassBeginInfo render_pass_begin_info = {};
   render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -52,16 +47,82 @@ bool VKCommandBuffer::begin_render_pass(const VKFrameBuffer &framebuffer, T &sfi
   render_pass_begin_info.renderArea = framebuffer.vk_render_area_get();
   vkCmdBeginRenderPass(vk_command_buffer_, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
   begin_rp_ = true;
-  debug::raise_vk_info("=========== Begin Render Pass ========= framebuffer %llx  Image %llx \n",
-                       (uintptr_t)render_pass_begin_info.framebuffer,
-                       (uintptr_t)sfim.vk_image_handle());
+  
+  debug::raise_vk_info("=========== Begin Render Pass ========= framebuffer %llx  \n",(uintptr_t)render_pass_begin_info.framebuffer);
   return true;
 }
 
 template bool VKCommandBuffer::begin_render_pass(const VKFrameBuffer &framebuffer,
-                                                 VKTexture &sfim);
+                                                 VKTexture *sfim);
 template bool VKCommandBuffer::begin_render_pass(const VKFrameBuffer &framebuffer,
-                                                 SafeImage &sfim);
+                                                 SafeImage *sfim);
+
+static bool in_flight_trans = false;
+void VKCommandBuffer::imm_begin(){
+
+  if(vk_device_ == VK_NULL_HANDLE){
+     context_->begin_frame();
+  }
+
+  VkCommandBufferBeginInfo begin_info = {};
+  begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  debug::raise_vk_info("IsResetCommandBufferTransfer [%s]  %llx \n",in_flight_trans? "True" :"False", (uintptr_t)vk_transfer_command_);
+  if(in_flight_trans){
+    in_flight_receive(vk_fence_trans_,in_flight_trans);
+    vkResetCommandBuffer(vk_transfer_command_,0);
+  }
+
+  vkBeginCommandBuffer(vk_transfer_command_, &begin_info);
+}
+
+void VKCommandBuffer::imm_end(bool fail )
+{
+   if(fail){
+    vkEndCommandBuffer(vk_transfer_command_);
+    vkResetCommandBuffer(vk_transfer_command_,0);
+  }
+  else
+  {
+    vkEndCommandBuffer(vk_transfer_command_);
+    VkSubmitInfo submit_info = {};
+    submit_info.signalSemaphoreCount = 0;
+    submit_info.waitSemaphoreCount = 0;
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &vk_transfer_command_;
+    vkResetFences(vk_device_, 1, &vk_fence_trans_);
+    BLI_assert(VK_SUCCESS == vkQueueSubmit(vk_queue_, 1, &submit_info, vk_fence_trans_));
+    in_flight_trans = true;
+  }
+}
+
+bool VKCommandBuffer::image_transition_from_framebuffer(const VKFrameBuffer& framebuffer)
+{
+  bool ret = false;
+  auto subpass = framebuffer.subpass_info.subpass;
+ 
+  for (int i = 0;i < subpass.colorAttachmentCount;i++) {
+    int aidx = framebuffer.subpass_info.attachment_idx[subpass.pColorAttachments[i].attachment];
+    const GPUAttachment &attachment =  framebuffer.attachment_get(aidx);
+    BLI_assert(attachment.tex);
+    VKTexture& tex = *(VKTexture*)attachment.tex;
+    ret &= image_transition(&tex,
+                  VkTransitionState::VK_BEFORE_RENDER_PASS,
+                  true,subpass.pColorAttachments[i].layout);
+  }
+  
+  if(subpass.pDepthStencilAttachment)
+  {
+    int aidx = framebuffer.subpass_info.attachment_idx[subpass.pDepthStencilAttachment[0].attachment];
+    const GPUAttachment &attachment =  framebuffer.attachment_get(aidx);
+    BLI_assert(attachment.tex);
+    VKTexture& tex = *(VKTexture*)attachment.tex;
+    ret &= image_transition(&tex,
+                  VkTransitionState::VK_BEFORE_RENDER_PASS_DEPTH,
+                  true,subpass.pDepthStencilAttachment[0].layout);
+  }
+    return ret;
+}
 
 template<typename T>
 bool VKCommandBuffer::image_transition(
@@ -84,15 +145,26 @@ bool VKCommandBuffer::image_transition(
       if (src_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
         return false;
       };
-      if (dst_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
+      dst_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         eTransRaw = (src_layout == VK_IMAGE_LAYOUT_UNDEFINED) ?
                         VkTransitionStateRaw::VK_UNDEF2COLOR :
                     (src_layout == VK_IMAGE_LAYOUT_GENERAL) ?
                         VkTransitionStateRaw::VK_GENER2COLOR :
+                    (src_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) ?
+                        VkTransitionStateRaw::VK_SHADER2COLOR :
                         VkTransitionStateRaw::VK_PRESE2COLOR;
-      }
-      else {
-        BLI_assert_unreachable();
+      break;
+    case VkTransitionState::VK_BEFORE_RENDER_PASS_DEPTH:
+      dst_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+      if (src_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+        return false;
+      };
+      if(src_layout == VK_IMAGE_LAYOUT_UNDEFINED)
+      {
+        eTransRaw =  VkTransitionStateRaw::VK_UNDEF2DEPTH;
+      }else if (src_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+      {
+        eTransRaw =  VkTransitionStateRaw::VK_SHADER2DEPTH;
       }
       break;
     case VkTransitionState::VK_ENSURE_TEXTURE:
@@ -121,51 +193,58 @@ bool VKCommandBuffer::image_transition(
 
   BLI_assert(eTransRaw != VkTransitionStateRaw::VK_TRANSITION_STATE_RAW_ALL);
 
-  if (recorded) {
-    end_render_pass(nullptr);
-  }
-
-  begin_recording();
-  layout_state_.mip_level_set(mip_level);
+  imm_begin();
 
   switch (eTransRaw) {
 
     case VkTransitionStateRaw::VK_UNDEF2PRESE:
       trans = layout_state_.init_image_layout(
-          *this, sfim, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, src_layout);
+          vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, src_layout);
       break;
     case VkTransitionStateRaw::VK_UNDEF2GENER:
-      trans = layout_state_.init_image_layout(*this, sfim, VK_IMAGE_LAYOUT_GENERAL, src_layout);
+      trans = layout_state_.init_image_layout(vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_GENERAL, src_layout);
       break;
     case VkTransitionStateRaw::VK_UNDEF2COLOR:
       trans = layout_state_.init_image_layout(
-          *this, sfim, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, src_layout);
+          vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, src_layout);
+      break;
+    case VkTransitionStateRaw::VK_UNDEF2DEPTH:
+      trans = layout_state_.init_image_layout(
+          vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, src_layout);
       break;
     case VkTransitionStateRaw::VK_ANY2SHADER_READ:
       trans = layout_state_.shader(
-          *this, sfim, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, src_layout);
+          vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, src_layout);
       break;
     case VkTransitionStateRaw::VK_ANY2TRANS_DST:
       trans = layout_state_.transfer(
-          *this, sfim, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, src_layout);
+          vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, src_layout);
       break;
     case VkTransitionStateRaw::VK_ANY2TRANS_SRC:
       trans = layout_state_.transfer(
-          *this, sfim, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, src_layout);
+          vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, src_layout);
+      break;
+    case VkTransitionStateRaw::VK_SHADER2COLOR:
+      trans = layout_state_.pre_reder_image_layout(
+          vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+      break;
+    case VkTransitionStateRaw::VK_SHADER2DEPTH:
+      trans = layout_state_.pre_reder_image_layout(
+          vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
       break;
     case VkTransitionStateRaw::VK_PRESE2COLOR:
       trans = layout_state_.pre_reder_image_layout(
-          *this, sfim, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+          vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
       break;
     case VkTransitionStateRaw::VK_PRESE2GENER:
-      trans = layout_state_.pre_reder_image_layout(*this, sfim, VK_IMAGE_LAYOUT_GENERAL);
+      trans = layout_state_.pre_reder_image_layout(vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_GENERAL);
       break;
     case VkTransitionStateRaw::VK_GENER2COLOR:
       trans = layout_state_.pre_reder_image_layout(
-          *this, sfim, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+          vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
       break;
     case VkTransitionStateRaw::VK_COLOR2PRESE:
-      trans = layout_state_.pre_sent_image_layout(*this, sfim);
+      trans = layout_state_.pre_sent_image_layout(vk_transfer_command_, sfim);
       break;
     case VkTransitionStateRaw::VK_TRANSITION_STATE_RAW_ALL:
     default:
@@ -183,9 +262,7 @@ bool VKCommandBuffer::image_transition(
       to_string(src_layout),
       to_string(dst_layout));
 
-  if (recorded) {
-    submit();
-  }
+  imm_end(!trans );
 
   return trans;
 };
@@ -195,6 +272,14 @@ template bool VKCommandBuffer::image_transition(
 template bool VKCommandBuffer::image_transition(
     VKTexture *, VkTransitionState, bool, VkImageLayout, int);
 
+VKCommandBuffer::VKCommandBuffer()
+  {
+    sema_frame_ = 3;
+    in_flight_ = false;
+    sema_fin_ = sema_toggle_[0] = sema_toggle_[1] = VK_NULL_HANDLE;
+    begin_cmd_ = begin_rp_ = false;
+  };
+
 VKCommandBuffer::~VKCommandBuffer()
 {
   if (vk_device_ != VK_NULL_HANDLE) {
@@ -202,11 +287,42 @@ VKCommandBuffer::~VKCommandBuffer()
     vkDestroyFence(vk_device_, vk_fence_, vk_allocation_callbacks);
     vk_fence_ = VK_NULL_HANDLE;
 
+    in_flight_receive(vk_fence_trans_,in_flight_trans);
+    vkDestroyFence(vk_device_, vk_fence_trans_, vk_allocation_callbacks);
+    vk_fence_trans_ = VK_NULL_HANDLE;
+
     if (sema_toggle_[sema_own_] != VK_NULL_HANDLE) {
       vkDestroySemaphore(vk_device_, sema_toggle_[sema_own_], VK_NULL_HANDLE);
       sema_toggle_[0] = sema_toggle_[1] = VK_NULL_HANDLE;
     }
+    vkFreeCommandBuffers(vk_device_, vk_command_pool_, 1, &vk_transfer_command_);
+    vkDestroyCommandPool(vk_device_,vk_command_pool_, NULL);
+    vk_command_pool_  = VK_NULL_HANDLE;
+    vk_transfer_command_ = VK_NULL_HANDLE;
   }
+};
+
+void VKCommandBuffer::create_resource(VKContext* context){
+
+  context_  = context;
+  VkCommandPoolCreateInfo poolInfo = {};
+  poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+  poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+  poolInfo.queueFamilyIndex = 0;
+  vkCreateCommandPool(context->device_get(), &poolInfo, NULL, &vk_command_pool_);
+
+  VkCommandBufferAllocateInfo alloc_info = {};
+  alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  alloc_info.commandPool = vk_command_pool_;
+  alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  alloc_info.commandBufferCount = 1;
+
+  vkAllocateCommandBuffers(context->device_get(), &alloc_info,&vk_transfer_command_);
+
+  VkFenceCreateInfo fence_info = {};
+  fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+  fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+  vkCreateFence(context->device_get(), &fence_info, NULL, &vk_fence_trans_);
 }
 
 bool VKCommandBuffer::init(const VkDevice vk_device,
@@ -246,19 +362,19 @@ bool VKCommandBuffer::init(const VkDevice vk_device,
   return begin_recording();
 }
 
-void VKCommandBuffer::in_flight_receive()
+void VKCommandBuffer::in_flight_receive(VkFence& vk_fence,bool& in_flight)
 {
 
-  if (in_flight_) {
+  if (in_flight) {
 
     VkResult result = VK_NOT_READY;
-    int Try = 10;
+    int Try = 100;
     do {
-      result = vkWaitForFences(vk_device_, 1, &vk_fence_, VK_TRUE, 100);
+      result = vkWaitForFences(vk_device_, 1, &vk_fence, VK_TRUE, 100);
     } while (result == VK_TIMEOUT && Try-- > 0);
 
     BLI_assert(Try > 0);
-    in_flight_ = false;
+    in_flight = false;
   }
 }
 
@@ -267,10 +383,16 @@ bool VKCommandBuffer::begin_recording()
   if (in_toggle_) {
     return true;
   }
+  VKContext* gpu_ctx = VKBackend::gpu_ctx_get();
+  if(gpu_ctx)
+  {
+    BLI_assert(gpu_ctx->validate_frame());
+  }
 
-  BLI_assert(VKContext::get()->validate_frame());
-  in_flight_receive();
-
+  in_flight_receive(vk_fence_,in_flight_);
+  if(vk_device_==VK_NULL_HANDLE){
+    VKContext::get()->begin_frame();
+  }
   vkResetFences(vk_device_, 1, &vk_fence_);
   end_recording();
   vkResetCommandBuffer(vk_command_buffer_, 0);
@@ -299,7 +421,7 @@ void VKCommandBuffer::end_recording(bool imm_submit)
 
 void VKCommandBuffer::bind(const VKPipeline &pipeline, VkPipelineBindPoint bind_point)
 {
-  vkCmdBindPipeline(vk_command_buffer_, bind_point, pipeline.vk_handle());
+  vkCmdBindPipeline(vk_command_buffer_, bind_point, pipeline.vk_handle(bind_point));
 }
 
 void VKCommandBuffer::bind(const VKIndexBuffer &index_buffer, VkIndexType index_type)
@@ -391,6 +513,20 @@ void VKCommandBuffer::copy(VKTexture &dst_texture,
                          dst_texture.current_layout_get(),
                          regions.size(),
                          regions.data());
+}
+
+void VKCommandBuffer::copy_imm(VKTexture &dst_texture,
+                           VKBuffer &src_buffer,
+                           Span<VkBufferImageCopy> regions)
+{
+   imm_begin();
+   vkCmdCopyBufferToImage(vk_transfer_command_,
+                         src_buffer.vk_handle(),
+                         dst_texture.vk_image_handle(),
+                         dst_texture.current_layout_get(),
+                         regions.size(),
+                         regions.data());
+   imm_end();
 }
 
 void VKCommandBuffer::copy(VKBuffer &dst_buffer, VKBuffer &src_buffer, Span<VkBufferCopy> regions)
@@ -538,7 +674,7 @@ void VKCommandBuffer::submit_encoded_commands(bool fin)
     ;
   }
 
-  in_flight_receive();
+  in_flight_receive(vk_fence_,in_flight_);
   vkResetFences(vk_device_, 1, &vk_fence_);
 
   submit_info.signalSemaphoreCount = 0;
@@ -567,8 +703,14 @@ void VKCommandBuffer::submit_encoded_commands(bool fin)
       (uint64_t)sfim.vk_image_handle(),
       (uint64_t)wait,
       (uint64_t)finish);
-
-  vkQueueSubmit(vk_queue_, 1, &submit_info, vk_fence_);
+  static int stats = 0;
+  printf("QueueSubmit %d   %llx \n",stats,vk_queue_);
+  stats++;
+  VkResult res = vkQueueSubmit(vk_queue_, 1, &submit_info, vk_fence_);
+  if(res != VK_SUCCESS)
+  {
+     vkResetFences(vk_device_, 1, &vk_fence_);
+  }
 
   sema_signal_ = (sema_signal_ + 1) % 2;
 
@@ -738,9 +880,9 @@ VkImageMemoryBarrier ImageLayoutState::makeImageMemoryBarrier(VkImage img,
   barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
   barrier.image = img;
   barrier.subresourceRange = {0};
-  barrier.subresourceRange.baseMipLevel = basemip;
+  barrier.subresourceRange.baseMipLevel = (basemip<0)?0:basemip;
   barrier.subresourceRange.aspectMask = aspectMask;
-  barrier.subresourceRange.levelCount = (miplevel == -1) ? VK_REMAINING_MIP_LEVELS : miplevel;
+  barrier.subresourceRange.levelCount = (miplevel <= 0) ? VK_REMAINING_MIP_LEVELS : miplevel;
   barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
 
   return barrier;
@@ -757,7 +899,7 @@ VkImageAspectFlags ImageLayoutState::get_aspect_flag(VkImageLayout srcLayout,
 
   if (srcLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL ||
       dstLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
-    aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+    aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
     /*
        if (format == VK_FORMAT_D32_SFLOAT_S8_UINT ||
          format == VK_FORMAT_D24_UNORM_S8_UINT) {

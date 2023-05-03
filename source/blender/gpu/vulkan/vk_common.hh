@@ -97,4 +97,5 @@ template<typename T> VkObjectType to_vk_object_type(T /*vk_obj*/)
   return VK_OBJECT_TYPE_UNKNOWN;
 }
 #endif
+const char* to_string(VkFormat vk_format);
 }  // namespace blender::gpu

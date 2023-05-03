@@ -86,10 +86,10 @@ template<typename... Args> void raise_vk_info(const std::string &fmt, Args... ar
 bool init_callbacks(VKContext *context, PFN_vkGetInstanceProcAddr instload);
 void destroy_callbacks(VKContext *context, VKDebuggingTools &tools);
 
-template<typename T> void object_label(VKContext *context, T obj, const char *name)
+template<typename T> int object_label(VKContext *context, T obj, const char *name)
 {
   if (!(G.debug & G_DEBUG_GPU)) {
-    return;
+    return -1;
   }
   const size_t label_size = 64;
   char label[label_size];
@@ -97,6 +97,7 @@ template<typename T> void object_label(VKContext *context, T obj, const char *na
   static int stats = 0;
   SNPRINTF(label, "%s_%d", name, stats++);
   object_label(context, to_vk_object_type(obj), (uint64_t)obj, (const char *)label);
+  return stats-1;
 };
 
 void object_label(VKContext *context, VkObjectType objType, uint64_t obj, const char *name);

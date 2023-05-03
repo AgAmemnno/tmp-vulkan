@@ -14,6 +14,9 @@
 namespace blender::gpu {
 
 class VKIndexBuffer : public IndexBuf {
+  friend class VKBatch;
+  friend class VKDrawList;
+  friend class VKShader; /* For compute shaders. */
   VKBuffer buffer_;
 
  public:

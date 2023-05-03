@@ -118,6 +118,13 @@ class VKFrameBuffer : public FrameBuffer {
   };
 
   VkFormat is_color(int slot) const;
+  const GPUAttachment & attachment_get(int type) const ;
+  std::array<VkAttachmentReference, GPU_FB_MAX_ATTACHMENT> attachment_references;
+  struct Subpass {
+    VkSubpassDescription subpass = {};
+    std::array<int, GPU_FB_MAX_ATTACHMENT> attachment_idx;
+  }subpass_info;
+ 
 
  private:
   void update_attachments();

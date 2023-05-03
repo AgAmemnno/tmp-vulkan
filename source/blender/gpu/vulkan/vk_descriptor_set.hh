@@ -25,7 +25,7 @@ class VKTexture;
 class VKUniformBuffer;
 class VKVertexBuffer;
 class VKDescriptorSetTracker;
-
+class VKShader;
 /**
  * In vulkan shader resources (images and buffers) are grouped in descriptor sets.
  *
@@ -140,16 +140,20 @@ class VKDescriptorSetTracker : protected VKResourceTracker<VKDescriptorSet> {
           type, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
     }
   };
-
+  VKShader* shader;
  private:
   /** A list of bindings that needs to be updated. */
   Vector<Binding> bindings_;
   VkDescriptorSetLayout layout_;
-
+  VkDescriptorSet last_bound_set_;
  public:
-  VKDescriptorSetTracker() {}
+  VKDescriptorSetTracker() {
+     last_bound_set_ = VK_NULL_HANDLE;
+  }
 
-  VKDescriptorSetTracker(VkDescriptorSetLayout layout) : layout_(layout) {}
+  VKDescriptorSetTracker(VkDescriptorSetLayout layout) : layout_(layout) {
+     last_bound_set_ = VK_NULL_HANDLE;
+  }
 
   void bind_as_ssbo(VKVertexBuffer &buffer, VKDescriptorSet::Location location);
   void bind_as_ssbo(VKIndexBuffer &buffer, VKDescriptorSet::Location location);

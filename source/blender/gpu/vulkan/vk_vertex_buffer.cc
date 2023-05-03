@@ -102,7 +102,9 @@ void VKVertexBuffer::upload_data()
   if (!buffer_.is_allocated()) {
     allocate(context);
   }
-
+  if (!buffer_.is_allocated()) {
+    return;
+  }
   if (flag &= GPU_VERTBUF_DATA_DIRTY) {
     buffer_.update(data);
     if (usage_ == GPU_USAGE_STATIC) {

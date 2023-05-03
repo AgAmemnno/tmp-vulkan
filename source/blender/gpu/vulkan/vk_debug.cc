@@ -92,7 +92,7 @@ const char *to_vk_error_string(VkResult result)
 
 namespace debug {
 #if defined(VK_DEBUG_ENABLED)
-static VkInstance vk_instance_s = VK_NULL_HANDLE;
+static bool singleton_messenger = false;
 
 VKDebuggingTools::VKDebuggingTools()
 {
@@ -280,16 +280,14 @@ static VkResult vulkan_dynamic_load(PFN_vkGetInstanceProcAddr &func)
 }
 
 static void vulkan_dynamic_debug_functions(VKContext *context,
-                                           PFN_vkGetInstanceProcAddr /* instload_*/)
+                                           PFN_vkGetInstanceProcAddr  instload)
 {
   VKDebuggingTools &tools = context->debugging_tools_get();
 
   VkInstance instance = context->instance_get();
   tools.instance = instance;
-  PFN_vkGetInstanceProcAddr instload;
-  vulkan_dynamic_load(instload);
   if (instload) {
-
+    tools.dbgMessenger = nullptr;
     tools.enabled = false;
     tools.vkCmdBeginDebugUtilsLabelEXT_r = (PFN_vkCmdBeginDebugUtilsLabelEXT)instload(
         instance, "vkCmdBeginDebugUtilsLabelEXT");
@@ -319,7 +317,6 @@ static void vulkan_dynamic_debug_functions(VKContext *context,
         instance, "vkDestroyDebugUtilsMessengerEXT");
     if (tools.vkCmdBeginDebugUtilsLabelEXT_r) {
       tools.enabled = true;
-      vk_instance_s = instance;
     }
   }
   else {
@@ -356,7 +353,7 @@ debugUtilsCB(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
       (messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)) {
 
     // if ((LOG.type->flag & CLG_FLAG_USE) && (LOG.type->level >= CLG_SEVERITY_INFO)) {
-    if (true) {
+    if (false) {
       const char *format = use_color ? CONSOLE_COLOR_FINE "% s\n %s " CONSOLE_COLOR_RESET :
                                        " % s\n %s ";
       CLG_logf(LOG.type,
@@ -474,6 +471,7 @@ debugUtilsCB(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
   return VK_TRUE;
 };
 
+
 static VkResult CreateDebugUtils(VkDebugUtilsMessageSeverityFlagsEXT flag, VKDebuggingTools &deb)
 {
 
@@ -490,18 +488,22 @@ static VkResult CreateDebugUtils(VkDebugUtilsMessageSeverityFlagsEXT flag, VKDeb
                                           VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
   dbg_messenger_create_info.pfnUserCallback = debugUtilsCB;
   dbg_messenger_create_info.pUserData = &deb;
+  singleton_messenger = true;
   return deb.vkCreateDebugUtilsMessengerEXT_r(
       deb.instance, &dbg_messenger_create_info, nullptr, &deb.dbgMessenger);
 }
 static VkResult DestroyDebugUtils(VKDebuggingTools &deb)
 {
-
+  if(deb.dbgMessenger == nullptr)
+  {
+    return VK_SUCCESS;
+  }
   BLI_assert(deb.vkDestroyDebugUtilsMessengerEXT_r);
-  deb.vkDestroyDebugUtilsMessengerEXT_r(deb.instance, deb.dbgMessenger, nullptr);
-
   deb.dbgIgnoreMessages.clear();
-  deb.dbgMessenger = nullptr;
+
+  deb.vkDestroyDebugUtilsMessengerEXT_r(deb.instance, deb.dbgMessenger, nullptr);
   deb.instance = VK_NULL_HANDLE;
+  deb.dbgMessenger = nullptr;
 
   return VK_SUCCESS;
 }
@@ -523,8 +525,8 @@ static bool CreateDebug(VKDebuggingTools &deb)
 
 bool init_callbacks(VKContext *context, PFN_vkGetInstanceProcAddr instload)
 {
-  if (vk_instance_s == VK_NULL_HANDLE) {
-    vulkan_dynamic_debug_functions(context, instload);
+  vulkan_dynamic_debug_functions(context, instload);
+  if (!singleton_messenger ) {
     CreateDebug(context->debugging_tools_get());
     return true;
   };
@@ -534,9 +536,8 @@ bool init_callbacks(VKContext *context, PFN_vkGetInstanceProcAddr instload)
 void destroy_callbacks(VKContext *context, VKDebuggingTools &tools)
 {
   if (tools.enabled) {
-    vulkan_dynamic_debug_functions(context, nullptr);
     DestroyDebugUtils(tools);
-    vk_instance_s = VK_NULL_HANDLE;
+    vulkan_dynamic_debug_functions(context, nullptr);
   }
 }
 

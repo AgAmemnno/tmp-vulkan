@@ -21,15 +21,17 @@ static void activate(VKContext& context,int CNT){
   int viewport[4];
   fb->viewport_get(viewport);
   printf(
-      ">>>>>>>>>>>>>>>>>>>>>>VKBatch Draw<<<<<<<<<<<<< CNT[%d]  FrameBuffer %llx Viewport (%d %d "
-      "%d %d) \n",
+      ">>>>>>>>>>>>>>>>>>>>>>VKImmediate Draw<<<<<<<<<<<<< CNT[%d]  FrameBuffer %llx Viewport (%d %d "
+      "%d %d)   Shader %s\n",
       CNT,
       (uintptr_t)fb->vk_framebuffer_get(),
       viewport[0],
       viewport[1],
       viewport[2],
-      viewport[3]);
-   context.activate_framebuffer(*fb);
+      viewport[3],
+      context.shader->name_get());
+
+  context.activate_framebuffer(*fb);
 }
 VKImmediate::VKImmediate() {}
 VKImmediate::~VKImmediate() {}
@@ -41,7 +43,9 @@ uchar *VKImmediate::begin()
   VKContext &context = *VKContext::get();
 
   activate(context,CNT);
-
+  if(CNT==60){
+    printf("");
+  }
   const size_t bytes_needed = vertex_buffer_size(&vertex_format, vertex_len);
   if (!buffer_.is_allocated()) {
     buffer_.create(context,

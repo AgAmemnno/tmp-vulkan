@@ -16,6 +16,11 @@ void VKShaderInterface::init(const shader::ShaderCreateInfo &info)
   static char PUSH_CONSTANTS_FALLBACK_NAME[] = "push_constants_fallback";
   static size_t PUSH_CONSTANTS_FALLBACK_NAME_LEN = strlen(PUSH_CONSTANTS_FALLBACK_NAME);
 
+  if(info.name_ == "overlay_extra")
+   {
+    printf("");
+   }
+
   using namespace blender::gpu::shader;
   uint ubo_push_len_ = 0;
   uint uniform_image_len_ = 0;
@@ -149,9 +154,23 @@ void VKShaderInterface::init(const shader::ShaderCreateInfo &info)
     }
   }
 
+
+  /* Determine the descriptor set locations after the inputs have been sorted. */
+  /* Fallback ubos must be counted when generating descriptor sets. #ubo_push_len_ */
+  auto descruptor_set_len_ = ubo_len_ + ssbo_len_ + ubo_push_len_ + uniform_image_len_;
+  descriptor_set_locations_ = Array<desc_array_t>(descruptor_set_len_);
+  uint32_t descriptor_set_location = 0;
+  for (const ShaderCreateInfo::Resource *res : set_resources) {
+    ShaderInput *input = const_cast<ShaderInput *>(shader_input_get(*res));
+    input->binding = input->location = descriptor_set_location;
+    descriptor_set_location_update(res, descriptor_set_location++);
+  }
+
+
   sort_inputs();
 
-  /* Builtin Uniforms */
+
+    /* Builtin Uniforms */
   for (int32_t u_int = 0; u_int < GPU_NUM_UNIFORMS; u_int++) {
     GPUUniformBuiltin u = static_cast<GPUUniformBuiltin>(u_int);
     const ShaderInput *uni = this->uniform_get(builtin_uniform_name(u));
@@ -163,17 +182,6 @@ void VKShaderInterface::init(const shader::ShaderCreateInfo &info)
     GPUUniformBlockBuiltin u = static_cast<GPUUniformBlockBuiltin>(u_int);
     const ShaderInput *block = this->ubo_get(builtin_uniform_block_name(u));
     builtin_blocks_[u] = (block != nullptr) ? block->binding : -1;
-  }
-
-  /* Determine the descriptor set locations after the inputs have been sorted. */
-  /* Fallback ubos must be counted when generating descriptor sets. #ubo_push_len_ */
-  auto descruptor_set_len_ = ubo_len_ + ssbo_len_ + ubo_push_len_ + uniform_image_len_;
-  descriptor_set_locations_ = Array<desc_array_t>(descruptor_set_len_);
-  uint32_t descriptor_set_location = 0;
-  for (const ShaderCreateInfo::Resource *res : set_resources) {
-    ShaderInput *input = const_cast<ShaderInput *>(shader_input_get(*res));
-    input->binding = input->location = descriptor_set_location;
-    descriptor_set_location_update(res, descriptor_set_location++);
   }
 
   /* Post initializing push constants. */
@@ -231,6 +239,7 @@ const VKDescriptorSet::Location VKShaderInterface::descriptor_set_location(
   }
   /*not found*/
   BLI_assert(false);
+  return 0;
 }
 
 /** Now only set number 0 is used. So the binding number is a unique integer. This function was not

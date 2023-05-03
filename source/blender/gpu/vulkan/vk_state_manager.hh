@@ -10,6 +10,7 @@
 #include "gpu_state_private.hh"
 
 namespace blender::gpu {
+
 class VKStateManager : public StateManager {
  public:
   void apply_state() override;
@@ -26,5 +27,7 @@ class VKStateManager : public StateManager {
   void image_unbind_all() override;
 
   void texture_unpack_row_length_set(uint len) override;
+
+
 };
 }  // namespace blender::gpu

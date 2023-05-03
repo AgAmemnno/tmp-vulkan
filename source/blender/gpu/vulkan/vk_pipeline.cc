@@ -22,6 +22,7 @@ VKPipeline::VKPipeline(VkDescriptorSetLayout vk_descriptor_set_layout,
       descriptor_set_(vk_descriptor_set_layout),
       push_constants_(std::move(push_constants))
 {
+  vk_pipeline_own_ = VK_NULL_HANDLE;
 }
 
 VKPipeline::VKPipeline(VkPipeline vk_pipeline,
@@ -32,19 +33,21 @@ VKPipeline::VKPipeline(VkPipeline vk_pipeline,
       push_constants_(std::move(push_constants))
 {
   vk_pipelines.clear();
+  vk_pipeline_own_ = vk_pipeline;
 }
 
 VKPipeline::~VKPipeline()
 {
   VK_ALLOCATION_CALLBACKS
   VkDevice vk_device = VKContext::get()->device_get();
-  /*
-  if (vk_pipeline_ != VK_NULL_HANDLE) {
-    vkDestroyPipeline(vk_device, vk_pipeline_, vk_allocation_callbacks);
-  }
-  */
+
   for (auto &pipeline : vk_pipelines) {
     vkDestroyPipeline(vk_device, pipeline, vk_allocation_callbacks);
+  }
+  if(vk_pipeline_own_!= VK_NULL_HANDLE)
+  {
+   vkDestroyPipeline(vk_device, vk_pipeline_own_, vk_allocation_callbacks);
+   vk_pipeline_own_ = VK_NULL_HANDLE;
   }
 }
 
@@ -74,7 +77,7 @@ VKPipeline VKPipeline::create_compute_pipeline(
       VK_SUCCESS) {
     return VKPipeline();
   }
-
+  debug::object_label(&context, vk_pipeline, "COMPipeline");
   VKPushConstants push_constants(&push_constants_layout);
   return VKPipeline(vk_pipeline, descriptor_set_layout, std::move(push_constants));
 }
@@ -87,8 +90,12 @@ VKPipeline VKPipeline::create_graphics_pipeline(
   return VKPipeline(descriptor_set_layout, std::move(push_constants));
 }
 
-VkPipeline VKPipeline::vk_handle() const
+VkPipeline VKPipeline::vk_handle(VkPipelineBindPoint bind_point) const
 {
+  if(bind_point == VK_PIPELINE_BIND_POINT_COMPUTE)
+  {
+    return vk_pipeline_own_;
+  }
   return vk_pipeline_;
 }
 
@@ -278,7 +285,7 @@ void VKPipeline::finalize(VKContext &context,
   pipeline_create_info.pColorBlendState = &state_manager.pipeline_color_blend_state;
   pipeline_create_info.pRasterizationState = &state_manager.rasterization_state;
   pipeline_create_info.pDepthStencilState = &state_manager.depth_stencil_state;
-
+  vk_pipeline_ = VK_NULL_HANDLE;
   vkCreateGraphicsPipelines(
       vk_device, VK_NULL_HANDLE, 1, &pipeline_create_info, vk_allocation_callbacks, &vk_pipeline_);
   vk_pipelines.append(vk_pipeline_);

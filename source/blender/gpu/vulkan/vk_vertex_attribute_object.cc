@@ -95,10 +95,30 @@ void VKVertexAttributeObject::update_bindings(const VKContext &context, VKBatch 
       update_bindings(vbo->format, vbo, nullptr, vbo->vertex_len, interface, occupied_attributes, false);
     }
   }
-
+  
   is_valid = true;
 
-  BLI_assert(interface.enabled_attr_mask_ == occupied_attributes);
+  //BLI_assert(interface.enabled_attr_mask_ == occupied_attributes);
+  auto attr_mask = interface.enabled_attr_mask_ ^ occupied_attributes;
+  if (attr_mask !=0) {
+    VKVertexBuffer* vbo_dummy = VKContext::get()->default_vbo_dummy;
+    for (uint16_t mask = 1, a = 0; a < 16; a++, mask <<= 1) {
+      if (attr_mask & mask) {
+        VkVertexInputBindingDescription vk_binding = {};
+        VkVertexInputAttributeDescription vk_attribute = {};
+        vk_attribute.location = a;
+        vk_attribute.offset   = 0;
+        vk_attribute.format  = VK_FORMAT_R32_SFLOAT;
+        vk_binding.binding     = vk_attribute.binding  = bindings.size();
+        vk_binding.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+        vk_binding.stride = sizeof(float);
+        bindings.append(vk_binding);
+        vbos.append(vbo_dummy);
+        attributes.append(vk_attribute);
+      }
+     }
+  }
+
 }
 
 void VKVertexAttributeObject::update_bindings(VKImmediate &immediate)
@@ -141,7 +161,7 @@ void VKVertexAttributeObject::update_bindings(const GPUVertFormat &vertex_format
   *     Multiple vertex-buffers are not supported.
   **/
   
-  uint32_t binding = -1;
+  uint32_t binding = bindings.size() -1;
 
   for (uint32_t attribute_index = 0; attribute_index < vertex_format.attr_len; attribute_index++) {
     const GPUVertAttr &attribute = vertex_format.attrs[attribute_index];
@@ -174,7 +194,17 @@ void VKVertexAttributeObject::update_bindings(const GPUVertFormat &vertex_format
       attribute_description.location = shader_input->location;
       attribute_description.offset   = offset;
       attribute_description.format  = to_vk_format(static_cast<GPUVertCompType>(attribute.comp_type), attribute.size,(GPUVertFetchMode)attribute.fetch_mode);
-      attributes.append(attribute_description);
+      if(attribute.comp_len == 16){
+        for(uint32_t  j =0;j<4;j++)
+        {
+          attribute_description.location = shader_input->location + j;
+          attribute_description.offset   = offset +  j*(uint32_t)attribute.size/4;
+          attributes.append(attribute_description);
+        }
+      }else{
+        attributes.append(attribute_description);
+      }
+
     }
     if (attribute_used_by_shader) {
       VkVertexInputBindingDescription vk_binding_descriptor = {};

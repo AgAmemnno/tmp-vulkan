@@ -11,14 +11,26 @@
 #include "vk_shader.hh"
 #include "vk_texture.hh"
 
+
 namespace blender::gpu {
+
 
 void VKStateManager::apply_state()
 {
   VKContext &context = *VKContext::get();
+  if(context.shader==nullptr)
+  {
+    return;
+  }
   VKShader &shader = unwrap(*context.shader);
+  
   VKPipeline &pipeline = shader.pipeline_get();
   pipeline.state_manager_get().set_state(state, mutable_state);
+
+
+  BLI_assert(context.active_fb);
+  VKFrameBuffer* framebuffer = reinterpret_cast<VKFrameBuffer*>(context.active_fb);
+  pipeline.state_manager_get().color_blend_from_framebuffer(framebuffer);
 }
 
 void VKStateManager::force_state()

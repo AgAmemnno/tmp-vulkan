@@ -18,6 +18,7 @@ namespace blender::gpu {
 class VKTexture : public Texture {
   VkImage vk_image_ = VK_NULL_HANDLE;
   VkImageView vk_image_view_ = VK_NULL_HANDLE;
+  VkImageView vk_image_view_for_descriptor_ = VK_NULL_HANDLE;
   VmaAllocation allocation_ = VK_NULL_HANDLE;
 
   static VkSampler samplers_cache_[GPU_SAMPLER_EXTEND_MODES_COUNT][GPU_SAMPLER_EXTEND_MODES_COUNT]
@@ -62,15 +63,18 @@ class VKTexture : public Texture {
   VkImage vk_image_handle() const
   {
     BLI_assert(is_allocated());
-    BLI_assert(is_allocated());
     return vk_image_;
   }
-  VkImageView vk_image_view_handle() const
+  VkImageView vk_image_view_handle() 
   {
-    BLI_assert(is_allocated());
-    BLI_assert(is_allocated());
+    if(!is_allocated())
+    {
+      allocate();
+    };
     return vk_image_view_;
   }
+
+  VkImageView vk_image_view_for_descriptor();
 
   void ensure_allocated();
   int current_mip_get()

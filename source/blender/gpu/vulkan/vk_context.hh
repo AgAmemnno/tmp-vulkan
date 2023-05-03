@@ -84,7 +84,7 @@ class VKContext : public Context {
   debug::VKDebuggingTools debugging_tools_;
 
  public:
-
+ VKVertexBuffer*  default_vbo_dummy;
  static bool base_instance_support;
 
   VKContext(void *ghost_window, void *ghost_context);

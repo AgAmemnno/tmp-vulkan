@@ -48,6 +48,10 @@ void VKIndexBuffer::bind_as_ssbo(uint binding)
 
 void VKIndexBuffer::bind(VKContext &context)
 {
+  if (is_subrange_) {
+    reinterpret_cast<VKIndexBuffer*>(src_)->bind(context);
+    return;
+  }
   context.command_buffer_get().bind(*this, to_vk_index_type(index_type_));
 }
 

@@ -12,7 +12,7 @@
 #include "BLI_vector.hh"
 
 namespace blender::gpu {
-
+class VKFrameBuffer;
 class VKPipelineStateManager {
  private:
   GPUState current_;
@@ -20,6 +20,7 @@ class VKPipelineStateManager {
 
  public:
   VkPipelineColorBlendStateCreateInfo pipeline_color_blend_state;
+  VkPipelineColorBlendAttachmentState color_blend_attachment;
   Vector<VkPipelineColorBlendAttachmentState> color_blend_attachments;
   VkPipelineRasterizationStateCreateInfo rasterization_state;
   VkPipelineDepthStencilStateCreateInfo depth_stencil_state;
@@ -28,6 +29,7 @@ class VKPipelineStateManager {
 
   void set_state(const GPUState &state, const GPUStateMutable &mutable_state);
   void force_state(const GPUState &state, const GPUStateMutable &mutable_state);
+  void color_blend_from_framebuffer(VKFrameBuffer* framebuffer);
 
  private:
   void set_blend(eGPUBlend blend);

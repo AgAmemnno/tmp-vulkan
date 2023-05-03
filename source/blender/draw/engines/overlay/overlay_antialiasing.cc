@@ -56,7 +56,7 @@ void OVERLAY_antialiasing_init(OVERLAY_Data *vedata)
   if (txl->dummy_depth_tx == nullptr) {
     const float pixel[1] = {1.0f};
     txl->dummy_depth_tx = DRW_texture_create_2d(
-        1, 1, GPU_DEPTH_COMPONENT24, DRWTextureFlag(0), pixel);
+        1, 1, GPU_DEPTH_COMPONENT24, DRWTextureFlag(0),nullptr);// pixel);
   }
 
   if (!DRW_state_is_fbo()) {

@@ -103,6 +103,11 @@ void VKFrameBuffer::bind(bool /*enabled_srgb*/)
   context.activate_framebuffer(*this);
 }
 
+const GPUAttachment & VKFrameBuffer::attachment_get(int type)  const
+{
+   return attachments_[type];
+}
+
 VkViewport VKFrameBuffer::vk_viewport_get() const
 {
   VkViewport viewport;
@@ -344,7 +349,7 @@ void VKFrameBuffer::render_pass_create()
 
   std::array<VkAttachmentDescription, GPU_FB_MAX_ATTACHMENT> attachment_descriptions;
   std::array<VkImageView, GPU_FB_MAX_ATTACHMENT> image_views;
-  std::array<VkAttachmentReference, GPU_FB_MAX_ATTACHMENT> attachment_references;
+  
   /*Vector<VkAttachmentReference> color_attachments;
   VkAttachmentReference depth_attachment = {};
   */
@@ -374,6 +379,7 @@ void VKFrameBuffer::render_pass_create()
                                                                  depth_location;
 
     if (attachment.tex) {
+      subpass_info.attachment_idx[attachment_location] = type;
       /* Ensure texture is allocated to ensure the image view.*/
       VKTexture &texture = *static_cast<VKTexture *>(unwrap(attachment.tex));
       texture.ensure_allocated();
@@ -389,11 +395,8 @@ void VKFrameBuffer::render_pass_create()
       attachment_description.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
       attachment_description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
       attachment_description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-      attachment_description.initialLayout =
-          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;  // VK_IMAGE_LAYOUT_GENERAL;
-      attachment_description.finalLayout =
-          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;  // VK_IMAGE_LAYOUT_GENERAL;
-      vk_render_pass_init_ = attachment_description.initialLayout;
+      attachment_description.finalLayout = attachment_description.initialLayout = ( attachment_description.format ==VK_FORMAT_D24_UNORM_S8_UINT)?   VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL  :VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;  // VK_IMAGE_LAYOUT_GENERAL;
+     
       /* Create the attachment reference. */
       const bool is_depth_attachment = ELEM(
           type, GPU_FB_DEPTH_ATTACHMENT, GPU_FB_DEPTH_STENCIL_ATTACHMENT);
@@ -409,6 +412,7 @@ void VKFrameBuffer::render_pass_create()
     }
   }
 
+   vk_render_pass_init_ = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
   /* Update the size, viewport & scissor based on the first attachment. */
   if (first_attachment != GPU_FB_MAX_ATTACHMENT) {
     GPUAttachment &attachment = attachments_[first_attachment];
@@ -429,7 +433,7 @@ void VKFrameBuffer::render_pass_create()
 
   const int attachment_len = has_depth_attachment ? depth_location + 1 : depth_location;
   const int color_attachment_len = depth_location;
-  VkSubpassDescription subpass = {};
+  auto& subpass = subpass_info.subpass;
   subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
   subpass.colorAttachmentCount = color_attachment_len;
   subpass.pColorAttachments = attachment_references.data();
@@ -486,11 +490,17 @@ void VKFrameBuffer::render_pass_create()
   framebuffer_create_info.width = width_;
   framebuffer_create_info.height = height_;
   framebuffer_create_info.layers = 1;
+  static int  stats  = 0;
 
   vkCreateFramebuffer(
       context.device_get(), &framebuffer_create_info, vk_allocation_callbacks, &vk_framebuffer_);
-  debug::object_label(&context, vk_framebuffer_, "OffscreenFB");
-  debug::object_label(&context, image_views[0], "OffscreenIV");
+  stats = debug::object_label(&context, vk_framebuffer_ , "OffscreenFB" );
+  printf("CreateFrameBuffer %d   (%llx) \n",stats,(uintptr_t)vk_framebuffer_);
+
+  if(attachment_len >0)
+  {
+    debug::object_label(&context, image_views[0], "OffscreenIV");
+  }
 }
 
 void VKFrameBuffer::render_pass_free()

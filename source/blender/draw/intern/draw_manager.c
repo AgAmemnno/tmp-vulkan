@@ -1745,6 +1745,7 @@ void DRW_draw_render_loop_ex(struct Depsgraph *depsgraph,
 
   DRW_stats_begin();
 
+
   GPU_framebuffer_bind(DST.default_framebuffer);
 
   /* Start Drawing */

@@ -44,15 +44,10 @@ template<typename T> void VKBackend::desable_gpuctx(VKContext *context, T &descr
   }
 
   static Vector<VkDescriptorPool> pools;
-  static debug::VKDebuggingTools tools;
   for (auto &pool : descriptor_pools_.pools_get()) {
     pools.append(pool);
   }
-  auto &cur_tools = context->debugging_tools_get();
-  if (cur_tools.enabled) {
-    tools = cur_tools;
-  }
-
+  debug::destroy_callbacks(context, context->debugging_tools_get());
   if (context_ref_count_ == 0) {
     VK_ALLOCATION_CALLBACKS
     for (auto &pool : pools) {
@@ -148,9 +143,9 @@ Batch *VKBackend::batch_alloc()
   return new VKBatch();
 }
 
-DrawList *VKBackend::drawlist_alloc(int /*list_length*/)
+DrawList *VKBackend::drawlist_alloc(int list_length)
 {
-  return new VKDrawList();
+  return new VKDrawList(list_length);
 }
 
 Fence *VKBackend::fence_alloc()
@@ -224,7 +219,7 @@ shaderc::Compiler &VKBackend::get_shaderc_compiler()
 
 bool VKBackend::device_extensions_support( const char * extension_needed,Vector<VkExtensionProperties>& vk_extension_properties_)
 {
-  
+
   bool found = false;
   for (const auto &extension : vk_extension_properties_) {
     if (strcmp(extension_needed, extension.extensionName) == 0) {
@@ -254,7 +249,7 @@ void VKBackend::capabilities_init(VKContext &context)
   GCaps.shader_storage_buffer_objects_support = true;
   GCaps.shader_image_load_store_support = true;
   VKContext::base_instance_support = device_extensions_support(VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME,vk_extension_properties_);
-  
+
   VkPhysicalDeviceLimits limits = context.physical_device_limits_get();
 
   // VKContext::max_push_constants_size = limits.maxPushConstantsSize;

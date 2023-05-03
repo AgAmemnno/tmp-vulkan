@@ -18,6 +18,7 @@ namespace blender::gpu {
 
 enum class VkTransitionState {
   VK_BEFORE_RENDER_PASS,
+  VK_BEFORE_RENDER_PASS_DEPTH,
   VK_BEFORE_PRESENT,
   VK_ENSURE_TEXTURE,
   VK_ENSURE_COPY_DST,
@@ -28,11 +29,14 @@ enum class VkTransitionState {
 enum class VkTransitionStateRaw {
   VK_UNDEF2PRESE,
   VK_UNDEF2COLOR,
+  VK_UNDEF2DEPTH,
   VK_PRESE2COLOR,
   VK_PRESE2GENER,
   VK_COLOR2PRESE,
   VK_UNDEF2GENER,
   VK_GENER2COLOR,
+  VK_SHADER2COLOR,
+  VK_SHADER2DEPTH,
   VK_ANY2SHADER_READ,
   VK_ANY2TRANS_DST,
   VK_ANY2TRANS_SRC,
@@ -91,6 +95,7 @@ class ImageLayoutState {
   const VkAccessFlagBits acs_undef = (VkAccessFlagBits)(VK_ACCESS_NONE_KHR);
   const VkAccessFlagBits acs_transfer_dst = (VkAccessFlagBits)(VK_ACCESS_TRANSFER_WRITE_BIT);
   const VkAccessFlagBits acs_transfer_src = (VkAccessFlagBits)(VK_ACCESS_TRANSFER_READ_BIT);
+  const VkAccessFlagBits acs_depth = (VkAccessFlagBits)(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
   uint32_t makeAccessMaskPipelineStageFlags(
       uint32_t accessMask,
@@ -109,7 +114,7 @@ class ImageLayoutState {
   VkImageAspectFlags get_aspect_flag(VkImageLayout srcLayout, VkImageLayout dstLayout);
 
   template<typename T>
-  void barrier(VKCommandBuffer &cmd,
+  void barrier(VkCommandBuffer &cmd,
                T *safeim,
                VkImageLayout dst_layout,
                VkImageLayout src_layout,
@@ -120,7 +125,11 @@ class ImageLayoutState {
     VkPipelineStageFlags dstPipe = makeAccessMaskPipelineStageFlags(dst_acs);
 
     VkImageAspectFlags aspect = get_aspect_flag(src_layout, dst_layout);
-
+    static int  stats = 0;
+    if(stats==117){
+      printf("");
+    }
+    printf("BARRIER  ==========================--  %d   \n",stats++);
     VkImageMemoryBarrier barrier = makeImageMemoryBarrier(safeim->vk_image_handle(),
                                                           src_acs,
                                                           dst_acs,
@@ -130,15 +139,24 @@ class ImageLayoutState {
                                                           safeim->current_mip_get(),
                                                           mip_level);
 
-    cmd.pipeline_barrier(srcPipe, dstPipe, {barrier});
 
+    vkCmdPipelineBarrier(cmd,
+                       srcPipe,
+                       dstPipe,
+                       VK_DEPENDENCY_BY_REGION_BIT,
+                       0,
+                       nullptr,
+                       0,
+                       nullptr,
+                       1,
+                       &barrier);
     safeim->current_layout_set(dst_layout);
   }
   int mip_level = 0;
 
  public:
   template<typename T>
-  bool init_image_layout(VKCommandBuffer &cmd,
+  bool init_image_layout(VkCommandBuffer &cmd,
                          T *safeim,
                          VkImageLayout dst_layout,
                          VkImageLayout src_layout)
@@ -147,26 +165,28 @@ class ImageLayoutState {
                     VK_IMAGE_LAYOUT_GENERAL,
                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                     VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL));
+                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL));
 
     BLI_assert(src_layout == VK_IMAGE_LAYOUT_UNDEFINED);
     const bool present = (dst_layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
     const bool color = (dst_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     const bool shader = (dst_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    const bool depth = (dst_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
     VkAccessFlagBits src_acs = VK_ACCESS_NONE_KHR;
     VkAccessFlagBits dst_acs = (present) ? VK_ACCESS_MEMORY_READ_BIT :
                                (color)   ? acs_attach :
                                (shader)  ? acs_shader :
-                                           acs_general;
+                                (depth) ? acs_depth:acs_general;
 
     barrier(cmd, safeim, dst_layout, src_layout, src_acs, dst_acs);
-
+ 
     return true;
   };
 
   template<typename T>
-  bool transfer(VKCommandBuffer &cmd,
+  bool transfer(VkCommandBuffer &cmd,
                 T *safeim,
                 VkImageLayout dst_layout,
                 VkImageLayout src_layout)
@@ -189,7 +209,7 @@ class ImageLayoutState {
   };
 
   template<typename T>
-  bool shader(VKCommandBuffer &cmd, T *safeim, VkImageLayout dst_layout, VkImageLayout src_layout)
+  bool shader(VkCommandBuffer &cmd, T *safeim, VkImageLayout dst_layout, VkImageLayout src_layout)
   {
     VkAccessFlagBits dst_acs = (dst_layout == VK_IMAGE_LAYOUT_GENERAL) ? acs_general : acs_shader;
     VkAccessFlagBits src_acs;
@@ -215,6 +235,9 @@ class ImageLayoutState {
       case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
         src_acs = acs_transfer_dst;
         break;
+      case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+        src_acs = acs_depth;
+        break;
       default:
         BLI_assert_unreachable();
         break;
@@ -225,7 +248,7 @@ class ImageLayoutState {
   };
 
   template<typename T>
-  bool pre_reder_image_layout(VKCommandBuffer &cmd, T *safeim, VkImageLayout dst_layout)
+  bool pre_reder_image_layout(VkCommandBuffer &cmd, T *safeim, VkImageLayout dst_layout)
   {
 
     VkImageLayout src_layout = safeim->current_layout_get();
@@ -234,31 +257,22 @@ class ImageLayoutState {
       return false;
     }
 
-    BLI_assert(ELEM(src_layout, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_GENERAL));
+    BLI_assert(ELEM(src_layout, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL , VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_GENERAL));
 
     VkAccessFlagBits src_acs = (src_layout == VK_IMAGE_LAYOUT_GENERAL) ?
                                    (VkAccessFlagBits)(VK_ACCESS_MEMORY_READ_BIT |
                                                       VK_ACCESS_MEMORY_WRITE_BIT) :
+                                     (src_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ) ?
+                                   VK_ACCESS_SHADER_READ_BIT:
                                    VK_ACCESS_MEMORY_READ_BIT;
-    VkAccessFlagBits dst_acs = (VkAccessFlagBits)(VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-                                                  VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
-
-    VkPipelineStageFlags srcPipe = makeAccessMaskPipelineStageFlags(src_acs);
-    VkPipelineStageFlags dstPipe = makeAccessMaskPipelineStageFlags(dst_acs);
-
-    VkImageAspectFlags aspect = get_aspect_flag(src_layout, dst_layout);
-
-    VkImageMemoryBarrier barrier = makeImageMemoryBarrier(
-        safeim->vk_image_handle(), src_acs, dst_acs, src_layout, dst_layout, aspect, 0, 1);
-
-    cmd.pipeline_barrier(srcPipe, dstPipe, {barrier});
-
+    VkAccessFlagBits dst_acs = (dst_layout==VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)? acs_attach:acs_depth;
+    barrier(cmd, safeim, dst_layout, src_layout, src_acs, dst_acs);
     safeim->current_layout_set(dst_layout);
 
     return true;
   };
 
-  template<typename T> bool pre_sent_image_layout(VKCommandBuffer &cmd, T *safeim)
+  template<typename T> bool pre_sent_image_layout(VkCommandBuffer &cmd, T *safeim)
   {
 
     VkImageLayout src_layout = safeim->current_layout_get();
@@ -274,16 +288,8 @@ class ImageLayoutState {
                                                   VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
     VkAccessFlagBits dst_acs = VK_ACCESS_MEMORY_READ_BIT;
 
-    VkPipelineStageFlags srcPipe = makeAccessMaskPipelineStageFlags(src_acs);
-    VkPipelineStageFlags dstPipe = makeAccessMaskPipelineStageFlags(dst_acs);
 
-    VkImageAspectFlags aspect = get_aspect_flag(src_layout, dst_layout);
-
-    VkImageMemoryBarrier barrier = makeImageMemoryBarrier(
-        safeim->vk_image_handle(), src_acs, dst_acs, src_layout, dst_layout, aspect, 0, 1);
-
-    cmd.pipeline_barrier(srcPipe, dstPipe, {barrier});
-
+    barrier(cmd, safeim, dst_layout, src_layout, src_acs, dst_acs);
     safeim->current_layout_set(dst_layout);
 
     return true;
@@ -309,9 +315,12 @@ class VKVertexBuffer;
 /** Command buffer to keep track of the life-time of a command buffer. */
 class VKCommandBuffer : NonCopyable, NonMovable {
   /** None owning handle to the command buffer and device. Handle is owned by `GHOST_ContextVK`. */
+  VKContext* context_  = VK_NULL_HANDLE;
   VkDevice vk_device_ = VK_NULL_HANDLE;
   VkCommandBuffer vk_command_buffer_ = VK_NULL_HANDLE;
   VkQueue vk_queue_ = VK_NULL_HANDLE;
+  VkCommandBuffer vk_transfer_command_ = VK_NULL_HANDLE;
+  VkCommandPool vk_command_pool_ = VK_NULL_HANDLE;
 
   /** Owning handles */
   VkFence vk_fence_ = VK_NULL_HANDLE;
@@ -330,7 +339,7 @@ class VKCommandBuffer : NonCopyable, NonMovable {
   const int sema_own_ = 1;
   int sema_signal_ = -1;
   uint8_t sema_frame_ = 0;
-
+  VkFence vk_fence_trans_ = VK_NULL_HANDLE;
  public:
   void set_remote_semaphore(VkSemaphore &se)
   {
@@ -358,18 +367,12 @@ class VKCommandBuffer : NonCopyable, NonMovable {
     sema_frame_ = i;
   }
 
-  VKCommandBuffer()
-  {
-    sema_frame_ = 3;
-    in_flight_ = false;
-    sema_fin_ = sema_toggle_[0] = sema_toggle_[1] = VK_NULL_HANDLE;
-    begin_cmd_ = begin_rp_ = false;
-  };
+  VKCommandBuffer();
   virtual ~VKCommandBuffer();
   bool init(const VkDevice vk_device, const VkQueue vk_queue, VkCommandBuffer vk_command_buffer);
   bool begin_recording();
   void end_recording(bool imm_submit = false);
-
+  void create_resource(VKContext* context);
   bool ensure_render_pass()
   {
     if (begin_rp_) {
@@ -385,7 +388,7 @@ class VKCommandBuffer : NonCopyable, NonMovable {
     }
     return false;
   }
-  template<typename T> bool begin_render_pass(const VKFrameBuffer &framebuffer, T &sfim);
+  template<typename T> bool begin_render_pass(const VKFrameBuffer &framebuffer, T *sfim);
   void end_render_pass(const VKFrameBuffer &framebuffer);
 
   /**
@@ -401,23 +404,23 @@ class VKCommandBuffer : NonCopyable, NonMovable {
   void copy(VKBuffer &dst_buffer, VKTexture &src_texture, Span<VkBufferImageCopy> regions);
   void copy(VKTexture &dst_texture, VKBuffer &src_buffer, Span<VkBufferImageCopy> regions);
   void copy(VKBuffer &dst_buffer, VKBuffer &src_buffer, Span<VkBufferCopy> regions);
-
+  void copy_imm(VKTexture &dst_texture,
+                           VKBuffer &src_buffer,
+                           Span<VkBufferImageCopy> regions);
   void pipeline_barrier(VkPipelineStageFlags source_stages,
                         VkPipelineStageFlags destination_stages);
   void pipeline_barrier(Span<VkImageMemoryBarrier> image_memory_barriers);
   void pipeline_barrier(VkPipelineStageFlags source_stages,
                         VkPipelineStageFlags destination_stages,
                         Span<VkImageMemoryBarrier> image_memory_barriers);
-
-  void in_flight_receive();
-
+  void in_flight_receive(VkFence& vk_fence,bool& in_flight);
   template<typename T>
   bool image_transition(T *sfim,
                         VkTransitionState eTrans,
                         bool recorded = false,
                         VkImageLayout dst_layout = VK_IMAGE_LAYOUT_MAX_ENUM,
                         int mip_level = 1);
-
+  bool image_transition_from_framebuffer(const VKFrameBuffer& framebuffer);
   /**
    * Clear color image resource.
    */
@@ -463,7 +466,9 @@ class VKCommandBuffer : NonCopyable, NonMovable {
   {
     return begin_rp_;
   }
-
+  VkRenderPassBeginInfo render_pass_begin_info = {};
+  void imm_begin();
+  void imm_end(bool fail = false);
  private:
   void encode_recorded_commands();
   void submit_encoded_commands(bool fin = true);

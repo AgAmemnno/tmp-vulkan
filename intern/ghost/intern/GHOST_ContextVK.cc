@@ -755,9 +755,9 @@ GHOST_ContextVK::~GHOST_ContextVK()
   if (m_device) {
     vkDeviceWaitIdle(m_device);
   }
-
-  destroySwapchain();
-
+  if (m_surface != VK_NULL_HANDLE) {
+    destroySwapchain();
+  }
   if (m_command_pool != VK_NULL_HANDLE) {
     vkDestroyCommandPool(m_device, m_command_pool, NULL);
   }

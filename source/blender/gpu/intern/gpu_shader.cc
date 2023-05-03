@@ -620,6 +620,23 @@ bool GPU_shader_get_attribute_info(const GPUShader *shader,
   return true;
 }
 
+bool GPU_shader_get_texture_info(const GPUShader *shader,
+                                   int location,
+                                   char r_name[256],
+                                   int *r_type)
+{
+  const ShaderInterface *interface = unwrap(shader)->interface;
+
+  const ShaderInput *attr = interface->texture_get(location);
+  if (!attr) {
+    return false;
+  }
+
+  BLI_strncpy(r_name, interface->input_name_get(attr), 256);
+  *r_type = attr->location != -1 ? interface->attr_types_[attr->location] : -1;
+  return true;
+}
+
 /** \} */
 
 /* -------------------------------------------------------------------- */

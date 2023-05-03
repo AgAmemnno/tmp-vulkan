@@ -38,7 +38,7 @@ class VKPipeline : NonCopyable {
   VKPushConstants push_constants_;
   VKPipelineStateManager state_manager_;
   Vector<VkPipeline> vk_pipelines;
-
+  VkPipeline vk_pipeline_own_ = VK_NULL_HANDLE;
  public:
   VKPipeline() = default;
 
@@ -50,7 +50,9 @@ class VKPipeline : NonCopyable {
   VKPipeline &operator=(VKPipeline &&other)
   {
     vk_pipeline_ = other.vk_pipeline_;
+    vk_pipeline_own_ = other.vk_pipeline_own_;
     other.vk_pipeline_ = VK_NULL_HANDLE;
+    other.vk_pipeline_own_ = VK_NULL_HANDLE;
     descriptor_set_ = std::move(other.descriptor_set_);
     push_constants_ = std::move(other.push_constants_);
     return *this;
@@ -79,7 +81,7 @@ class VKPipeline : NonCopyable {
     return state_manager_;
   }
 
-  VkPipeline vk_handle() const;
+  VkPipeline vk_handle(VkPipelineBindPoint bind_point=VK_PIPELINE_BIND_POINT_GRAPHICS) const;
   bool is_valid() const;
 
   void finalize(VKContext &context,

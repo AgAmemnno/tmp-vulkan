@@ -71,6 +71,7 @@ static ConversionType type_of_conversion_float(eGPUTextureFormat device_format)
     case GPU_RGBA8:
     case GPU_RG8:
     case GPU_R8:
+    case GPU_SRGB8_A8:
       return ConversionType::FLOAT_TO_UNORM8;
 
     case GPU_RGBA8_SNORM:
@@ -114,7 +115,7 @@ static ConversionType type_of_conversion_float(eGPUTextureFormat device_format)
     case GPU_R11F_G11F_B10F:
     case GPU_DEPTH32F_STENCIL8:
     case GPU_DEPTH24_STENCIL8:
-    case GPU_SRGB8_A8:
+    //case GPU_SRGB8_A8:
     case GPU_RGB8UI:
     case GPU_RGB8I:
     case GPU_RGB8:

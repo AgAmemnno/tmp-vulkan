@@ -21,6 +21,7 @@ VKDescriptorSet::VKDescriptorSet(VKDescriptorSet &&other)
     : vk_descriptor_pool_(other.vk_descriptor_pool_), vk_descriptor_set_(other.vk_descriptor_set_)
 {
   other.mark_freed();
+
 }
 
 VKDescriptorSet::~VKDescriptorSet()
@@ -64,6 +65,10 @@ void VKDescriptorSetTracker::bind(VKUniformBuffer &buffer,
   binding.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
   binding.vk_buffer = buffer.vk_handle();
   binding.buffer_size = buffer.size_in_bytes();
+  printf("UNIFORM BUFFER Write OUT  VkBuffer (%llx)  binding (%d)  SHADER  %s \n", binding.vk_buffer, location ,shader->name_get());
+  if(std::string(shader->name_get()) =="workbench_opaque_mesh_tex_none_no_clip"){
+    printf("");
+  }
 }
 
 void VKDescriptorSetTracker::bind_as_ssbo(VKIndexBuffer &buffer,
@@ -81,8 +86,12 @@ void VKDescriptorSetTracker::texture_bind(VKTexture &texture,
 {
   Binding &binding = ensure_location(location);
   binding.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  binding.vk_image_view = texture.vk_image_view_handle();
+  binding.vk_image_view = texture.vk_image_view_for_descriptor();
   binding.vk_sampler = VKTexture::get_sampler(sampler_type);
+  if(location == VKDescriptorSet::Location(4)){
+    printf("");
+  }
+  printf("IMAGE SAMPLER Write OUT  view (%llx)  binding (%d)  SHADER  %s \n",binding.vk_image_view, location ,shader->name_get());
 }
 
 void VKDescriptorSetTracker::image_bind(VKTexture &texture,
@@ -90,7 +99,7 @@ void VKDescriptorSetTracker::image_bind(VKTexture &texture,
 {
   Binding &binding = ensure_location(location);
   binding.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-  binding.vk_image_view = texture.vk_image_view_handle();
+  binding.vk_image_view = texture.vk_image_view_for_descriptor();
   binding.vk_sampler = VK_NULL_HANDLE;
 }
 
@@ -113,14 +122,18 @@ void VKDescriptorSetTracker::bindcmd(VKCommandBuffer &command_buffer,
                                      VkPipelineLayout vk_pipeline_layout)
 {
   std::unique_ptr<VKDescriptorSet> &descriptor_set = active_descriptor_set();
-
   command_buffer.bind(*descriptor_set.get(), vk_pipeline_layout, VK_PIPELINE_BIND_POINT_GRAPHICS);
+  last_bound_set_ = descriptor_set.get()->vk_handle();
 }
 
 bool VKDescriptorSetTracker::update(VKContext &context)
 {
+  
   bool bindings_exist = bindings_.size() > 0;
   if(!bindings_exist){
+    if( last_bound_set_){
+      return true;
+    }
     return false;
   }
   tracked_resource_for(context, !bindings_.is_empty());
@@ -181,7 +194,7 @@ bool VKDescriptorSetTracker::update(VKContext &context)
   VkDevice vk_device = context.device_get();
   vkUpdateDescriptorSets(
       vk_device, descriptor_writes.size(), descriptor_writes.data(), 0, nullptr);
-
+ 
   bindings_.clear();
    return true;
 }

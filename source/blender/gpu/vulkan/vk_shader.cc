@@ -531,6 +531,11 @@ Vector<uint32_t> VKShader::compile_glsl_to_spirv(Span<const char *> sources,
                                                  shaderc_shader_kind stage)
 {
   std::string combined_sources = combine_sources(sources);
+  if(std::string(name_get()) == "workbench_opaque_mesh_tex_none_no_clip")
+  {
+    printf("%s",combined_sources.c_str());
+  }
+
   VKBackend &backend = VKBackend::get();
   shaderc::Compiler &compiler = backend.get_shaderc_compiler();
   shaderc::CompileOptions options;
@@ -627,9 +632,11 @@ void VKShader::build_shader_module(MutableSpan<const char *> sources,
                       shaderc_compute_shader),
                  "Only forced ShaderC shader kinds are supported.");
   sources[0] = glsl_patch_get();
+  /*
   for (auto s : sources) {
     printf("%s\n", s);
   }
+  */
   Vector<uint32_t> spirv_module = compile_glsl_to_spirv(sources, stage);
   build_shader_module(spirv_module, r_shader_module);
 }
@@ -703,6 +710,7 @@ bool VKShader::finalize(const shader::ShaderCreateInfo *info)
   else {
     delete vk_interface;
   }
+  pipeline_.descriptor_set_get().shader  = this;
   return result;
 }
 
@@ -969,7 +977,16 @@ void VKShader::uniform_float(int location, int comp_len, int array_size, const f
 
 void VKShader::uniform_int(int location, int comp_len, int array_size, const int *data)
 {
-  pipeline_get().push_constants_get().push_constant_set(location, comp_len, array_size, data);
+  if(location >=1024)
+  {
+    pipeline_get().push_constants_get().push_constant_set(location, comp_len, array_size, data);
+  }
+  /*
+  else
+  {
+    pipeline_get().descriptor_set_get().texture_bind;
+  }
+  */
 }
 
 std::string VKShader::resources_declare(const shader::ShaderCreateInfo &info) const

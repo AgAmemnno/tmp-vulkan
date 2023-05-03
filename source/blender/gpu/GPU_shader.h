@@ -168,6 +168,10 @@ bool GPU_shader_get_attribute_info(const GPUShader *shader,
                                    int attr_location,
                                    char r_name[256],
                                    int *r_type);
+bool GPU_shader_get_texture_info(const GPUShader *shader,
+                                   int location,
+                                   char r_name[256],
+                                   int *r_type);
 
 /** \} */
 

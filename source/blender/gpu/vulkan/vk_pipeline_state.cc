@@ -6,6 +6,8 @@
  */
 
 #include "vk_pipeline_state.hh"
+#include "vk_framebuffer.hh"
+#include "vk_texture.hh"
 
 namespace blender::gpu {
 VKPipelineStateManager::VKPipelineStateManager()
@@ -23,15 +25,6 @@ VKPipelineStateManager::VKPipelineStateManager()
 
 void VKPipelineStateManager::set_state(const GPUState &state, const GPUStateMutable &mutable_state)
 {
-  /* TODO should be extracted from current framebuffer and should not be done here and now. */
-  color_blend_attachments.clear();
-  VkPipelineColorBlendAttachmentState color_blend_attachment = {};
-  color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-                                          VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-  color_blend_attachments.append(color_blend_attachment);
-  pipeline_color_blend_state.attachmentCount = color_blend_attachments.size();
-  pipeline_color_blend_state.pAttachments = color_blend_attachments.data();
-
   GPUState changed = state ^ current_;
   if (changed.blend) {
     set_blend(static_cast<eGPUBlend>(state.blend));
@@ -77,8 +70,9 @@ void VKPipelineStateManager::force_state(const GPUState &state,
 void VKPipelineStateManager::set_blend(const eGPUBlend blend)
 {
   VkPipelineColorBlendStateCreateInfo &cb = pipeline_color_blend_state;
-  VkPipelineColorBlendAttachmentState &att_state = color_blend_attachments.last();
-
+  VkPipelineColorBlendAttachmentState &att_state = color_blend_attachment;
+  att_state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                                          VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
   att_state.blendEnable = VK_TRUE;
   att_state.alphaBlendOp = VK_BLEND_OP_ADD;
   att_state.colorBlendOp = VK_BLEND_OP_ADD;
@@ -186,7 +180,7 @@ void VKPipelineStateManager::set_write_mask(const eGPUWriteMask write_mask)
 {
   depth_stencil_state.depthWriteEnable = (write_mask & GPU_WRITE_DEPTH) ? VK_TRUE : VK_FALSE;
 
-  VkPipelineColorBlendAttachmentState &att_state = color_blend_attachments.last();
+  VkPipelineColorBlendAttachmentState &att_state = color_blend_attachment;
   att_state.colorWriteMask = 0;
 
   if ((write_mask & GPU_WRITE_RED) != 0) {
@@ -362,6 +356,45 @@ void VKPipelineStateManager::set_shadow_bias(const bool enable)
   else {
     rasterization_state.depthBiasEnable = VK_FALSE;
   }
+}
+
+void VKPipelineStateManager::color_blend_from_framebuffer(VKFrameBuffer* framebuffer)
+{
+  color_blend_attachments.clear();
+  auto subpass = framebuffer->subpass_info.subpass;
+  auto is_blende_false = [&](eGPUTextureFormat format){
+    bool append = false;
+    switch (format) {
+        case GPU_R16UI:
+           append = true;
+          break;
+          default:
+          break;
+      }
+    if(append)
+     {
+       VkPipelineColorBlendAttachmentState blend_false = {};
+       blend_false.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                                            VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+       blend_false.blendEnable = VK_FALSE;
+       color_blend_attachments.append(blend_false);
+     }
+    return append;
+  };
+
+  for (int i = 0;i < subpass.colorAttachmentCount;i++) {
+    int aidx = framebuffer->subpass_info.attachment_idx[subpass.pColorAttachments[i].attachment];
+    const GPUAttachment &attachment =  framebuffer->attachment_get(aidx);
+    BLI_assert(attachment.tex);
+    VKTexture* texture =  reinterpret_cast<VKTexture*>(attachment.tex);
+    if(is_blende_false(texture->format_get())){
+      continue;
+    };
+    color_blend_attachments.append(color_blend_attachment);
+  }
+  pipeline_color_blend_state.attachmentCount = color_blend_attachments.size();
+  pipeline_color_blend_state.pAttachments = color_blend_attachments.data();
+  return ;
 }
 
 }  // namespace blender::gpu

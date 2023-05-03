@@ -38,8 +38,8 @@ void VKStorageBuffer::bind(int slot)
   }
   VKShader *shader = static_cast<VKShader *>(context.shader);
   const VKShaderInterface &shader_interface = shader->interface_get();
-  const VKDescriptorSet::Location location = shader_interface.descriptor_set_location(
-      shader::ShaderCreateInfo::Resource::BindType::STORAGE_BUFFER, slot);
+  const VKDescriptorSet::Location location = shader_interface.descriptor_set_location(slot);
+      //shader::ShaderCreateInfo::Resource::BindType::STORAGE_BUFFER, slot);
   shader->pipeline_get().descriptor_set_get().bind(*this, location);
 }
 

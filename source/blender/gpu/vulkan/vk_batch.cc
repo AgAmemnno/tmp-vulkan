@@ -20,16 +20,20 @@ VKFrameBuffer *fb = context.active_framebuffer_get();
   int viewport[4];
   fb->viewport_get(viewport);
   printf(
-      ">>>>>>>>>>>>>>>>>>>>>>VKBatch Draw<<<<<<<<<<<<< CNT[%d]  FrameBuffer %llx Viewport (%d %d "
+      ">>>>>>>>>>>>>>>>>>>>>>VKBatch Draw<<<<<<<<<<<<< CNT[%d]  FrameBuffer %llx Shader %s Viewport (%d %d "
       "%d %d) \n",
       CNT,
       (uintptr_t)fb->vk_framebuffer_get(),
+      context.shader->name_get(),
       viewport[0],
       viewport[1],
       viewport[2],
       viewport[3]);
   context.activate_framebuffer(*fb);
-
+  if(std::string(context.shader->name_get()) == "workbench_composite_studio")
+  {
+    printf("");
+  }
 }
 
 void VKBatch::draw(int v_first, int v_count, int i_first, int i_count)
@@ -45,7 +49,9 @@ void VKBatch::draw(int v_first, int v_count, int i_first, int i_count)
   VKContext::get()->debug_capture_title( (std::string("BTC") + std::to_string(CNT)).c_str());
   VKContext &context = *VKContext::get();
 
-
+  if(CNT==183){
+    printf("");
+  }
   activate(context,CNT);
 
   context.state_manager->apply_state();
@@ -67,7 +73,7 @@ void VKBatch::draw(int v_first, int v_count, int i_first, int i_count)
 
   context.command_buffer_get().submit(true, false);
   GPU_debug_capture_end();
-  if (CNT >= 174) {
+  if (CNT >= 217) {
     system("pause");
   }
 }

@@ -92,13 +92,17 @@ class VKBackend : public GPUBackend {
   {
     return *static_cast<VKBackend *>(GPUBackend::get());
   }
-
+  static VKContext* gpu_ctx_get()
+  {
+    return gpuctx_;
+  }
   template<typename T> static void desable_gpuctx(VKContext *context, T &descriptor_pools_);
 
  private:
   static void init_platform();
   static void platform_exit();
   static VKContext *gpuctx_;
+
 };
 
 }  // namespace blender::gpu

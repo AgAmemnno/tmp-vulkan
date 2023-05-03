@@ -28,6 +28,12 @@ VKTexture::~VKTexture()
 
   vmaDestroyImage(VKBackend::get().mem_allocator_get(), vk_image_, allocation_);
   vkDestroyImageView(VKBackend::get().mem_device_get(), vk_image_view_, vk_allocation_callbacks);
+  if(vk_image_view_for_descriptor_ != VK_NULL_HANDLE)
+  {
+    vkDestroyImageView(VKBackend::get().mem_device_get(), vk_image_view_for_descriptor_, vk_allocation_callbacks);
+    vk_image_view_for_descriptor_ = VK_NULL_HANDLE;
+   }
+
 }
 /* Samplers cache VulkanObjects directly, not information. */
 VkSampler VKTexture::samplers_cache_[GPU_SAMPLER_EXTEND_MODES_COUNT]
@@ -273,9 +279,7 @@ void VKTexture::update_sub(
 
   layout_ensure(context, VkTransitionState::VK_ENSURE_COPY_DST);
   VKCommandBuffer &command_buffer = context.command_buffer_get();
-  command_buffer.copy(*this, staging_buffer, Span<VkBufferImageCopy>(&region, 1));
-  command_buffer.submit();
-
+  command_buffer.copy_imm(*this, staging_buffer, Span<VkBufferImageCopy>(&region, 1));
   layout_ensure(context, VkTransitionState::VK_ENSURE_TEXTURE);
 }
 
@@ -332,10 +336,7 @@ static VkImageUsageFlagBits to_vk_image_usage(const eGPUTextureUsage usage,
   if (usage & GPU_TEXTURE_USAGE_SHADER_READ) {
     result = static_cast<VkImageUsageFlagBits>(result | VK_IMAGE_USAGE_SAMPLED_BIT);
   }
-  if (usage & GPU_TEXTURE_USAGE_SHADER_WRITE) {
-    result = static_cast<VkImageUsageFlagBits>(result | VK_IMAGE_USAGE_STORAGE_BIT |
-                                               VK_IMAGE_USAGE_SAMPLED_BIT);
-  }
+
   if (usage & GPU_TEXTURE_USAGE_ATTACHMENT) {
     if (format_flag & (GPU_FORMAT_NORMALIZED_INTEGER | GPU_FORMAT_COMPRESSED)) {
       /* These formats aren't supported as an attachment. When using
@@ -353,6 +354,11 @@ static VkImageUsageFlagBits to_vk_image_usage(const eGPUTextureUsage usage,
       }
     }
   }
+  else  if (usage & GPU_TEXTURE_USAGE_SHADER_WRITE ){
+    result = static_cast<VkImageUsageFlagBits>(result | VK_IMAGE_USAGE_STORAGE_BIT |
+                                               VK_IMAGE_USAGE_SAMPLED_BIT);
+  }
+
   if (usage & GPU_TEXTURE_USAGE_HOST_READ) {
     result = static_cast<VkImageUsageFlagBits>(result | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
   }
@@ -360,13 +366,34 @@ static VkImageUsageFlagBits to_vk_image_usage(const eGPUTextureUsage usage,
   return result;
 }
 
+static VkTransitionState to_vk_layout(const eGPUTextureUsage usage,
+                                              const eGPUTextureFormatFlag format_flag)
+{
+  if (usage & GPU_TEXTURE_USAGE_ATTACHMENT) {
+    if (format_flag & (GPU_FORMAT_NORMALIZED_INTEGER | GPU_FORMAT_COMPRESSED)) {
+      return VkTransitionState::VK_BEFORE_RENDER_PASS;
+    }
+    else {
+      if (format_flag & (GPU_FORMAT_DEPTH | GPU_FORMAT_STENCIL)) {
+        return VkTransitionState::VK_BEFORE_RENDER_PASS_DEPTH;
+      }
+      else {
+        return VkTransitionState::VK_BEFORE_RENDER_PASS;
+      }
+    }
+  }
+
+  return VkTransitionState::VK_ENSURE_TEXTURE;
+}
 bool VKTexture::allocate()
 {
   BLI_assert(!is_allocated());
-
+  static int n = 0;
   int extent[3] = {1, 1, 1};
   mip_size_get(0, extent);
-
+  if(n == 38){
+    printf("BP\n");
+  }
   VKContext &context = *VKContext::get();
   VkImageCreateInfo image_info = {};
   image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -391,8 +418,8 @@ bool VKTexture::allocate()
    */
   image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
   image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  image_info.usage = to_vk_image_usage(gpu_image_usage_flags_, format_flag_);
-  image_info.usage = to_vk_image_usage(gpu_image_usage_flags_, format_flag_);
+
+  image_info.usage    = to_vk_image_usage(gpu_image_usage_flags_, format_flag_);
   image_info.samples = VK_SAMPLE_COUNT_1_BIT;
 
   VkResult result;
@@ -423,9 +450,22 @@ bool VKTexture::allocate()
   if (result != VK_SUCCESS) {
     return false;
   }
+  
+
+  n = debug::object_label(VKContext::get(),vk_image_,"VKTexture::VkImage");
+
+  debug::raise_vk_info( "ImageCreate(%d) [%llx] \n",(uintptr_t)vk_image_,n);
 
   /* Promote image to the correct layout. */
-  // layout_ensure(context,VkTransitionState::VK_ENSURE_TEXTURE);
+  if (format_flag_ & (GPU_FORMAT_DEPTH | GPU_FORMAT_STENCIL))
+  {
+   layout_ensure(context,VkTransitionState::VK_BEFORE_RENDER_PASS_DEPTH);
+  }else if( gpu_image_usage_flags_  & GPU_TEXTURE_USAGE_ATTACHMENT ) {
+    layout_ensure(context,VkTransitionState::VK_BEFORE_RENDER_PASS);
+  }else
+  {
+  layout_ensure(context,VkTransitionState::VK_ENSURE_TEXTURE);
+    }
 
   VK_ALLOCATION_CALLBACKS
   VkImageViewCreateInfo image_view_info = {};
@@ -440,7 +480,34 @@ bool VKTexture::allocate()
 
   result = vkCreateImageView(
       context.device_get(), &image_view_info, vk_allocation_callbacks, &vk_image_view_);
+  printf("CREATE IMAGE VIEW  (%llx)  format %s  \n", (uintptr_t)vk_image_view_, to_string( image_view_info.format));
   return result == VK_SUCCESS;
+}
+
+VkImageView VKTexture::vk_image_view_for_descriptor() 
+{
+  if (format_flag_ & (GPU_FORMAT_DEPTH | GPU_FORMAT_STENCIL))
+  {
+    if(vk_image_view_for_descriptor_==VK_NULL_HANDLE)
+    {
+      VK_ALLOCATION_CALLBACKS
+      VkImageViewCreateInfo image_view_info = {};
+      image_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+      image_view_info.image = vk_image_;
+      image_view_info.viewType = to_vk_image_view_type(type_);
+      image_view_info.format = to_vk_format(format_);
+      image_view_info.components = to_vk_component_mapping(format_);
+      image_view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+      image_view_info.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+      image_view_info.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+      VKContext &context = *VKContext::get();
+      vkCreateImageView(
+          context.device_get(), &image_view_info, vk_allocation_callbacks, &vk_image_view_for_descriptor_);
+      printf("CREATE IMAGE VIEW  (%llx)  format %s  \n", (uintptr_t)vk_image_view_for_descriptor_, to_string( image_view_info.format));
+    }
+    return vk_image_view_for_descriptor_;
+  }
+  return vk_image_view_;
 }
 
 void VKTexture::image_bind(int binding)

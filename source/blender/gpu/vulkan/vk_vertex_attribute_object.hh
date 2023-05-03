@@ -34,7 +34,7 @@ class VKVertexAttributeObject {
   Vector<VKVertexBuffer *> vbos;
   /* Used for immediate mode. */
   Vector<VKBuffer *> buffers;
-
+ 
   VKVertexAttributeObject();
   void clear();
 

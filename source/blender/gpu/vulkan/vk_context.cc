@@ -11,6 +11,7 @@
 #include "vk_debug.hh"
 
 #include "vk_backend.hh"
+#include "vk_vertex_buffer.hh"
 #include "vk_framebuffer.hh"
 #include "vk_immediate.hh"
 #include "vk_memory.hh"
@@ -42,7 +43,6 @@ VKContext::VKContext(void *ghost_window, void *ghost_context)
                          &vk_queue_);
 
   debug::init_callbacks(this, vkGetInstanceProcAddr);
-
   ((GHOST_ContextVK *)(ghost_context_))->initializeDevice(vk_device_, vk_queue_, vk_queue_family_);
 
   init_physical_device_limits();
@@ -71,20 +71,26 @@ VKContext::VKContext(void *ghost_window, void *ghost_context)
   back_left = new VKFrameBuffer("back_left");
   active_fb = back_left;
   vk_swap_chain_images_.resize(vk_im_prop.nums);
+  command_buffer_.create_resource(this);
 
-#if 0
-    /* Initialize samplers. */
-  for (uint i = 0; i < GPU_SAMPLER_MAX; i++) {
-    VKSamplerState state;
-    state.state = static_cast<eGPUSamplerState>(i);
-    sampler_state_cache_[i] = this->generate_sampler_from_state(state);
-  }
-#endif
   vk_in_frame_ = false;
+  default_vbo_dummy=nullptr;
 }
 
 VKContext::~VKContext()
 {
+  auto vbo = ((GPUVertBuf*)default_vbo_dummy);
+  GPU_VERTBUF_DISCARD_SAFE( vbo);
+  if(imm)
+  {
+    delete imm;
+    imm = nullptr;
+  }
+  if(back_left)
+  {
+    delete back_left;
+    back_left = nullptr;
+  }
   VKBackend::desable_gpuctx(this, descriptor_pools_);
 }
 
@@ -153,20 +159,30 @@ void VKContext::deactivate()
 
 void VKContext::begin_frame()
 {
-
+  if(default_vbo_dummy==nullptr)
+  {
+    GPUVertFormat format = {0};
+    GPU_vertformat_attr_add(&format, "dummy_vbo", GPU_COMP_F32, 4, GPU_FETCH_FLOAT);
+    default_vbo_dummy =  (VKVertexBuffer*)GPU_vertbuf_create_with_format_ex(&format,GPU_USAGE_DYNAMIC);
+    GPU_vertbuf_data_alloc((GPUVertBuf*)default_vbo_dummy, 1);
+    float dummy[4] = {1.f,2.f,3.f,4.f};
+    default_vbo_dummy->update_sub(0,4,dummy);
+  }
   if (vk_in_frame_) {
     return;
   }
 
   vk_in_frame_ = true;
-  BLI_assert(validate_frame());
-
   VkCommandBuffer command_buffer = VK_NULL_HANDLE;
   GHOST_GetVulkanCommandBuffer(static_cast<GHOST_ContextHandle>(ghost_context_), &command_buffer);
 
   BLI_assert(command_buffer_.init(vk_device_, vk_queue_, command_buffer));
-  BLI_assert(validate_image());
-
+  VKContext* gpu_ctx = VKBackend::gpu_ctx_get();
+  if(gpu_ctx)
+  {
+    BLI_assert(gpu_ctx->validate_frame());
+    BLI_assert(gpu_ctx->validate_image());
+  }
   // command_buffer_.begin_recording();
 
   descriptor_pools_.reset();
@@ -395,11 +411,10 @@ void VKContext::activate_framebuffer(VKFrameBuffer &framebuffer)
   VKFrameBuffer *new_fb = reinterpret_cast<VKFrameBuffer *>(active_fb);
 
   if (new_fb->is_immutable()) {
-    BLI_assert(command_buffer_.begin_render_pass(*new_fb, vk_swap_chain_images_[vk_fb_id_ & 1]));
+    BLI_assert(command_buffer_.begin_render_pass(*new_fb, &vk_swap_chain_images_[vk_fb_id_ & 1]));
   }
   else {
-    VKTexture &tex = (*(VKTexture *)new_fb->color_tex(0));
-    BLI_assert(command_buffer_.begin_render_pass(*new_fb, tex));
+    BLI_assert(command_buffer_.begin_render_pass(*new_fb, (VKTexture*)nullptr));
   }
 
   active_fb = new_fb;
@@ -458,7 +473,7 @@ void VKContext::bind_graphics_pipeline(const VKBatch &batch,
   shader->update_graphics_pipeline(*this, batch, vertex_attribute_object);
   command_buffer_get().bind(shader->pipeline_get(), VK_PIPELINE_BIND_POINT_GRAPHICS);
   shader->pipeline_get().push_constants_get().update(*this);
-
+  printf("BIND PIPELINE %llx  Shader %llx  %s\n",(uintptr_t)&shader->pipeline_get(),(uintptr_t)shader,shader->name_get());
   VKDescriptorSetTracker &descriptor_set = shader->pipeline_get().descriptor_set_get();
   if(descriptor_set.update(*this))
   {

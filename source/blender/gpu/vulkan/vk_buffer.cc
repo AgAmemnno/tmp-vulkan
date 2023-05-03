@@ -58,7 +58,10 @@ bool VKBuffer::create(VKContext &context,
     }
     free(context);
   }
-
+  if(size_in_bytes<=0)
+  {
+    return false;
+  }
   size_in_bytes_ = size_in_bytes;
   VKBackend &backend = VKBackend::get();
 

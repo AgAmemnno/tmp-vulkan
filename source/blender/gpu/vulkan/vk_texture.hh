@@ -81,7 +81,7 @@ class VKTexture : public Texture {
   {
     return current_mip_;
   };
-
+  VkImageCreateInfo image_info = {};
  protected:
   bool init_internal() override;
   bool init_internal(GPUVertBuf *vbo) override;

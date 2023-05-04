@@ -166,7 +166,7 @@ void VKContext::begin_frame()
     default_vbo_dummy =  (VKVertexBuffer*)GPU_vertbuf_create_with_format_ex(&format,GPU_USAGE_DYNAMIC);
     GPU_vertbuf_data_alloc((GPUVertBuf*)default_vbo_dummy, 1);
     float dummy[4] = {1.f,2.f,3.f,4.f};
-    default_vbo_dummy->update_sub(0,4,dummy);
+    default_vbo_dummy->update_sub(0,4*sizeof(float),dummy);
   }
   if (vk_in_frame_) {
     return;

@@ -108,10 +108,13 @@ void VKVertexAttributeObject::update_bindings(const VKContext &context, VKBatch 
         VkVertexInputAttributeDescription vk_attribute = {};
         vk_attribute.location = a;
         vk_attribute.offset   = 0;
+        /* Upload only `R32` using the interpolation function of Vulkan-vertex-buffer. */
         vk_attribute.format  = VK_FORMAT_R32_SFLOAT;
+        vk_binding.stride = sizeof(float);
+        
         vk_binding.binding     = vk_attribute.binding  = bindings.size();
         vk_binding.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
-        vk_binding.stride = sizeof(float);
+        
         bindings.append(vk_binding);
         vbos.append(vbo_dummy);
         attributes.append(vk_attribute);

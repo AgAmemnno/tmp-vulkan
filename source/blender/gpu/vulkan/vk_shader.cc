@@ -1067,8 +1067,14 @@ std::string VKShader::vertex_interface_declare(const shader::ShaderCreateInfo &i
 
   print::gpu_shader_2D_widget_base(info,pre_main,post_main);
 
-  post_main += "gl_Position.z = (gl_Position.z + gl_Position.w) / 2.0;\n";
 
+  if(std::string(name_get()) == "workbench_opaque_mesh_tex_none_no_clip")
+  {
+     //post_main +="debugPrintfEXT(\"Here gl_Position  %v4f\",gl_Position);\n";
+    //post_main += "gl_Position = vec4(pos,1.);";
+  }
+
+  post_main += "gl_Position.z = (gl_Position.z + gl_Position.w) / 2.0;\n";
   if (post_main.empty() == false) {
     ss << main_function_wrapper(pre_main, post_main);
   }
@@ -1079,7 +1085,7 @@ std::string VKShader::fragment_interface_declare(const shader::ShaderCreateInfo 
 {
   std::stringstream ss;
   std::string pre_main;
-
+  ss << "#extension GL_EXT_debug_printf : enable \n ";
   ss << "\n/* Interfaces. */\n";
   const Vector<StageInterfaceInfo *> &in_interfaces = info.geometry_source_.is_empty() ?
                                                           info.vertex_out_interfaces_ :
@@ -1136,11 +1142,9 @@ std::string VKShader::fragment_interface_declare(const shader::ShaderCreateInfo 
     ss << "out " << to_string(output.type) << " " << output.name << ";\n";
   }
   ss << "\n";
+  std::string post_main;
+  ss << main_function_wrapper(pre_main, post_main);
 
-  if (pre_main.empty() == false) {
-    std::string post_main;
-    ss << main_function_wrapper(pre_main, post_main);
-  }
   return ss.str();
 }
 

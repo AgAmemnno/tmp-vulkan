@@ -21,6 +21,8 @@ VKPipelineStateManager::VKPipelineStateManager()
 
   depth_stencil_state = {};
   depth_stencil_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+  depth_stencil_state.minDepthBounds  = 0.f;
+  depth_stencil_state.maxDepthBounds = 1.f;
 }
 
 void VKPipelineStateManager::set_state(const GPUState &state, const GPUStateMutable &mutable_state)

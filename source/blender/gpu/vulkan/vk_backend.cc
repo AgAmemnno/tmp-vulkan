@@ -55,7 +55,7 @@ template<typename T> void VKBackend::desable_gpuctx(VKContext *context, T &descr
     }
     VKTexture::samplers_free();
     vmaDestroyAllocator(mem_allocator_);
-    debug::destroy_callbacks(context, tools);
+   
     pools.clear();
   }
 };

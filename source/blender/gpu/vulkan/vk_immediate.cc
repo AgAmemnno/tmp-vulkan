@@ -16,7 +16,10 @@
 namespace blender::gpu {
 
 static void activate(VKContext& context,int CNT){
-  context.debug_capture_title( (std::string("IMM") + std::to_string(CNT)).c_str());
+   if(CNT > 100){
+      GPU_debug_capture_begin();
+      context.debug_capture_title( (std::string("IMM") + std::to_string(CNT)).c_str());
+    }
   VKFrameBuffer *fb = context.active_framebuffer_get();
   int viewport[4];
   fb->viewport_get(viewport);
@@ -38,7 +41,7 @@ VKImmediate::~VKImmediate() {}
   static int CNT = 0;
 uchar *VKImmediate::begin()
 {
-  GPU_debug_capture_begin();
+ 
  
   VKContext &context = *VKContext::get();
 
@@ -78,7 +81,9 @@ void VKImmediate::end()
 
   context.command_buffer_get().draw(0, vertex_len, 0, 1);
   context.command_buffer_get().submit(true, false);
+  if(CNT > 100){
   GPU_debug_capture_end();
+  }
   CNT++;
 }
 

@@ -331,7 +331,7 @@ bool VKTexture::is_allocated() const
 static VkImageUsageFlagBits to_vk_image_usage(const eGPUTextureUsage usage,
                                               const eGPUTextureFormatFlag format_flag)
 {
-  VkImageUsageFlagBits result = static_cast<VkImageUsageFlagBits>(VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  VkImageUsageFlagBits result = static_cast<VkImageUsageFlagBits>(VK_IMAGE_USAGE_TRANSFER_DST_BIT| VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 
   if (usage & GPU_TEXTURE_USAGE_SHADER_READ) {
     result = static_cast<VkImageUsageFlagBits>(result | VK_IMAGE_USAGE_SAMPLED_BIT);
@@ -395,7 +395,7 @@ bool VKTexture::allocate()
     printf("BP\n");
   }
   VKContext &context = *VKContext::get();
-  VkImageCreateInfo image_info = {};
+  image_info = {};
   image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
   image_info.imageType = to_vk_image_type(type_);
   image_info.extent.width = extent[0];

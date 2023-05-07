@@ -27,9 +27,14 @@ class VKShaderInterface : public ShaderInterface {
    * overlapping.
    */
   uint32_t image_offset_ = 0;
+  const uint32_t buffer_set_ = 0;
+  const uint32_t push_constant_buffer_set_ = 1;
+  const uint32_t image_set_  = 2;
+
+
   // using desc_array_t = VKDescriptorSet::Location>;
   using desc_array_t = const shader::ShaderCreateInfo::Resource *;
-  Array<desc_array_t> descriptor_set_locations_;
+  desc_array_t descriptor_set_locations_[3][16];
 
   VKPushConstants::Layout push_constants_layout_;
 

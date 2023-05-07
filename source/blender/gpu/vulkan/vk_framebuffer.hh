@@ -25,6 +25,8 @@ class VKFrameBuffer : public FrameBuffer {
   VkDevice vk_device_ = VK_NULL_HANDLE;
   /* Base render pass used for framebuffer creation. */
   VkRenderPass vk_render_pass_ = VK_NULL_HANDLE;
+  VkImage vk_image_ = VK_NULL_HANDLE;
+
   VkImageLayout vk_render_pass_init_ = VK_IMAGE_LAYOUT_MAX_ENUM;
   /* Number of layers if the attachments are layered textures. */
   int depth_ = 1;
@@ -34,7 +36,14 @@ class VKFrameBuffer : public FrameBuffer {
   VkClearAttachment immutable_attachment_;
 
   int image_id_ = -1;
-
+  /**
+  * Should we flip the viewport to match Blenders coordinate system. We flip the viewport for
+  * offscreen framebuffers.
+  *
+  * When two framebuffers are blitted we also check if the coordinate system should be flipped
+  * during blitting.
+  */
+  bool flip_viewport_ = false;
  public:
   /**
    * Create a conventional framebuffer to attach texture to.
@@ -45,11 +54,12 @@ class VKFrameBuffer : public FrameBuffer {
    * Special frame-buffer encapsulating internal window frame-buffer.
    * This just act as a wrapper, the actual allocations are done by GHOST_ContextVK.
    **/
-  VKFrameBuffer(const char *name,
-                VkFramebuffer vk_framebuffer,
-                VkRenderPass vk_render_pass,
-                VkExtent2D vk_extent);
 
+  VKFrameBuffer(const char *name,
+                             VkImage vk_image,
+                             VkFramebuffer vk_framebuffer,
+                             VkRenderPass vk_render_pass,
+                             VkExtent2D vk_extent);
   ~VKFrameBuffer();
 
   void set_dirty()
@@ -116,6 +126,11 @@ class VKFrameBuffer : public FrameBuffer {
   {
     return immutable_;
   };
+  VkImage vk_image_get() const
+  {
+    BLI_assert(vk_image_ != VK_NULL_HANDLE);
+    return vk_image_;
+  }
 
   VkFormat is_color(int slot) const;
   const GPUAttachment & attachment_get(int type) const ;

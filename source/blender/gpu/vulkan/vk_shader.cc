@@ -333,7 +333,8 @@ static void print_resource(std::ostream &os,
                            const VKDescriptorSet::Location location,
                            const ShaderCreateInfo::Resource &res)
 {
-  os << "layout(binding = " << static_cast<uint32_t>(location);
+  os << "layout(set = " << static_cast<uint32_t>(location.get_set());
+  os << ",binding = " << static_cast<uint32_t>(location);
   if (res.bind_type == ShaderCreateInfo::Resource::BindType::IMAGE) {
     os << ", " << to_string(res.image.format);
   }
@@ -531,7 +532,7 @@ Vector<uint32_t> VKShader::compile_glsl_to_spirv(Span<const char *> sources,
                                                  shaderc_shader_kind stage)
 {
   std::string combined_sources = combine_sources(sources);
-  if(std::string(name_get()) == "workbench_opaque_mesh_tex_none_no_clip")
+  if(std::string(name_get()) == "OCIO_Display")
   {
     printf("%s",combined_sources.c_str());
   }
@@ -588,6 +589,15 @@ void VKShader::build_shader_module(Span<uint32_t> spirv_module, VkShaderModule *
 VKShader::VKShader(const char *name) : Shader(name)
 {
   context_ = VKContext::get();
+  VkDescriptorSetLayoutCreateInfo emptyLayoutInfo = {};
+  emptyLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+  emptyLayoutInfo.flags = 0;
+  emptyLayoutInfo.pNext = NULL;
+  emptyLayoutInfo.bindingCount = 0;
+  emptyLayoutInfo.pBindings = NULL;
+
+  
+  vkCreateDescriptorSetLayout(VKContext::get()->device_get(), &emptyLayoutInfo, NULL, &empty_layout_);
 }
 
 VKShader::~VKShader()
@@ -615,9 +625,18 @@ VKShader::~VKShader()
     vkDestroyPipelineLayout(device, pipeline_layout_, vk_allocation_callbacks);
     pipeline_layout_ = VK_NULL_HANDLE;
   }
-  if (layout_ != VK_NULL_HANDLE) {
-    vkDestroyDescriptorSetLayout(device, layout_, vk_allocation_callbacks);
-    layout_ = VK_NULL_HANDLE;
+
+  for(int i=0;i<3;i++)
+  {
+    if (layout_[i] != VK_NULL_HANDLE) {
+      vkDestroyDescriptorSetLayout(device, layout_[i], vk_allocation_callbacks);
+      layout_[i] = VK_NULL_HANDLE;
+    }
+  }
+  if(empty_layout_ != VK_NULL_HANDLE)
+  {
+    vkDestroyDescriptorSetLayout(device, empty_layout_, vk_allocation_callbacks);
+    empty_layout_ = VK_NULL_HANDLE;
   }
 }
 
@@ -719,13 +738,25 @@ bool VKShader::finalize_pipeline_layout(VkDevice vk_device,
 {
   VK_ALLOCATION_CALLBACKS
 
-  const uint32_t layout_count = layout_ == VK_NULL_HANDLE ? 0 : 1;
   VkPipelineLayoutCreateInfo pipeline_info = {};
   VkPushConstantRange push_constant_range = {};
   pipeline_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pipeline_info.flags = 0;
-  pipeline_info.setLayoutCount = layout_count;
-  pipeline_info.pSetLayouts = &layout_;
+  
+  Vector<VkDescriptorSetLayout> vk_set_layouts;
+
+
+  for(int i=0;i<3;i++)
+  {
+    if(layout_[i]!=VK_NULL_HANDLE)
+    {
+      vk_set_layouts.append(layout_[i]);
+      pipeline_info.setLayoutCount = i+1;
+    }else{
+      vk_set_layouts.append(empty_layout_);
+    }
+  }
+  pipeline_info.pSetLayouts = vk_set_layouts.data();
 
   /* Setup push constants. */
   const VKPushConstants::Layout &push_constants_layout =
@@ -874,33 +905,43 @@ static VkDescriptorSetLayoutBinding create_descriptor_set_layout_binding(
 static void add_descriptor_set_layout_bindings(
     const VKShaderInterface &interface,
     const Vector<const shader::ShaderCreateInfo::Resource *> &resources,
-    Vector<VkDescriptorSetLayoutBinding> &r_bindings)
+    Vector<VkDescriptorSetLayoutBinding> r_bindings[3])
 {
   for (const shader::ShaderCreateInfo::Resource *resource : resources) {
     const VKDescriptorSet::Location location = interface.descriptor_set_location(resource);
-    r_bindings.append(create_descriptor_set_layout_binding(location, resource));
+    r_bindings[location.get_set()].append(create_descriptor_set_layout_binding(location, resource));
   }
-
   /* Add push constants to the descriptor when push constants are stored in an uniform buffer. */
   const VKPushConstants::Layout &push_constants_layout = interface.push_constants_layout_get();
   if (push_constants_layout.storage_type_get() == VKPushConstants::StorageType::UNIFORM_BUFFER) {
-    r_bindings.append(create_descriptor_set_layout_binding(push_constants_layout));
+    r_bindings[1].append(create_descriptor_set_layout_binding(push_constants_layout));
   }
 }
 
-static VkDescriptorSetLayoutCreateInfo create_descriptor_set_layout(
+static Vector<VkDescriptorSetLayoutCreateInfo> create_descriptor_set_layout(
     const VKShaderInterface &interface,
     const Vector<const shader::ShaderCreateInfo::Resource *> &resources,
-    Vector<VkDescriptorSetLayoutBinding> &r_bindings)
+    Vector<VkDescriptorSetLayoutBinding> r_bindings[3])
 {
   add_descriptor_set_layout_bindings(interface, resources, r_bindings);
-  VkDescriptorSetLayoutCreateInfo set_info = {};
-  set_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  set_info.flags = 0;
-  set_info.pNext = nullptr;
-  set_info.bindingCount = r_bindings.size();
-  set_info.pBindings = r_bindings.data();
-  return set_info;
+  Vector<VkDescriptorSetLayoutCreateInfo>  set_info_vec = {};
+  for(int i=0;i<3;i++)
+  {
+    VkDescriptorSetLayoutCreateInfo set_info = {};
+    set_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    set_info.flags = 0;
+    set_info.pNext = nullptr;
+    if(r_bindings[i].size() > 0)
+    {
+      set_info.bindingCount = r_bindings[i].size();
+      set_info.pBindings = r_bindings[i].data();
+      set_info_vec.append(set_info);
+    }else{
+      set_info.bindingCount = 0;
+      set_info_vec.append(set_info);
+    }
+  }
+  return set_info_vec;
 }
 
 static bool descriptor_sets_needed(const VKShaderInterface &shader_interface,
@@ -921,6 +962,7 @@ bool VKShader::finalize_descriptor_set_layouts(VkDevice vk_device,
 
   VK_ALLOCATION_CALLBACKS
 
+
   /* Currently we create a single descriptor set. The goal would be to create one descriptor set
    * for #Frequency::PASS/BATCH. This isn't possible as areas expect that the binding location is
    * static and predictable (EEVEE-NEXT) or the binding location can be mapped to a single number
@@ -933,14 +975,29 @@ bool VKShader::finalize_descriptor_set_layouts(VkDevice vk_device,
     all_resources.append(&info.batch_resources_[i]);
   }
 
-  Vector<VkDescriptorSetLayoutBinding> bindings;
-  VkDescriptorSetLayoutCreateInfo layout_info = create_descriptor_set_layout(
+  Vector<VkDescriptorSetLayoutBinding> bindings[3];
+  Vector<VkDescriptorSetLayoutCreateInfo> layout_info = create_descriptor_set_layout(
       shader_interface, all_resources, bindings);
-  if (vkCreateDescriptorSetLayout(vk_device, &layout_info, vk_allocation_callbacks, &layout_) !=
-      VK_SUCCESS) {
-    return false;
-  };
-
+  for(int i=0;i<3;i++)
+  {
+    if(layout_[i] != VK_NULL_HANDLE)
+    {
+      vkDestroyDescriptorSetLayout(vk_device,layout_[i],vk_allocation_callbacks);
+    }
+    auto info = layout_info[i];
+    if(info.bindingCount == 0)
+    {
+      layout_[i] = VK_NULL_HANDLE;
+    }
+    else
+    {
+      if (vkCreateDescriptorSetLayout(vk_device, &info, vk_allocation_callbacks, &layout_[i]) !=
+          VK_SUCCESS) {
+        return false;
+      };
+      printf("DescriptorSetLayout ================================= %llx \n",(uintptr_t)layout_[i]);
+    }
+  }
   return true;
 }
 
@@ -1015,7 +1072,7 @@ std::string VKShader::resources_declare(const shader::ShaderCreateInfo &info) co
       ss << "layout(push_constant) uniform constants\n";
     }
     else if (push_constants_storage == VKPushConstants::StorageType::UNIFORM_BUFFER) {
-      ss << "layout(binding = " << push_constants_layout.descriptor_set_location_get()
+      ss << "layout(set = 1,binding = " << push_constants_layout.descriptor_set_location_get()
          << ", std140) uniform constants\n";
     }
     ss << "{\n";

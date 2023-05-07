@@ -7,6 +7,7 @@
 
 #include "vk_pipeline.hh"
 #include "vk_batch.hh"
+#include "vk_backend.hh"
 #include "vk_context.hh"
 #include "vk_debug.hh"
 #include "vk_framebuffer.hh"
@@ -16,7 +17,7 @@
 
 namespace blender::gpu {
 
-VKPipeline::VKPipeline(VkDescriptorSetLayout vk_descriptor_set_layout,
+VKPipeline::VKPipeline(VkDescriptorSetLayout vk_descriptor_set_layout[3],
                        VKPushConstants &&push_constants)
     : vk_pipeline_(VK_NULL_HANDLE),
       descriptor_set_(vk_descriptor_set_layout),
@@ -26,7 +27,7 @@ VKPipeline::VKPipeline(VkDescriptorSetLayout vk_descriptor_set_layout,
 }
 
 VKPipeline::VKPipeline(VkPipeline vk_pipeline,
-                       VkDescriptorSetLayout vk_descriptor_set_layout,
+                       VkDescriptorSetLayout vk_descriptor_set_layout[3],
                        VKPushConstants &&push_constants)
     : vk_pipeline_(vk_pipeline),
       descriptor_set_(vk_descriptor_set_layout),
@@ -39,7 +40,7 @@ VKPipeline::VKPipeline(VkPipeline vk_pipeline,
 VKPipeline::~VKPipeline()
 {
   VK_ALLOCATION_CALLBACKS
-  VkDevice vk_device = VKContext::get()->device_get();
+  VkDevice vk_device = VKBackend::get().mem_device_get();
 
   for (auto &pipeline : vk_pipelines) {
     vkDestroyPipeline(vk_device, pipeline, vk_allocation_callbacks);
@@ -54,7 +55,7 @@ VKPipeline::~VKPipeline()
 VKPipeline VKPipeline::create_compute_pipeline(
     VKContext &context,
     VkShaderModule compute_module,
-    VkDescriptorSetLayout &descriptor_set_layout,
+    VkDescriptorSetLayout descriptor_set_layout[3],
     VkPipelineLayout &pipeline_layout,
     const VKPushConstants::Layout &push_constants_layout)
 {
@@ -83,7 +84,7 @@ VKPipeline VKPipeline::create_compute_pipeline(
 }
 
 VKPipeline VKPipeline::create_graphics_pipeline(
-    VkDescriptorSetLayout &descriptor_set_layout,
+    VkDescriptorSetLayout descriptor_set_layout[3],
     const VKPushConstants::Layout &push_constants_layout)
 {
   VKPushConstants push_constants(&push_constants_layout);

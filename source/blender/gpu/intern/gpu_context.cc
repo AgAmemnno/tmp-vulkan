@@ -383,4 +383,9 @@ GPUBackend *GPUBackend::get()
   return g_backend;
 }
 
+void GPU_context_active_shader_set(GPUShader* shader)
+{
+  Context::get()->shader = (Shader*)shader;
+};
+
 /** \} */

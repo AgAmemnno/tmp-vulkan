@@ -141,14 +141,14 @@ template<typename Resource> class VKResourceTracker : NonCopyable {
    * the resource should not be stored outside this class as it might
    * be destroyed when the next submission is detected.
    */
-  std::unique_ptr<Resource> &tracked_resource_for(VKContext &context, const bool is_dirty)
+  std::unique_ptr<Resource> &tracked_resource_for(VKContext &context, const bool is_dirty,int i)
   {
     if (submission_tracker_.is_changed(context)) {
       free_tracked_resources();
-      tracked_resources_.append(create_resource(context));
+      tracked_resources_.append(create_resource(context,i));
     }
     else if (is_dirty || tracked_resources_.is_empty()) {
-      tracked_resources_.append(create_resource(context));
+      tracked_resources_.append(create_resource(context,i));
     }
     return active_resource();
   }
@@ -157,7 +157,7 @@ template<typename Resource> class VKResourceTracker : NonCopyable {
    * Callback to create a new resource. Can be called by the `tracked_resource_for` method.
    */
   virtual std::unique_ptr<Resource> create_resource(VKContext &context) = 0;
-
+  virtual std::unique_ptr<Resource> create_resource(VKContext &context,int ) = 0;
   /**
    * Return the active resource of the tracker.
    */

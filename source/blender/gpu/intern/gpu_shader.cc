@@ -566,7 +566,7 @@ int GPU_shader_get_ssbo_binding(GPUShader *shader, const char *name)
 {
   const ShaderInterface *interface = unwrap(shader)->interface;
   const ShaderInput *ssbo = interface->ssbo_get(name);
-  return ssbo ? ssbo->location : -1;
+  return ssbo ? ssbo->binding : -1;
 }
 
 int GPU_shader_get_uniform_block(GPUShader *shader, const char *name)

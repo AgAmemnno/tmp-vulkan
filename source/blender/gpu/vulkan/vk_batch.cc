@@ -44,13 +44,13 @@ void VKBatch::draw(int v_first, int v_count, int i_first, int i_count)
   }
   static int CNT = 0;
   CNT++;
-  if(CNT >180){
+  if(CNT >0){
     GPU_debug_capture_begin();
     VKContext::get()->debug_capture_title( (std::string("BTC") + std::to_string(CNT)).c_str());
   }
   VKContext &context = *VKContext::get();
   activate(context,CNT);
-  if(CNT==183){
+  if(CNT==222){
     /*
     VKFrameBuffer *fb = context.active_framebuffer_get();
     const float val[4] = {0.f,0.f,0.f,1.f};
@@ -85,7 +85,7 @@ void VKBatch::draw(int v_first, int v_count, int i_first, int i_count)
   }
 
   context.command_buffer_get().submit(true, false);
-  if(CNT >180){
+  if(CNT >0){
     GPU_debug_capture_end();
   }
   if (CNT >= 1000) {

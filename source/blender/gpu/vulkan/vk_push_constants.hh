@@ -175,7 +175,7 @@ class VKPushConstants : VKResourceTracker<VKUniformBuffer> {
    * Part of Resource Tracking API is called when new resource is needed.
    */
   std::unique_ptr<VKUniformBuffer> create_resource(VKContext &context) override;
-
+  std::unique_ptr<VKUniformBuffer> create_resource(VKContext &context,int) override ;
   /**
    * Get the reference to the active data.
    *

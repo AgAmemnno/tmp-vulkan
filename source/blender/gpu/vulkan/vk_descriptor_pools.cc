@@ -25,9 +25,12 @@ VKDescriptorPools::~VKDescriptorPools()
 
 void VKDescriptorPools::init(const VkDevice vk_device)
 {
-  BLI_assert(vk_device_ == VK_NULL_HANDLE);
-  vk_device_ = vk_device;
-  add_new_pool();
+  if(vk_device_ == VK_NULL_HANDLE){;
+    vk_device_ = vk_device;
+    add_new_pool();
+  }else{
+    BLI_assert(vk_device == vk_device_);
+  }
 }
 
 void VKDescriptorPools::reset()
@@ -81,7 +84,7 @@ bool VKDescriptorPools::is_last_pool_active()
 }
 
 std::unique_ptr<VKDescriptorSet> VKDescriptorPools::allocate(
-    const VkDescriptorSetLayout &descriptor_set_layout)
+    const VkDescriptorSetLayout &descriptor_set_layout,int set_location)
 {
   VkDescriptorSetAllocateInfo allocate_info = {};
   VkDescriptorPool pool = active_pool_get();
@@ -100,10 +103,10 @@ std::unique_ptr<VKDescriptorSet> VKDescriptorPools::allocate(
     else {
       activate_next_pool();
     }
-    return allocate(descriptor_set_layout);
+    return allocate(descriptor_set_layout,set_location);
   }
 
-  return std::make_unique<VKDescriptorSet>(pool, vk_descriptor_set);
+  return std::make_unique<VKDescriptorSet>(pool, vk_descriptor_set,set_location);
 }
 
 void VKDescriptorPools::free(VKDescriptorSet &descriptor_set)

@@ -60,7 +60,7 @@ VKContext::VKContext(void *ghost_window, void *ghost_context)
   info.pAllocationCallbacks = vk_allocation_callbacks;
   vmaCreateAllocator(&info, &mem_allocator_);
 #endif
-  descriptor_pools_.init(vk_device_);
+  VKBackend::get().descriptor_pools_get().init(vk_device_);
 
   VKBackend::capabilities_init(*this);
 
@@ -91,7 +91,7 @@ VKContext::~VKContext()
     delete back_left;
     back_left = nullptr;
   }
-  VKBackend::desable_gpuctx(this, descriptor_pools_);
+  VKBackend::desable_gpuctx(this);
 }
 
 void VKContext::init_physical_device_limits()
@@ -105,14 +105,14 @@ void VKContext::init_physical_device_limits()
 void VKContext::activate()
 {
   if (ghost_window_) {
-    VkImage image; /* TODO will be used for reading later... */
+    VkImage vk_image; /* TODO will be used for reading later... */
     VkFramebuffer vk_framebuffer;
     VkRenderPass render_pass;
     VkExtent2D extent;
     uint32_t fb_id;
 
     GHOST_GetVulkanBackbuffer((GHOST_WindowHandle)ghost_window_,
-                              &image,
+                              &vk_image,
                               &vk_framebuffer,
                               &render_pass,
                               &extent,
@@ -120,18 +120,18 @@ void VKContext::activate()
                               0);
     active_fb = nullptr;
     delete back_left;
-    back_left = new VKFrameBuffer("swapchain-0", vk_framebuffer, render_pass, extent);
+    back_left = new VKFrameBuffer("swapchain-0", vk_image,vk_framebuffer, render_pass, extent);
     ((VKFrameBuffer *)back_left)->set_image_id(0);
 
     GHOST_GetVulkanBackbuffer((GHOST_WindowHandle)ghost_window_,
-                              &image,
+                              &vk_image,
                               &vk_framebuffer,
                               &render_pass,
                               &extent,
                               &fb_id,
                               1);
     delete front_left;
-    front_left = new VKFrameBuffer("swapchain-1", vk_framebuffer, render_pass, extent);
+    front_left = new VKFrameBuffer("swapchain-1",vk_image, vk_framebuffer, render_pass, extent);
     ((VKFrameBuffer *)front_left)->set_image_id(1);
 
     uint32_t current_im = fb_id & 1;
@@ -184,8 +184,7 @@ void VKContext::begin_frame()
     BLI_assert(gpu_ctx->validate_image());
   }
   // command_buffer_.begin_recording();
-
-  descriptor_pools_.reset();
+  VKBackend::get().descriptor_pools_get().reset();
 }
 
 void VKContext::end_frame()

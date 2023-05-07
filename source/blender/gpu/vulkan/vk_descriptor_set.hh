@@ -53,34 +53,37 @@ class VKDescriptorSet : NonCopyable {
     /**
      * References to a binding in the descriptor set.
      */
+    uint32_t set = 0;
     uint32_t binding;
-
-    Location(uint32_t binding) : binding(binding) {}
-
+    Location(uint32_t binding) : binding(binding) {};
+    Location(uint32_t set,uint32_t binding) : set(set),binding(binding) {};
    public:
-    Location() = default;
 
+    Location() = default;
     bool operator==(const Location &other) const
     {
-      return binding == other.binding;
+      return binding == other.binding && set == other.set;
     }
 
     operator uint32_t() const
     {
       return binding;
     }
-
+    uint32_t get_set() const
+    {
+      return set;
+    }
     friend class VKDescriptorSetTracker;
     friend class VKShaderInterface;
   };
 
   VkDescriptorPool vk_descriptor_pool_ = VK_NULL_HANDLE;
   VkDescriptorSet vk_descriptor_set_ = VK_NULL_HANDLE;
-
+  int                       set_location_ = 0; 
  public:
   VKDescriptorSet() = default;
-  VKDescriptorSet(VkDescriptorPool vk_descriptor_pool, VkDescriptorSet vk_descriptor_set)
-      : vk_descriptor_pool_(vk_descriptor_pool), vk_descriptor_set_(vk_descriptor_set)
+  VKDescriptorSet(VkDescriptorPool vk_descriptor_pool, VkDescriptorSet vk_descriptor_set,int set_location)
+      : vk_descriptor_pool_(vk_descriptor_pool), vk_descriptor_set_(vk_descriptor_set),set_location_(set_location)
   {
   }
   VKDescriptorSet(VKDescriptorSet &&other);
@@ -144,15 +147,26 @@ class VKDescriptorSetTracker : protected VKResourceTracker<VKDescriptorSet> {
  private:
   /** A list of bindings that needs to be updated. */
   Vector<Binding> bindings_;
-  VkDescriptorSetLayout layout_;
-  VkDescriptorSet last_bound_set_;
+  VkDescriptorSetLayout layout_[3];
+  VkDescriptorSet bound_set_[3];
+  bool last_bound_set_;
  public:
   VKDescriptorSetTracker() {
-     last_bound_set_ = VK_NULL_HANDLE;
-  }
-
-  VKDescriptorSetTracker(VkDescriptorSetLayout layout) : layout_(layout) {
-     last_bound_set_ = VK_NULL_HANDLE;
+     last_bound_set_ = false;
+     for(int i=0;i<3;i++)
+      {
+        layout_[i] = VK_NULL_HANDLE;
+        bound_set_[i] = VK_NULL_HANDLE;
+      }
+   };
+  VKDescriptorSetTracker(VkDescriptorSetLayout layout[3])  {
+    last_bound_set_ = false;
+    for(int i=0;i<3;i++)
+    {
+      layout_[i] = layout[i];
+      bound_set_[i] = VK_NULL_HANDLE;
+    }
+   
   }
 
   void bind_as_ssbo(VKVertexBuffer &buffer, VKDescriptorSet::Location location);
@@ -164,7 +178,7 @@ class VKDescriptorSetTracker : protected VKResourceTracker<VKDescriptorSet> {
                     VKDescriptorSet::Location location,
                     const GPUSamplerState &sampler_type);
 
-  void bindcmd(VKCommandBuffer &command_buffer, VkPipelineLayout pipeline_layout);
+  void bindcmd(VKCommandBuffer &command_buffer, VkPipelineLayout pipeline_layout,VkPipelineBindPoint bind_point =VK_PIPELINE_BIND_POINT_GRAPHICS );
   /**
    * Update the descriptor set on the device.
    */
@@ -177,7 +191,7 @@ class VKDescriptorSetTracker : protected VKResourceTracker<VKDescriptorSet> {
 
  protected:
   std::unique_ptr<VKDescriptorSet> create_resource(VKContext &context) override;
-
+  std::unique_ptr<VKDescriptorSet> create_resource(VKContext &context,int i) override;
  private:
   Binding &ensure_location(VKDescriptorSet::Location location);
 };

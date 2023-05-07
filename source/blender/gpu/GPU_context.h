@@ -87,6 +87,8 @@ void GPU_render_end(void);
  */
 void GPU_render_step(void);
 
+void GPU_context_active_shader_set(GPUShader *);
+
 #ifdef __cplusplus
 }
 #endif

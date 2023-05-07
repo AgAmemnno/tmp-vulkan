@@ -364,7 +364,7 @@ void VKPipelineStateManager::color_blend_from_framebuffer(VKFrameBuffer* framebu
 {
   color_blend_attachments.clear();
   auto subpass = framebuffer->subpass_info.subpass;
-  auto is_blende_false = [&](eGPUTextureFormat format){
+  auto is_blend_false = [&](eGPUTextureFormat format){
     bool append = false;
     switch (format) {
         case GPU_R16UI:
@@ -386,13 +386,18 @@ void VKPipelineStateManager::color_blend_from_framebuffer(VKFrameBuffer* framebu
 
   for (int i = 0;i < subpass.colorAttachmentCount;i++) {
     int aidx = framebuffer->subpass_info.attachment_idx[subpass.pColorAttachments[i].attachment];
-    const GPUAttachment &attachment =  framebuffer->attachment_get(aidx);
-    BLI_assert(attachment.tex);
-    VKTexture* texture =  reinterpret_cast<VKTexture*>(attachment.tex);
-    if(is_blende_false(texture->format_get())){
-      continue;
-    };
-    color_blend_attachments.append(color_blend_attachment);
+    if(aidx == 1000)
+    {
+      color_blend_attachments.append(color_blend_attachment);
+    }else{
+      const GPUAttachment &attachment =  framebuffer->attachment_get(aidx);
+      BLI_assert(attachment.tex);
+      VKTexture* texture =  reinterpret_cast<VKTexture*>(attachment.tex);
+      if(is_blend_false(texture->format_get())){
+        continue;
+      };
+      color_blend_attachments.append(color_blend_attachment);
+    }
   }
   pipeline_color_blend_state.attachmentCount = color_blend_attachments.size();
   pipeline_color_blend_state.pAttachments = color_blend_attachments.data();

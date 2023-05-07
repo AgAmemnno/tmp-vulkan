@@ -15,6 +15,7 @@
 
 #include "vk_common.hh"
 #include "vk_debug.hh"
+#include "vk_descriptor_pools.hh"
 
 #include "shaderc/shaderc.hpp"
 
@@ -32,7 +33,7 @@ class VKBackend : public GPUBackend {
   static VmaAllocator mem_allocator_;
   static int context_ref_count_;
   static VkDevice mem_device_;
-
+  static VKDescriptorPools descriptor_pools_;
  public:
   VKBackend();
 
@@ -73,6 +74,11 @@ class VKBackend : public GPUBackend {
   void debug_capture_end(VkInstance vk_instance);
   void debug_capture_title(const char* title);
 
+  VKDescriptorPools &descriptor_pools_get()
+  {
+    return descriptor_pools_;
+  }
+
   shaderc::Compiler &get_shaderc_compiler();
 
   VmaAllocator &mem_allocator_get()
@@ -80,7 +86,7 @@ class VKBackend : public GPUBackend {
     return mem_allocator_;
   };
 
-  VkDevice &mem_device_get()
+  static VkDevice &mem_device_get()
   {
     return mem_device_;
   };
@@ -96,7 +102,8 @@ class VKBackend : public GPUBackend {
   {
     return gpuctx_;
   }
-  template<typename T> static void desable_gpuctx(VKContext *context, T &descriptor_pools_);
+
+  static void desable_gpuctx(VKContext *context);
 
  private:
   static void init_platform();

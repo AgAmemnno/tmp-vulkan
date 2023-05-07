@@ -24,16 +24,18 @@ namespace blender::gpu {
 
 VKTexture::~VKTexture()
 {
-  VK_ALLOCATION_CALLBACKS
-
-  vmaDestroyImage(VKBackend::get().mem_allocator_get(), vk_image_, allocation_);
-  vkDestroyImageView(VKBackend::get().mem_device_get(), vk_image_view_, vk_allocation_callbacks);
-  if(vk_image_view_for_descriptor_ != VK_NULL_HANDLE)
+  if( !is_reference_)
   {
-    vkDestroyImageView(VKBackend::get().mem_device_get(), vk_image_view_for_descriptor_, vk_allocation_callbacks);
-    vk_image_view_for_descriptor_ = VK_NULL_HANDLE;
-   }
+    VK_ALLOCATION_CALLBACKS
 
+    vmaDestroyImage(VKBackend::get().mem_allocator_get(), vk_image_, allocation_);
+    vkDestroyImageView(VKBackend::get().mem_device_get(), vk_image_view_, vk_allocation_callbacks);
+    if(vk_image_view_for_descriptor_ != VK_NULL_HANDLE)
+    {
+      vkDestroyImageView(VKBackend::get().mem_device_get(), vk_image_view_for_descriptor_, vk_allocation_callbacks);
+      vk_image_view_for_descriptor_ = VK_NULL_HANDLE;
+     }
+  }
 }
 /* Samplers cache VulkanObjects directly, not information. */
 VkSampler VKTexture::samplers_cache_[GPU_SAMPLER_EXTEND_MODES_COUNT]
@@ -296,6 +298,15 @@ uint VKTexture::gl_bindcode_get() const
   return 0;
 }
 
+void VKTexture::init(VkImage vk_image, VkImageLayout layout)
+{
+  vk_image_ = vk_image;
+  current_layout_.resize(1);
+  for(auto& layout_:current_layout_){
+    layout_ = layout;
+  }
+  is_reference_ = true;
+}
 bool VKTexture::init_internal()
 {
   /* Initialization can only happen after the usage is known. By the current API this isn't
@@ -510,7 +521,7 @@ VkImageView VKTexture::vk_image_view_for_descriptor()
   return vk_image_view_;
 }
 
-void VKTexture::image_bind(int binding)
+void VKTexture::image_bind(int slot)
 {
   if (!is_allocated()) {
     allocate();
@@ -518,12 +529,11 @@ void VKTexture::image_bind(int binding)
   VKContext &context = *VKContext::get();
   VKShader *shader = static_cast<VKShader *>(context.shader);
   const VKShaderInterface &shader_interface = shader->interface_get();
-  const VKDescriptorSet::Location location = shader_interface.descriptor_set_location(binding);
-
+  const VKDescriptorSet::Location location = shader_interface.descriptor_set_location(shader::ShaderCreateInfo::Resource::BindType::IMAGE,slot);
   shader->pipeline_get().descriptor_set_get().image_bind(*this, location);
 }
 
-void VKTexture::texture_bind(int binding, const GPUSamplerState &sampler_type)
+void VKTexture::texture_bind(int slot, const GPUSamplerState &sampler_type)
 {
 
   if (!is_allocated()) {
@@ -532,7 +542,7 @@ void VKTexture::texture_bind(int binding, const GPUSamplerState &sampler_type)
   VKContext &context = *VKContext::get();
   VKShader *shader = static_cast<VKShader *>(context.shader);
   const VKShaderInterface &shader_interface = shader->interface_get();
-  const VKDescriptorSet::Location location = shader_interface.descriptor_set_location(binding);
+  const VKDescriptorSet::Location location = shader_interface.descriptor_set_location(shader::ShaderCreateInfo::Resource::BindType::SAMPLER,slot);
 
   current_mip_ = -1;
   VKCommandBuffer &command_buffer = context.command_buffer_get();

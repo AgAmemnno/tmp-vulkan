@@ -26,10 +26,10 @@ class VKShader : public Shader {
   VkShaderModule fragment_module_ = VK_NULL_HANDLE;
   VkShaderModule compute_module_ = VK_NULL_HANDLE;
   bool compilation_failed_ = false;
-  VkDescriptorSetLayout layout_ = VK_NULL_HANDLE;
+  VkDescriptorSetLayout layout_[3] = {VK_NULL_HANDLE};
   VkPipelineLayout pipeline_layout_ = VK_NULL_HANDLE;
   VKPipeline pipeline_;
-
+  VkDescriptorSetLayout empty_layout_;
  public:
   VKShader(const char *name);
   virtual ~VKShader();

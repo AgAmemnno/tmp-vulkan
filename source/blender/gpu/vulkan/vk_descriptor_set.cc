@@ -18,7 +18,7 @@
 namespace blender::gpu {
 
 VKDescriptorSet::VKDescriptorSet(VKDescriptorSet &&other)
-    : vk_descriptor_pool_(other.vk_descriptor_pool_), vk_descriptor_set_(other.vk_descriptor_set_)
+    : vk_descriptor_pool_(other.vk_descriptor_pool_), vk_descriptor_set_(other.vk_descriptor_set_),set_location_(other.set_location_)
 {
   other.mark_freed();
 
@@ -28,14 +28,14 @@ VKDescriptorSet::~VKDescriptorSet()
 {
   if (vk_descriptor_set_ != VK_NULL_HANDLE) {
     /* Handle should be given back to the pool. */
-    VKContext &context = *VKContext::get();
-    context.descriptor_pools_get().free(*this);
+    VKBackend::get().descriptor_pools_get().free(*this);
     BLI_assert(vk_descriptor_set_ == VK_NULL_HANDLE);
   }
 }
 
 void VKDescriptorSet::mark_freed()
 {
+  set_location_ = 0;
   vk_descriptor_set_ = VK_NULL_HANDLE;
   vk_descriptor_pool_ = VK_NULL_HANDLE;
 }
@@ -65,7 +65,7 @@ void VKDescriptorSetTracker::bind(VKUniformBuffer &buffer,
   binding.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
   binding.vk_buffer = buffer.vk_handle();
   binding.buffer_size = buffer.size_in_bytes();
-  printf("UNIFORM BUFFER Write OUT  VkBuffer (%llx)  binding (%d)  SHADER  %s \n", binding.vk_buffer, location ,shader->name_get());
+  printf("UNIFORM BUFFER Write OUT  VkBuffer (%llx)  binding (%d)  SHADER  %s \n", (uintptr_t)binding.vk_buffer, (int)location ,shader->name_get());
   if(std::string(shader->name_get()) =="workbench_opaque_mesh_tex_none_no_clip"){
     printf("");
   }
@@ -91,7 +91,7 @@ void VKDescriptorSetTracker::texture_bind(VKTexture &texture,
   if(location == VKDescriptorSet::Location(4)){
     printf("");
   }
-  printf("IMAGE SAMPLER Write OUT  view (%llx)  binding (%d)  SHADER  %s \n",binding.vk_image_view, location ,shader->name_get());
+  printf("IMAGE SAMPLER Write OUT  view (%llx)  binding (%d)  SHADER  %s \n",(uintptr_t)binding.vk_image_view, (int)location ,shader->name_get());
 }
 
 void VKDescriptorSetTracker::image_bind(VKTexture &texture,
@@ -119,16 +119,21 @@ VKDescriptorSetTracker::Binding &VKDescriptorSetTracker::ensure_location(
 }
 
 void VKDescriptorSetTracker::bindcmd(VKCommandBuffer &command_buffer,
-                                     VkPipelineLayout vk_pipeline_layout)
+                                     VkPipelineLayout vk_pipeline_layout,VkPipelineBindPoint bind_point)
 {
-  std::unique_ptr<VKDescriptorSet> &descriptor_set = active_descriptor_set();
-  command_buffer.bind(*descriptor_set.get(), vk_pipeline_layout, VK_PIPELINE_BIND_POINT_GRAPHICS);
-  last_bound_set_ = descriptor_set.get()->vk_handle();
+  for(int i=0;i<3;i++)
+  {
+    if(bound_set_[i] != VK_NULL_HANDLE)
+    {
+      command_buffer.bind(bound_set_[i], i,vk_pipeline_layout, bind_point);
+      last_bound_set_ = true;
+    }
+  }
 }
 
 bool VKDescriptorSetTracker::update(VKContext &context)
 {
-  
+
   bool bindings_exist = bindings_.size() > 0;
   if(!bindings_exist){
     if( last_bound_set_){
@@ -136,10 +141,14 @@ bool VKDescriptorSetTracker::update(VKContext &context)
     }
     return false;
   }
-  tracked_resource_for(context, !bindings_.is_empty());
-  std::unique_ptr<VKDescriptorSet> &descriptor_set = active_descriptor_set();
-  VkDescriptorSet vk_descriptor_set = descriptor_set->vk_handle();
 
+  VkDescriptorSet vk_descriptor_set[3];
+  for(int i=0;i<3;i++)
+  {
+    if(layout_[i]!= VK_NULL_HANDLE){
+     vk_descriptor_set[i] =  tracked_resource_for(context, !bindings_.is_empty(),i)->vk_handle();
+    }
+  }
   Vector<VkDescriptorBufferInfo> buffer_infos;
   Vector<VkWriteDescriptorSet> descriptor_writes;
 
@@ -151,15 +160,18 @@ bool VKDescriptorSetTracker::update(VKContext &context)
     buffer_info.buffer = binding.vk_buffer;
     buffer_info.range = binding.buffer_size;
     buffer_infos.append(buffer_info);
+    uint32_t set_location = binding.location.get_set();
 
     VkWriteDescriptorSet write_descriptor = {};
     write_descriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write_descriptor.dstSet = vk_descriptor_set;
+    write_descriptor.dstSet = vk_descriptor_set[set_location];
     write_descriptor.dstBinding = binding.location;
     write_descriptor.descriptorCount = 1;
     write_descriptor.descriptorType = binding.type;
     write_descriptor.pBufferInfo = &buffer_infos.last();
     descriptor_writes.append(write_descriptor);
+    bound_set_[set_location] = write_descriptor.dstSet;
+
   }
 
   Vector<VkDescriptorImageInfo> image_infos;
@@ -169,7 +181,7 @@ bool VKDescriptorSetTracker::update(VKContext &context)
     }
 
     bool tex_t = binding.is_texture();
-
+    uint32_t set_location = binding.location.get_set();
     VkDescriptorImageInfo image_info = {};
     image_info.imageView = binding.vk_image_view;
     image_info.sampler = binding.vk_sampler;
@@ -179,12 +191,13 @@ bool VKDescriptorSetTracker::update(VKContext &context)
 
     VkWriteDescriptorSet write_descriptor = {};
     write_descriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write_descriptor.dstSet = vk_descriptor_set;
+    write_descriptor.dstSet = vk_descriptor_set[set_location];
     write_descriptor.dstBinding = binding.location;
     write_descriptor.descriptorCount = 1;
     write_descriptor.descriptorType = binding.type;
     write_descriptor.pImageInfo = &image_infos.last();
     descriptor_writes.append(write_descriptor);
+    bound_set_[set_location] = write_descriptor.dstSet;
   }
 
   BLI_assert_msg(image_infos.size() + buffer_infos.size() == descriptor_writes.size(),
@@ -194,14 +207,18 @@ bool VKDescriptorSetTracker::update(VKContext &context)
   VkDevice vk_device = context.device_get();
   vkUpdateDescriptorSets(
       vk_device, descriptor_writes.size(), descriptor_writes.data(), 0, nullptr);
- 
+
   bindings_.clear();
    return true;
 }
 
-std::unique_ptr<VKDescriptorSet> VKDescriptorSetTracker::create_resource(VKContext &context)
+std::unique_ptr<VKDescriptorSet> VKDescriptorSetTracker::create_resource(VKContext &/*context*/,int i)
 {
-  return context.descriptor_pools_get().allocate(layout_);
+  return VKBackend::get().descriptor_pools_get().allocate(layout_[i], i);
 }
 
+std::unique_ptr<VKDescriptorSet> VKDescriptorSetTracker::create_resource(VKContext &/*context*/)
+{
+  return VKBackend::get().descriptor_pools_get().allocate(layout_[0], 0);
+}
 }  // namespace blender::gpu

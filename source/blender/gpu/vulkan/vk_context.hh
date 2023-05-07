@@ -69,7 +69,7 @@ class VKContext : public Context {
 
   /** Allocator used for texture and buffers and other resources. */
   // VmaAllocator mem_allocator_ = VK_NULL_HANDLE;
-  VKDescriptorPools descriptor_pools_;
+  //VKDescriptorPools descriptor_pools_;
 
   /** Limits of the device linked to this context. */
   VkPhysicalDeviceLimits vk_physical_device_limits_;
@@ -170,11 +170,6 @@ class VKContext : public Context {
   const uint32_t *queue_family_ptr_get() const
   {
     return &vk_queue_family_;
-  }
-
-  VKDescriptorPools &descriptor_pools_get()
-  {
-    return descriptor_pools_;
   }
 
   debug::VKDebuggingTools &debugging_tools_get()

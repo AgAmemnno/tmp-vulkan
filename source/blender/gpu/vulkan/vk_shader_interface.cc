@@ -23,7 +23,6 @@ void VKShaderInterface::init(const shader::ShaderCreateInfo &info)
 
   using namespace blender::gpu::shader;
   uint ubo_push_len_ = 0;
-  uint uniform_image_len_ = 0;
   uint push_len_ = info.push_constants_.size();
   attr_len_ = info.vertex_inputs_.size();
   uniform_len_ = push_len_;
@@ -32,7 +31,7 @@ void VKShaderInterface::init(const shader::ShaderCreateInfo &info)
   image_offset_ = -1;
 
   Vector<const ShaderCreateInfo::Resource *> all_resources;
-  Vector<const ShaderCreateInfo::Resource *> set_resources;
+
 
   for (int i = 0; i < info.pass_resources_.size(); i++) {
     all_resources.append(&info.pass_resources_[i]);
@@ -46,12 +45,10 @@ void VKShaderInterface::init(const shader::ShaderCreateInfo &info)
     switch (res->bind_type) {
       case ShaderCreateInfo::Resource::BindType::IMAGE:
         uniform_len_++;
-        uniform_image_len_++;
         break;
       case ShaderCreateInfo::Resource::BindType::SAMPLER:
         image_offset_ = max_ii(image_offset_, res->slot);
         uniform_len_++;
-        uniform_image_len_++;
         break;
       case ShaderCreateInfo::Resource::BindType::UNIFORM_BUFFER:
         ubo_len_++;
@@ -97,45 +94,41 @@ void VKShaderInterface::init(const shader::ShaderCreateInfo &info)
 
     input++;
   }
-
-  /* Uniform blocks */
+  /* Ubos */
   for (const ShaderCreateInfo::Resource *res : all_resources) {
-    if (res->bind_type == ShaderCreateInfo::Resource::BindType::UNIFORM_BUFFER) {
-      copy_input_name(input, res->image.name, name_buffer_, name_buffer_offset);
-      input->location = input->binding = res->slot;
-      input++;
-      set_resources.append(res);
-    }
+    input->binding = res->slot;
+    switch (res->bind_type) {
+        case ShaderCreateInfo::Resource::BindType::UNIFORM_BUFFER:
+          copy_input_name(input, res->image.name, name_buffer_, name_buffer_offset);
+          input->location = buffer_set_;
+          break;
+        default:
+          continue;
+      }
+    descriptor_set_locations_[input->location][input->binding] = res;
+    input++;
   }
-
-  /* Add push constant when using uniform buffer as fallback. */
-  /* I don't think we need to allocate input either for fallback.*/
-  int32_t push_constants_fallback_location = -1;
-  if (push_constants_storage_type == VKPushConstants::StorageType::UNIFORM_BUFFER) {
-    ubo_push_len_ = 1;
-    /*copy_input_name(input, PUSH_CONSTANTS_FALLBACK_NAME, name_buffer_, name_buffer_offset);
-    input->location = input->binding = -1;
-    input += push_len_;
-    */
-  }
-
-  /* Images, Samplers and buffers. */
+  /* Images and Samplers */
   for (const ShaderCreateInfo::Resource *res : all_resources) {
-    if (res->bind_type == ShaderCreateInfo::Resource::BindType::SAMPLER) {
-      copy_input_name(input, res->sampler.name, name_buffer_, name_buffer_offset);
-      input->location = input->binding = res->slot;
-      input++;
-      set_resources.append(res);
-    }
-    else if (res->bind_type == ShaderCreateInfo::Resource::BindType::IMAGE) {
-      copy_input_name(input, res->image.name, name_buffer_, name_buffer_offset);
-      input->location = input->binding = res->slot + image_offset_;
-      input++;
-      set_resources.append(res);
-    }
+    input->binding = res->slot;
+    switch (res->bind_type) {
+        case ShaderCreateInfo::Resource::BindType::IMAGE:
+          copy_input_name(input, res->image.name, name_buffer_, name_buffer_offset);
+          input->location = image_set_;
+          break;
+        case ShaderCreateInfo::Resource::BindType::SAMPLER:
+          copy_input_name(input, res->sampler.name, name_buffer_, name_buffer_offset);
+          input->location =  image_set_;
+          break;
+        default:
+          continue;
+      }
+    descriptor_set_locations_[input->location][input->binding] = res;
+    input++;
   }
 
   /* Push constants. */
+  ubo_push_len_ = (int)(push_constants_storage_type == VKPushConstants::StorageType::UNIFORM_BUFFER);
   int32_t push_constant_location = 1024;
   for (const ShaderCreateInfo::PushConst &push_constant : info.push_constants_) {
     copy_input_name(input, push_constant.name, name_buffer_, name_buffer_offset);
@@ -143,38 +136,26 @@ void VKShaderInterface::init(const shader::ShaderCreateInfo &info)
     input->binding = -1;
     input++;
   }
-
-  /* Storage buffers */
+  /* SSBOs */
   for (const ShaderCreateInfo::Resource *res : all_resources) {
-    if (res->bind_type == ShaderCreateInfo::Resource::BindType::STORAGE_BUFFER) {
-      copy_input_name(input, res->storagebuf.name, name_buffer_, name_buffer_offset);
-      input->location = input->binding = res->slot;
-      input++;
-      set_resources.append(res);
+  input->binding = res->slot;
+  switch (res->bind_type) {
+      case ShaderCreateInfo::Resource::BindType::STORAGE_BUFFER:
+        copy_input_name(input, res->storagebuf.name, name_buffer_, name_buffer_offset);
+        input->location = buffer_set_;
+        break;
+      default:
+        continue;
     }
-  }
-
-
-  /* Determine the descriptor set locations after the inputs have been sorted. */
-  /* Fallback ubos must be counted when generating descriptor sets. #ubo_push_len_ */
-  auto descruptor_set_len_ = ubo_len_ + ssbo_len_ + ubo_push_len_ + uniform_image_len_;
-  descriptor_set_locations_ = Array<desc_array_t>(descruptor_set_len_);
-  uint32_t descriptor_set_location = 0;
-  for (const ShaderCreateInfo::Resource *res : set_resources) {
-    ShaderInput *input = const_cast<ShaderInput *>(shader_input_get(*res));
-    input->binding = input->location = descriptor_set_location;
-    descriptor_set_location_update(res, descriptor_set_location++);
-  }
-
-
+  descriptor_set_locations_[input->location][input->binding] = res;
+  input++;
+}
   sort_inputs();
-
-
-    /* Builtin Uniforms */
+   /* Builtin Uniforms */
   for (int32_t u_int = 0; u_int < GPU_NUM_UNIFORMS; u_int++) {
     GPUUniformBuiltin u = static_cast<GPUUniformBuiltin>(u_int);
     const ShaderInput *uni = this->uniform_get(builtin_uniform_name(u));
-    builtins_[u] = (uni != nullptr) ? uni->location : -1;
+    builtins_[u] = (uni != nullptr) ? ( ( uni->binding == -1 ) ? uni->location : uni->binding ) : -1;
   }
 
   /* Builtin Uniforms Blocks */
@@ -186,16 +167,11 @@ void VKShaderInterface::init(const shader::ShaderCreateInfo &info)
 
   /* Post initializing push constants. */
   /* Determine the binding location of push constants fallback buffer. */
-  int32_t push_constant_descriptor_set_location = -1;
+  
   if (push_constants_storage_type == VKPushConstants::StorageType::UNIFORM_BUFFER) {
-    push_constant_descriptor_set_location = descriptor_set_location++;
-    /* For fallback UBO, #VKPushconstants manages its descriptor number. */
-    // const ShaderInput *push_constant_input = ubo_get(PUSH_CONSTANTS_FALLBACK_NAME);
-    // descriptor_set_location_update(push_constant_input, push_constants_fallback_location);
-    descriptor_set_locations_[push_constant_descriptor_set_location] = nullptr;
+    descriptor_set_locations_[push_constant_buffer_set_][0]  = nullptr;
   }
-  push_constants_layout_.init(
-      info, *this, push_constants_storage_type, push_constant_descriptor_set_location);
+  push_constants_layout_.init(info, *this, push_constants_storage_type, VKDescriptorSet::Location( (ubo_push_len_==0)?-1:push_constant_buffer_set_,0));
 }
 
 static int32_t shader_input_index(const ShaderInput *shader_inputs,
@@ -206,53 +182,59 @@ static int32_t shader_input_index(const ShaderInput *shader_inputs,
 }
 
 void VKShaderInterface::descriptor_set_location_update(
-    const shader::ShaderCreateInfo::Resource *resource, const VKDescriptorSet::Location location)
+    const shader::ShaderCreateInfo::Resource */*resource*/, const VKDescriptorSet::Location /*location*/)
 {
-  /** we have to decide the binding number of the descriptor set.
-   * And that number is then rendered into the shader.
-   * Here, I think it would be better to have the same value as the index of the array.
-   * And since ShaderCreateInfo is `const` from now on, it creates a pseudo-map by referencing the
-   * resource pointer. */
-
-  // int32_t index = shader_input_index(inputs_, shader_input);
-  descriptor_set_locations_[location] = resource;
+   BLI_assert(false);
 }
 
 /* This is a redundant function. */
 const VKDescriptorSet::Location VKShaderInterface::descriptor_set_location(int slot) const
 {
-  if (descriptor_set_locations_.size() > slot) {
-    if (descriptor_set_locations_[slot]) {
-      return slot;
-    }
-  }
-  return -1;
+  BLI_assert(false);
+  return slot;
 }
 
 const VKDescriptorSet::Location VKShaderInterface::descriptor_set_location(
     const shader::ShaderCreateInfo::Resource *resource) const
-{
-  for (int i = 0; i < descriptor_set_locations_.size(); i++) {
-    if (descriptor_set_locations_[i] == resource) {
-      return i;
-    };
+{ 
+  for (int i =0;i<3;i++)
+  {
+    const auto set = descriptor_set_locations_[i];
+    for (int binding =0;binding<16;binding++) {
+    {
+      const auto res = set[binding];
+      if (res == resource) {
+        return VKDescriptorSet::Location(i,binding);
+      };
+    }
+  }
   }
   /*not found*/
   BLI_assert(false);
   return 0;
 }
-
 /** Now only set number 0 is used. So the binding number is a unique integer. This function was not
  *used. For example, this function makes sense if we associate a bind type with a set number.
  **/
 const VKDescriptorSet::Location VKShaderInterface::descriptor_set_location(
-    const shader::ShaderCreateInfo::Resource::BindType &bind_type, int binding) const
+    const shader::ShaderCreateInfo::Resource::BindType &bind_type, int slot) const
 {
-  BLI_assert(false);
-  const ShaderInput *shader_input = shader_input_get(bind_type, binding);
-  BLI_assert(shader_input);
-  // return descriptor_set_location(shader_input);
-  return 0;
+  switch (bind_type) {
+      case shader::ShaderCreateInfo::Resource::BindType::IMAGE:
+      case shader::ShaderCreateInfo::Resource::BindType::SAMPLER:
+          return VKDescriptorSet::Location(image_set_,slot);
+        break;
+      case shader::ShaderCreateInfo::Resource::BindType::UNIFORM_BUFFER:
+      case shader::ShaderCreateInfo::Resource::BindType::STORAGE_BUFFER:
+          return VKDescriptorSet::Location(buffer_set_,slot);
+        break;
+      default:
+        BLI_assert_unreachable();
+        break;
+    }
+
+  BLI_assert_unreachable();
+  return VKDescriptorSet::Location(-1,-1);
 }
 
 const ShaderInput *VKShaderInterface::shader_input_get(
@@ -264,6 +246,7 @@ const ShaderInput *VKShaderInterface::shader_input_get(
 const ShaderInput *VKShaderInterface::shader_input_get(
     const shader::ShaderCreateInfo::Resource::BindType &bind_type, int binding) const
 {
+
   switch (bind_type) {
     case shader::ShaderCreateInfo::Resource::BindType::IMAGE:
       return texture_get(binding + image_offset_);

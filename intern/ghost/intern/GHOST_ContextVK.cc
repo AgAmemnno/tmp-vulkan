@@ -335,6 +335,14 @@ class SingletonDevice {
     }
   }
 
+  void getEnabledMaintenance(std::vector<const char *> &m_extensions_device){
+    if (device_extensions_support(vk_physical_device_,{VK_KHR_MAINTENANCE1_EXTENSION_NAME}))
+    {
+      enable_shader_ext = (EnabledShaderExtension)((uint8_t)enable_shader_ext | (uint8_t)EnabledShaderExtension::ENABLED_FLIPVIEWPORT);
+      m_extensions_device.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
+    }
+  }
+
   GHOST_TSuccess create(bool m_use_window_surface,
                         VkSurfaceKHR m_surface,
                         std::vector<const char *> &m_layers_enabled,
@@ -359,7 +367,7 @@ class SingletonDevice {
 #endif
 
     getEnabledDrawparameters(m_extensions_device);
-
+    getEnabledMaintenance(m_extensions_device);
 
     vector<VkDeviceQueueCreateInfo> queue_create_infos;
     {
@@ -448,6 +456,7 @@ class SingletonDevice {
   enum class EnabledShaderExtension : uint8_t {
     NOT_ENABLED = 0,
     ENABLED_DRAW_PARAMETERS  = 0b1,
+    ENABLED_FLIPVIEWPORT  = 0b10,
   };
   EnabledShaderExtension enable_shader_ext = EnabledShaderExtension::NOT_ENABLED;
   
@@ -1252,7 +1261,7 @@ GHOST_TSuccess GHOST_ContextVK::createSwapchain()
   create_info.imageColorSpace = format.colorSpace;
   create_info.imageExtent = m_render_extent;
   create_info.imageArrayLayers = 1;
-  create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+  create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
   create_info.preTransform = capabilities.currentTransform;
   create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
   create_info.presentMode = present_mode;

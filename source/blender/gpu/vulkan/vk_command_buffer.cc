@@ -126,10 +126,10 @@ bool VKCommandBuffer::image_transition_from_framebuffer(const VKFrameBuffer& fra
 
 template<typename T>
 bool VKCommandBuffer::image_transition(
-    T *sfim, VkTransitionState eTrans, bool recorded, VkImageLayout dst_layout, int mip_level)
+    T *sfim, VkTransitionState eTrans, bool /*recorded*/, VkImageLayout dst_layout, int /*mip_level*/)
 {
 
-  bool trans = false;
+
   VkImageLayout src_layout = sfim->current_layout_get();
   VkTransitionStateRaw eTransRaw = VkTransitionStateRaw::VK_TRANSITION_STATE_RAW_ALL;
   switch (eTrans) {
@@ -193,58 +193,62 @@ bool VKCommandBuffer::image_transition(
 
   BLI_assert(eTransRaw != VkTransitionStateRaw::VK_TRANSITION_STATE_RAW_ALL);
 
+  if(src_layout == dst_layout)
+  {
+    return false;
+  }
   imm_begin();
 
   switch (eTransRaw) {
 
     case VkTransitionStateRaw::VK_UNDEF2PRESE:
-      trans = layout_state_.init_image_layout(
+      layout_state_.transition(
           vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, src_layout);
       break;
     case VkTransitionStateRaw::VK_UNDEF2GENER:
-      trans = layout_state_.init_image_layout(vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_GENERAL, src_layout);
+      layout_state_.transition(vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_GENERAL, src_layout);
       break;
     case VkTransitionStateRaw::VK_UNDEF2COLOR:
-      trans = layout_state_.init_image_layout(
+      layout_state_.transition(
           vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, src_layout);
       break;
     case VkTransitionStateRaw::VK_UNDEF2DEPTH:
-      trans = layout_state_.init_image_layout(
+      layout_state_.transition(
           vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, src_layout);
       break;
     case VkTransitionStateRaw::VK_ANY2SHADER_READ:
-      trans = layout_state_.shader(
+      layout_state_.transition(
           vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, src_layout);
       break;
     case VkTransitionStateRaw::VK_ANY2TRANS_DST:
-      trans = layout_state_.transfer(
+      layout_state_.transition(
           vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, src_layout);
       break;
     case VkTransitionStateRaw::VK_ANY2TRANS_SRC:
-      trans = layout_state_.transfer(
+      layout_state_.transition(
           vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, src_layout);
       break;
     case VkTransitionStateRaw::VK_SHADER2COLOR:
-      trans = layout_state_.pre_reder_image_layout(
-          vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+      layout_state_.transition(
+          vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,src_layout);
       break;
     case VkTransitionStateRaw::VK_SHADER2DEPTH:
-      trans = layout_state_.pre_reder_image_layout(
-          vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+      layout_state_.transition(
+          vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,src_layout);
       break;
     case VkTransitionStateRaw::VK_PRESE2COLOR:
-      trans = layout_state_.pre_reder_image_layout(
-          vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+      layout_state_.transition(
+          vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,src_layout);
       break;
     case VkTransitionStateRaw::VK_PRESE2GENER:
-      trans = layout_state_.pre_reder_image_layout(vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_GENERAL);
+      layout_state_.transition(vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_GENERAL,src_layout);
       break;
     case VkTransitionStateRaw::VK_GENER2COLOR:
-      trans = layout_state_.pre_reder_image_layout(
-          vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+      layout_state_.transition(
+          vk_transfer_command_, sfim, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,src_layout);
       break;
     case VkTransitionStateRaw::VK_COLOR2PRESE:
-      trans = layout_state_.pre_sent_image_layout(vk_transfer_command_, sfim);
+      layout_state_.transition(vk_transfer_command_, sfim,VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,src_layout);
       break;
     case VkTransitionStateRaw::VK_TRANSITION_STATE_RAW_ALL:
     default:
@@ -262,9 +266,9 @@ bool VKCommandBuffer::image_transition(
       to_string(src_layout),
       to_string(dst_layout));
 
-  imm_end(!trans );
+  imm_end();
 
-  return trans;
+  return true;
 };
 
 template bool VKCommandBuffer::image_transition(
@@ -405,6 +409,22 @@ bool VKCommandBuffer::begin_recording()
   return true;
 }
 
+void VKCommandBuffer::ensure_no_render_pass()
+{
+  if (begin_rp_) {
+    vkCmdEndRenderPass(vk_command_buffer_);
+    vkEndCommandBuffer(vk_command_buffer_);
+    in_rp_submit_ = true;
+    in_submit_ = true;
+    begin_rp_ = false;
+    in_toggle_ = false;
+    submit(true, false);
+  }else if(!in_toggle_)
+  {
+    begin_recording();
+  }
+}
+
 void VKCommandBuffer::end_recording(bool imm_submit)
 {
   if (in_toggle_) {
@@ -444,9 +464,16 @@ void VKCommandBuffer::bind(const VKDescriptorSet &descriptor_set,
 {
   VkDescriptorSet vk_descriptor_set = descriptor_set.vk_handle();
   vkCmdBindDescriptorSets(
-      vk_command_buffer_, bind_point, vk_pipeline_layout, 0, 1, &vk_descriptor_set, 0, 0);
+      vk_command_buffer_, bind_point, vk_pipeline_layout, descriptor_set.set_location_, 1, &vk_descriptor_set, 0, 0);
 }
-
+void VKCommandBuffer::bind(const VkDescriptorSet vk_descriptor_set,
+                           int set_location,
+                           const VkPipelineLayout vk_pipeline_layout,
+                           VkPipelineBindPoint bind_point)
+{
+  vkCmdBindDescriptorSets(
+      vk_command_buffer_, bind_point, vk_pipeline_layout, set_location, 1, &vk_descriptor_set, 0, 0);
+}
 void VKCommandBuffer::bind(const uint32_t binding,
                            const VKVertexBuffer &vertex_buffer,
                            const VkDeviceSize offset)
@@ -528,6 +555,22 @@ void VKCommandBuffer::copy_imm(VKTexture &dst_texture,
                          regions.data());
    imm_end();
 }
+
+void VKCommandBuffer::blit(VKTexture &dst_texture,
+                           VKTexture &src_buffer,
+                           Span<VkImageBlit> regions)
+{
+  
+  vkCmdBlitImage(vk_command_buffer_,
+                 src_buffer.vk_image_handle(),
+                 src_buffer.current_layout_get(),
+                 dst_texture.vk_image_handle(),
+                 dst_texture.current_layout_get(),
+                 regions.size(),
+                 regions.data(),
+                 VK_FILTER_NEAREST);
+}
+
 
 void VKCommandBuffer::copy(VKBuffer &dst_buffer, VKBuffer &src_buffer, Span<VkBufferCopy> regions)
 {
@@ -704,7 +747,7 @@ void VKCommandBuffer::submit_encoded_commands(bool fin)
       (uint64_t)wait,
       (uint64_t)finish);
   static int stats = 0;
-  printf("QueueSubmit %d   %llx \n",stats,vk_queue_);
+  printf("QueueSubmit %d   %llx \n",stats,(uintptr_t)vk_queue_);
   stats++;
   VkResult res = vkQueueSubmit(vk_queue_, 1, &submit_info, vk_fence_);
   if(res != VK_SUCCESS)

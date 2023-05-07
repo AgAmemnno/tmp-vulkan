@@ -43,9 +43,9 @@ class VKPipeline : NonCopyable {
   VKPipeline() = default;
 
   virtual ~VKPipeline();
-  VKPipeline(VkDescriptorSetLayout vk_descriptor_set_layout, VKPushConstants &&push_constants);
+  VKPipeline(VkDescriptorSetLayout vk_descriptor_set_layout[3], VKPushConstants &&push_constants);
   VKPipeline(VkPipeline vk_pipeline,
-             VkDescriptorSetLayout vk_descriptor_set_layout,
+             VkDescriptorSetLayout vk_descriptor_set_layout[3],
              VKPushConstants &&push_constants);
   VKPipeline &operator=(VKPipeline &&other)
   {
@@ -60,10 +60,10 @@ class VKPipeline : NonCopyable {
 
   static VKPipeline create_compute_pipeline(VKContext &context,
                                             VkShaderModule compute_module,
-                                            VkDescriptorSetLayout &descriptor_set_layout,
+                                            VkDescriptorSetLayout descriptor_set_layout[3],
                                             VkPipelineLayout &pipeline_layouts,
                                             const VKPushConstants::Layout &push_constants_layout);
-  static VKPipeline create_graphics_pipeline(VkDescriptorSetLayout &descriptor_set_layout,
+  static VKPipeline create_graphics_pipeline(VkDescriptorSetLayout descriptor_set_layout[3],
                                              const VKPushConstants::Layout &push_constants_layout);
 
   VKDescriptorSetTracker &descriptor_set_get()

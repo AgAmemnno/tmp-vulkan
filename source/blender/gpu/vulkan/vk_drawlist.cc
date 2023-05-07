@@ -177,9 +177,7 @@ void VKDrawList::submit()
 
   size_t command_size = VK_MDI_INDEXED ? sizeof(VkDrawIndexedIndirectCommand) : sizeof(VkDrawIndirectCommand);
 
-  auto context_ = VKContext::get();
   static int CNT = 0;
-  auto fb_ = static_cast<VKFrameBuffer *>(context_->active_fb);
   bool rebuild = false;
   if (CNT > 0) {
     rebuild = true;

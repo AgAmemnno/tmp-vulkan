@@ -31,9 +31,11 @@ class VKTexture : public Texture {
 
   Vector<VkImageLayout> current_layout_ = {VK_IMAGE_LAYOUT_UNDEFINED};
   int current_mip_ = 0;
-
+  bool is_reference_ = false;
  public:
-  VKTexture(const char *name) : Texture(name) {}
+  VKTexture(const char *name) : Texture(name) {
+    is_reference_ = false;
+  }
   virtual ~VKTexture() override;
 
   static void samplers_init(VKContext *context);
@@ -54,7 +56,7 @@ class VKTexture : public Texture {
                   int extent[3],
                   eGPUDataFormat format,
                   GPUPixelBuffer *pixbuf) override;
-
+  void init(VkImage vk_image, VkImageLayout layout);
   /* TODO(fclem): Legacy. Should be removed at some point. */
   uint gl_bindcode_get() const override;
 
@@ -62,7 +64,7 @@ class VKTexture : public Texture {
   void texture_bind(int binding, const GPUSamplerState &sampler_type);
   VkImage vk_image_handle() const
   {
-    BLI_assert(is_allocated());
+    BLI_assert(vk_image_!= VK_NULL_HANDLE);
     return vk_image_;
   }
   VkImageView vk_image_view_handle() 

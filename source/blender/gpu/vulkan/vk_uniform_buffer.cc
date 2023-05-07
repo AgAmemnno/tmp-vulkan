@@ -37,7 +37,7 @@ void VKUniformBuffer::bind(int slot)
   }
   VKShader *shader = static_cast<VKShader *>(context.shader);
   const VKShaderInterface &shader_interface = shader->interface_get();
-  const VKDescriptorSet::Location binding = shader_interface.descriptor_set_location(slot);
+  const VKDescriptorSet::Location binding = shader_interface.descriptor_set_location(shader::ShaderCreateInfo::Resource::BindType::UNIFORM_BUFFER,slot);
   shader->pipeline_get().descriptor_set_get().bind(*this, binding);
 }
 

@@ -17,6 +17,7 @@
 #  pragma warning(pop)
 #endif
 
+#include "GPU_context.h"
 #include "GPU_immediate.h"
 #include "GPU_shader.h"
 #include "GPU_uniform_buffer.h"
@@ -691,7 +692,7 @@ bool OCIOImpl::gpuDisplayShaderBind(OCIO_ConstConfigRcPtr *config,
   OCIO_GPUTextures &textures = display_shader.textures;
   OCIO_GPUShader &shader = display_shader.shader;
   OCIO_GPUCurveMappping &curvemap = display_shader.curvemap;
-
+  GPU_context_active_shader_set(display_shader.shader.shader);
   /* Update and bind curve mapping data. */
   if (curve_mapping_settings) {
     updateGPUCurveMapping(curvemap, curve_mapping_settings);

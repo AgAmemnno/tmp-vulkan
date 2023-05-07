@@ -28,39 +28,37 @@
 namespace blender::gpu {
 
 VKContext *VKBackend::gpuctx_ = nullptr;
+
+
 int VKBackend::context_ref_count_ = 0;
 VmaAllocator VKBackend::mem_allocator_ = VK_NULL_HANDLE;
 VkDevice VKBackend::mem_device_ = VK_NULL_HANDLE;
+VKDescriptorPools VKBackend::descriptor_pools_;
+
 VKBackend::VKBackend()
 {
   context_ref_count_ = 0;
   VKBackend::init_platform();
 }
-template<typename T> void VKBackend::desable_gpuctx(VKContext *context, T &descriptor_pools_)
+void VKBackend::desable_gpuctx(VKContext *context)
 {
   context_ref_count_--;
   if (context == gpuctx_) {
     gpuctx_ = nullptr;
   }
 
-  static Vector<VkDescriptorPool> pools;
-  for (auto &pool : descriptor_pools_.pools_get()) {
-    pools.append(pool);
-  }
   debug::destroy_callbacks(context, context->debugging_tools_get());
   if (context_ref_count_ == 0) {
     VK_ALLOCATION_CALLBACKS
-    for (auto &pool : pools) {
+    for (auto &pool : descriptor_pools_.pools_get()) {
       vkDestroyDescriptorPool(context->device_get(), pool, vk_allocation_callbacks);
     }
     VKTexture::samplers_free();
     vmaDestroyAllocator(mem_allocator_);
-   
-    pools.clear();
   }
 };
 
-template void VKBackend::desable_gpuctx(VKContext *, VKDescriptorPools &);
+
 
 void VKBackend::init_platform()
 {
@@ -103,12 +101,11 @@ void VKBackend::compute_dispatch(int groups_x_len, int groups_y_len, int groups_
   VKPipeline &pipeline = shader->pipeline_get();
   VKDescriptorSetTracker &descriptor_set = pipeline.descriptor_set_get();
   VKPushConstants &push_constants = pipeline.push_constants_get();
-
   push_constants.update(context);
-  descriptor_set.update(context);
-  command_buffer.bind(*descriptor_set.active_descriptor_set(),
-                      shader->vk_pipeline_layout_get(),
-                      VK_PIPELINE_BIND_POINT_COMPUTE);
+  if(descriptor_set.update(context))
+  {
+    descriptor_set.bindcmd(command_buffer, shader->vk_pipeline_layout_get(),VK_PIPELINE_BIND_POINT_COMPUTE);
+  };
   command_buffer.dispatch(groups_x_len, groups_y_len, groups_z_len);
 }
 

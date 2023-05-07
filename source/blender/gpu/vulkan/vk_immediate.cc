@@ -14,9 +14,9 @@
 #include "gpu_vertex_format_private.h"
 
 namespace blender::gpu {
-
+const int capture  =0;
 static void activate(VKContext& context,int CNT){
-   if(CNT > 100){
+   if(CNT > capture){
       GPU_debug_capture_begin();
       context.debug_capture_title( (std::string("IMM") + std::to_string(CNT)).c_str());
     }
@@ -81,7 +81,7 @@ void VKImmediate::end()
 
   context.command_buffer_get().draw(0, vertex_len, 0, 1);
   context.command_buffer_get().submit(true, false);
-  if(CNT > 100){
+  if(CNT > capture){
   GPU_debug_capture_end();
   }
   CNT++;

@@ -12,6 +12,7 @@
 namespace blender::gpu {
 
 class VKStateManager : public StateManager {
+  uint texture_unpack_row_length_ = 0;
  public:
   void apply_state() override;
   void force_state() override;
@@ -28,6 +29,12 @@ class VKStateManager : public StateManager {
 
   void texture_unpack_row_length_set(uint len) override;
 
+  /**
+   * Row length for unpacking host data when uploading texture data.
+   *
+   * When set to zero (0) host data can be assumed to be stored sequential.
+   */
+  uint texture_unpack_row_length_get() const;
 
 };
 }  // namespace blender::gpu

@@ -1013,4 +1013,5 @@ VkCullModeFlags to_vk_cull_mode_flags(const eGPUFaceCullTest cull_test)
   return VK_CULL_MODE_NONE;
 }
 
+
 }  // namespace blender::gpu

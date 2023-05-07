@@ -32,6 +32,7 @@ uint32_t Std430::element_alignment(const shader::Type type, const bool is_array)
     case shader::Type::VEC3:
     case shader::Type::UVEC3:
     case shader::Type::IVEC3:
+      return 12;
     case shader::Type::VEC4:
     case shader::Type::UVEC4:
     case shader::Type::IVEC4:
@@ -59,6 +60,7 @@ uint32_t Std430::element_components_len(const shader::Type type)
     case shader::Type::VEC3:
     case shader::Type::UVEC3:
     case shader::Type::IVEC3:
+      return 3;
     case shader::Type::VEC4:
     case shader::Type::UVEC4:
     case shader::Type::IVEC4:

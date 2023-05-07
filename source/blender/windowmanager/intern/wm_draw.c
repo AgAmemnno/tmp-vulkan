@@ -1403,7 +1403,7 @@ void wm_draw_update(bContext *C)
 
   /* Draw non-windows (surfaces) */
   wm_surfaces_iter(C, wm_draw_surface);
-
+  system("pause");
   GPU_render_end();
   GPU_context_main_unlock();
 }

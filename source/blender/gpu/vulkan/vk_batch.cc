@@ -43,25 +43,28 @@ void VKBatch::draw(int v_first, int v_count, int i_first, int i_count)
     flag &= ~GPU_BATCH_DIRTY;
   }
   static int CNT = 0;
+  const int capture = 180;
   CNT++;
-  if(CNT >0){
+  if(CNT >capture){
     GPU_debug_capture_begin();
     VKContext::get()->debug_capture_title( (std::string("BTC") + std::to_string(CNT)).c_str());
   }
   VKContext &context = *VKContext::get();
   activate(context,CNT);
-  if(CNT==222){
+  if(CNT==183){
     /*
     VKFrameBuffer *fb = context.active_framebuffer_get();
     const float val[4] = {0.f,0.f,0.f,1.f};
     fb->clear_multi(&val);
     GPU_blend(GPU_BLEND_NONE);
     GPU_front_facing(false);
-    GPU_face_culling(GPU_CULL_NONE);
     */
+    GPU_face_culling(GPU_CULL_BACK);
     printf("");
   }
- 
+  if(CNT ==218){
+    printf("");
+  }
 
   context.state_manager->apply_state();
   VKVertexAttributeObject &vao = vao_cache_.vao_get(this);
@@ -85,7 +88,7 @@ void VKBatch::draw(int v_first, int v_count, int i_first, int i_count)
   }
 
   context.command_buffer_get().submit(true, false);
-  if(CNT >0){
+  if(CNT >capture){
     GPU_debug_capture_end();
   }
   if (CNT >= 1000) {

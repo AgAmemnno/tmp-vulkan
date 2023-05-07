@@ -247,17 +247,22 @@ void *VKTexture::read(int mip, eGPUDataFormat format)
   return data;
 }
 
+
+
 void VKTexture::update_sub(
     int mip, int offset[3], int extent[3], eGPUDataFormat format, const void *data)
 {
   if (!is_allocated()) {
     allocate();
   }
+
+  uint  row_pitch = VKContext::get()->state_manager_get().texture_unpack_row_length_get();
   extent[2] = (extent[2] == 0) ? 1 : extent[2];
   /* Vulkan images cannot be directly mapped to host memory and requires a staging buffer. */
   VKContext &context = *VKContext::get();
   VKBuffer staging_buffer;
-  size_t sample_len = extent[0] * extent[1] * extent[2];
+  
+  size_t sample_len =  ( (row_pitch != 0 ) ? row_pitch :extent[0] ) * extent[1] * extent[2];
   size_t device_memory_size = sample_len * to_bytesize(format_);
 
   staging_buffer.create(context,
@@ -277,6 +282,7 @@ void VKTexture::update_sub(
   region.imageSubresource.aspectMask = to_vk_image_aspect_flag_bits(format_);
   region.imageSubresource.mipLevel = mip;
   region.imageSubresource.layerCount = 1;
+  region.bufferRowLength = row_pitch;
   current_mip_ = mip;
 
   layout_ensure(context, VkTransitionState::VK_ENSURE_COPY_DST);

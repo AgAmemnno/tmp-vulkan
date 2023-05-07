@@ -194,12 +194,14 @@ void VKPipeline::finalize(VKContext &context,
       vk_device, VK_NULL_HANDLE, 1, &pipeline_create_info, vk_allocation_callbacks, &vk_pipeline_);
   vk_pipelines.append(vk_pipeline_);
   debug::object_label(&context, vk_pipeline_, "BTCPipeline");
+  /*
   printf("Pipeline Create  VkResult %s renderpass %llx framebuffer(%f,%f)   pipeline %llx \n",
          to_vk_error_string(res),
          (uintptr_t)pipeline_create_info.renderPass,
          viewport.width,
          viewport.height,
          (uintptr_t)vk_pipeline_);
+  */
 }
 
 void VKPipeline::finalize(VKContext &context,
@@ -291,11 +293,13 @@ void VKPipeline::finalize(VKContext &context,
       vk_device, VK_NULL_HANDLE, 1, &pipeline_create_info, vk_allocation_callbacks, &vk_pipeline_);
   vk_pipelines.append(vk_pipeline_);
   debug::object_label(&context, vk_pipeline_, "BTCPipeline");
+  /*
   printf("Pipeline Create  renderpass %llx framebuffer(%f,%f)   pipeline %llx \n",
          (uintptr_t)pipeline_create_info.renderPass,
          viewport.width,
          viewport.height,
          (uintptr_t)vk_pipeline_);
+         */
 }
 
 }  // namespace blender::gpu

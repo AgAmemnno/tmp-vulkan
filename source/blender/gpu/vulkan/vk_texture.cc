@@ -408,9 +408,7 @@ bool VKTexture::allocate()
   static int n = 0;
   int extent[3] = {1, 1, 1};
   mip_size_get(0, extent);
-  if(n == 38){
-    printf("BP\n");
-  }
+
   VKContext &context = *VKContext::get();
   image_info = {};
   image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -520,7 +518,7 @@ VkImageView VKTexture::vk_image_view_for_descriptor()
       VKContext &context = *VKContext::get();
       vkCreateImageView(
           context.device_get(), &image_view_info, vk_allocation_callbacks, &vk_image_view_for_descriptor_);
-      printf("CREATE IMAGE VIEW  (%llx)  format %s  \n", (uintptr_t)vk_image_view_for_descriptor_, to_string( image_view_info.format));
+      //printf("CREATE IMAGE VIEW  (%llx)  format %s  \n", (uintptr_t)vk_image_view_for_descriptor_, to_string( image_view_info.format));
     }
     return vk_image_view_for_descriptor_;
   }

@@ -139,13 +139,6 @@ void VKContext::activate()
     if (current_im == 1) {
       std::swap(back_left, front_left);
     }
-
-    printf("FRAMEBUFER Reallocate  >>>>>>>>>>>>>>>>>>>> back %llx (%s) front %llx (%s) \n",
-           (uint64_t)back_left,
-           back_left->name_get(),
-           (uint64_t)front_left,
-           front_left->name_get());
-
     active_fb = back_left;
     back_left->bind(false);
   }
@@ -327,11 +320,13 @@ bool VKContext::validate_frame()
   if (!active_fb) {
     active_fb = back_left;
   }
+  /*
   printf("FRAMEBUFER Validate  >>>>>>>>>>>>>>>>>>>> back %llx (%s) front %llx (%s) \n",
          (uint64_t)back_left,
          back_left->name_get(),
          (uint64_t)front_left,
          front_left->name_get());
+  */
 
   BLI_assert(((VKFrameBuffer *)back_left)->get_image_id() == current_im);
 
@@ -472,7 +467,6 @@ void VKContext::bind_graphics_pipeline(const VKBatch &batch,
   shader->update_graphics_pipeline(*this, batch, vertex_attribute_object);
   command_buffer_get().bind(shader->pipeline_get(), VK_PIPELINE_BIND_POINT_GRAPHICS);
   shader->pipeline_get().push_constants_get().update(*this);
-  printf("BIND PIPELINE %llx  Shader %llx  %s\n",(uintptr_t)&shader->pipeline_get(),(uintptr_t)shader,shader->name_get());
   VKDescriptorSetTracker &descriptor_set = shader->pipeline_get().descriptor_set_get();
   if(descriptor_set.update(*this))
   {

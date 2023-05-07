@@ -149,6 +149,7 @@ VKFrameBuffer *fb = context.active_framebuffer_get();
 
   int viewport[4];
   fb->viewport_get(viewport);
+  /*
   printf(
       ">>>>>>>>>>>>>>>>>>>>>>VKDrawList <<<<<<<<<<<<< CNT[%d]  FrameBuffer %llx Shader %s Viewport (%d %d "
       "%d %d) \n",
@@ -159,6 +160,7 @@ VKFrameBuffer *fb = context.active_framebuffer_get();
       viewport[1],
       viewport[2],
       viewport[3]);
+      */
   context.activate_framebuffer(*fb);
   if(std::string(context.shader->name_get()) == "workbench_composite_studio")
   {

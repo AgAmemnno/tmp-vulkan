@@ -8,5 +8,5 @@
 #endif
 
 #define VMA_IMPLEMENTATION
-//#define VMA_DEBUG_LOG
+#define VMA_DEBUG_LOG
 #include "vk_mem_alloc.h"

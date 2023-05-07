@@ -886,11 +886,12 @@ GHOST_TSuccess GHOST_ContextVK::swapBuffers()
     present_info.pResults = NULL;
 
     result = vkQueuePresentKHR(m_present_queue, &present_info);
+    /*
     printf(">>>>>>>>>>>>>  Present Image %d  Frame %d  FinishSemaphore %llx \n",
            m_currentImage,
            m_currentFrame,
            (uint64_t)m_render_finished_semaphores[m_currentFrame]);
-
+    */
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
       /* Swap-chain is out of date. Recreate swap-chain and skip this frame. */
       destroySwapchain();
@@ -926,7 +927,7 @@ GHOST_TSuccess GHOST_ContextVK::swapBuffers()
             vulkan_error_as_string(result));
     return GHOST_kFailure;
   }
-
+  /*
   printf(
       ">>>>>>>>>>>>>  Aquire ImageIndex %d  Image %llx Frame %d  Semaphore wait[%llx]  "
       "finish[%llx] \n",
@@ -935,7 +936,7 @@ GHOST_TSuccess GHOST_ContextVK::swapBuffers()
       m_currentFrame,
       (uint64_t)m_image_available_semaphores[m_currentFrame],
       (uint64_t)m_render_finished_semaphores[m_currentFrame]);
-
+  */
   return GHOST_kSuccess;
 }
 

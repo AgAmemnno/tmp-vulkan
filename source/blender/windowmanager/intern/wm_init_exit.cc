@@ -660,10 +660,6 @@ void WM_exit(bContext *C)
     wait_for_console_key();
   }
 #endif
-
-  int testInteger;
-  printf("Enter Any key to exit.");
-  scanf("%d", &testInteger);
   exit(G.is_break == true);
 }
 

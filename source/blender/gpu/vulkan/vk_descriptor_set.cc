@@ -65,10 +65,8 @@ void VKDescriptorSetTracker::bind(VKUniformBuffer &buffer,
   binding.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
   binding.vk_buffer = buffer.vk_handle();
   binding.buffer_size = buffer.size_in_bytes();
-  printf("UNIFORM BUFFER Write OUT  VkBuffer (%llx)  binding (%d)  SHADER  %s \n", (uintptr_t)binding.vk_buffer, (int)location ,shader->name_get());
-  if(std::string(shader->name_get()) =="workbench_opaque_mesh_tex_none_no_clip"){
-    printf("");
-  }
+  //printf("UNIFORM BUFFER Write OUT  VkBuffer (%llx)  binding (%d)  SHADER  %s \n", (uintptr_t)binding.vk_buffer, (int)location ,shader->name_get());
+
 }
 
 void VKDescriptorSetTracker::bind_as_ssbo(VKIndexBuffer &buffer,
@@ -88,10 +86,7 @@ void VKDescriptorSetTracker::texture_bind(VKTexture &texture,
   binding.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
   binding.vk_image_view = texture.vk_image_view_for_descriptor();
   binding.vk_sampler = VKTexture::get_sampler(sampler_type);
-  if(location == VKDescriptorSet::Location(4)){
-    printf("");
-  }
-  printf("IMAGE SAMPLER Write OUT  view (%llx)  binding (%d)  SHADER  %s \n",(uintptr_t)binding.vk_image_view, (int)location ,shader->name_get());
+  //printf("IMAGE SAMPLER Write OUT  view (%llx)  binding (%d)  SHADER  %s \n",(uintptr_t)binding.vk_image_view, (int)location ,shader->name_get());
 }
 
 void VKDescriptorSetTracker::image_bind(VKTexture &texture,

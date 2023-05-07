@@ -16,10 +16,6 @@ void VKShaderInterface::init(const shader::ShaderCreateInfo &info)
   static char PUSH_CONSTANTS_FALLBACK_NAME[] = "push_constants_fallback";
   static size_t PUSH_CONSTANTS_FALLBACK_NAME_LEN = strlen(PUSH_CONSTANTS_FALLBACK_NAME);
 
-  if(info.name_ == "overlay_extra")
-   {
-    printf("");
-   }
 
   using namespace blender::gpu::shader;
   uint ubo_push_len_ = 0;

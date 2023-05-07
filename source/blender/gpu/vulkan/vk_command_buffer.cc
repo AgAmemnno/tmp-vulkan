@@ -47,7 +47,7 @@ bool VKCommandBuffer::begin_render_pass(const VKFrameBuffer &framebuffer, T *sfi
   render_pass_begin_info.renderArea = framebuffer.vk_render_area_get();
   vkCmdBeginRenderPass(vk_command_buffer_, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
   begin_rp_ = true;
-  
+
   debug::raise_vk_info("=========== Begin Render Pass ========= framebuffer %llx  \n",(uintptr_t)render_pass_begin_info.framebuffer);
   return true;
 }
@@ -100,7 +100,7 @@ bool VKCommandBuffer::image_transition_from_framebuffer(const VKFrameBuffer& fra
 {
   bool ret = false;
   auto subpass = framebuffer.subpass_info.subpass;
- 
+
   for (int i = 0;i < subpass.colorAttachmentCount;i++) {
     int aidx = framebuffer.subpass_info.attachment_idx[subpass.pColorAttachments[i].attachment];
     const GPUAttachment &attachment =  framebuffer.attachment_get(aidx);
@@ -747,7 +747,6 @@ void VKCommandBuffer::submit_encoded_commands(bool fin)
       (uint64_t)wait,
       (uint64_t)finish);
   static int stats = 0;
-  printf("QueueSubmit %d   %llx \n",stats,(uintptr_t)vk_queue_);
   stats++;
   VkResult res = vkQueueSubmit(vk_queue_, 1, &submit_info, vk_fence_);
   if(res != VK_SUCCESS)
@@ -816,9 +815,6 @@ void SafeImage::init(VkImage &image, VkFormat &format)
 void SafeImage::current_layout_set(VkImageLayout new_layout)
 {
   layout_ = new_layout;
-  printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> image %llx   layout  %s   \n",
-         (uint64_t)image_,
-         to_string(new_layout));
 };
 
 VkImageLayout SafeImage::current_layout_get()

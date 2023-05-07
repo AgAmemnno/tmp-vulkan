@@ -532,9 +532,9 @@ Vector<uint32_t> VKShader::compile_glsl_to_spirv(Span<const char *> sources,
                                                  shaderc_shader_kind stage)
 {
   std::string combined_sources = combine_sources(sources);
-  if(std::string(name_get()) == "OCIO_Display")
+  if(std::string(name_get()) == "overlay_grid")
   {
-    printf("%s",combined_sources.c_str());
+    //printf("%s",combined_sources.c_str());
   }
 
   VKBackend &backend = VKBackend::get();
@@ -995,7 +995,6 @@ bool VKShader::finalize_descriptor_set_layouts(VkDevice vk_device,
           VK_SUCCESS) {
         return false;
       };
-      printf("DescriptorSetLayout ================================= %llx \n",(uintptr_t)layout_[i]);
     }
   }
   return true;

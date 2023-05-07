@@ -352,8 +352,8 @@ debugUtilsCB(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
   if ((messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) ||
       (messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)) {
 
-    // if ((LOG.type->flag & CLG_FLAG_USE) && (LOG.type->level >= CLG_SEVERITY_INFO)) {
-    if (true) {
+    //if ((LOG.type->flag & CLG_FLAG_USE) && (LOG.type->level >= CLG_SEVERITY_INFO)) {
+    if(false){
       const char *format = use_color ? CONSOLE_COLOR_FINE "% s\n %s " CONSOLE_COLOR_RESET :
                                        " % s\n %s ";
       CLG_logf(LOG.type,

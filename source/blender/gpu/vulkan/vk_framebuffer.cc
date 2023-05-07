@@ -583,7 +583,7 @@ void VKFrameBuffer::render_pass_create()
   vkCreateFramebuffer(
       context.device_get(), &framebuffer_create_info, vk_allocation_callbacks, &vk_framebuffer_);
   stats = debug::object_label(&context, vk_framebuffer_ , "OffscreenFB" );
-  printf("CreateFrameBuffer %d   (%llx) \n",stats,(uintptr_t)vk_framebuffer_);
+  //printf("CreateFrameBuffer %d   (%llx) \n",stats,(uintptr_t)vk_framebuffer_);
 
   if(attachment_len >0)
   {

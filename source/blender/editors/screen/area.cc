@@ -80,8 +80,8 @@ static void region_draw_emboss(const ARegion *region, const rcti *scirct, int si
   /* Set transparent line. */
   GPU_blend(GPU_BLEND_ALPHA);
 
-  float color[4] = {1.0f, 0.0f, 0.0f, 0.25f};
-  // UI_GetThemeColor3fv(TH_EDITOR_OUTLINE, color);
+  float color[4] = {0.0f, 0.0f, 0.0f, 0.25f};
+  UI_GetThemeColor3fv(TH_EDITOR_OUTLINE, color);
 
   int cnt = 10;
   while (cnt-- > 0) {
